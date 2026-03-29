@@ -233,9 +233,6 @@ router.post('/login', validate(schemas.login), async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isSuperAdmin = toBool(user.is_super_admin);
-    console.log(`Login: ${user.email} is_super_admin raw=${JSON.stringify(user.is_super_admin)} type=${typeof user.is_super_admin} toBool=${isSuperAdmin}`);
-
     const token = makeToken(user, user.family_id);
 
     res.json({
@@ -243,7 +240,7 @@ router.post('/login', validate(schemas.login), async (req, res) => {
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
         isAdmin: toBool(user.is_admin),
-        isSuperAdmin,
+        isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
       },
     });
