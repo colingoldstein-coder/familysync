@@ -317,4 +317,68 @@ router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res
   }
 });
 
+// Update password
+router.patch('/me/password', authenticate, validate(schemas.updatePassword), async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await db('users').where({ id: req.user.id }).first();
+    if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    const passwordHash = bcrypt.hashSync(newPassword, 10);
+    await db('users').where({ id: req.user.id }).update({ password_hash: passwordHash });
+
+    res.json({ message: 'Password updated' });
+  } catch (err) {
+    console.error('Route error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update email
+router.patch('/me/email', authenticate, validate(schemas.updateEmail), async (req, res) => {
+  try {
+    const { newEmail, password } = req.body;
+
+    const user = await db('users').where({ id: req.user.id }).first();
+    if (!bcrypt.compareSync(password, user.password_hash)) {
+      return res.status(400).json({ error: 'Password is incorrect' });
+    }
+
+    const existing = await db('users').where({ email: newEmail }).whereNot({ id: req.user.id }).first();
+    if (existing) {
+      return res.status(400).json({ error: 'Email is already in use' });
+    }
+
+    await db('users').where({ id: req.user.id }).update({ email: newEmail });
+
+    // Issue a new token with the updated email
+    const updated = await db('users').where({ id: req.user.id }).first();
+    const token = makeToken(updated, updated.family_id);
+
+    res.json({ message: 'Email updated', token, email: newEmail });
+  } catch (err) {
+    console.error('Route error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update name
+router.patch('/me/name', authenticate, validate(schemas.updateName), async (req, res) => {
+  try {
+    const { name } = req.body;
+    await db('users').where({ id: req.user.id }).update({ name });
+
+    const updated = await db('users').where({ id: req.user.id }).first();
+    const token = makeToken(updated, updated.family_id);
+
+    res.json({ message: 'Name updated', token, name });
+  } catch (err) {
+    console.error('Route error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

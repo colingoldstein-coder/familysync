@@ -27,6 +27,11 @@ export const api = {
   getFamilyMembers: () => request('/auth/family-members'),
   removeFamilyMember: (id) => request(`/auth/family-members/${id}`, { method: 'DELETE' }),
 
+  // Account
+  updatePassword: (data) => request('/auth/me/password', { method: 'PATCH', body: JSON.stringify(data) }),
+  updateEmail: (data) => request('/auth/me/email', { method: 'PATCH', body: JSON.stringify(data) }),
+  updateName: (data) => request('/auth/me/name', { method: 'PATCH', body: JSON.stringify(data) }),
+
   // Invitations
   sendInvite: (data) => request('/auth/invite', { method: 'POST', body: JSON.stringify(data) }),
   getInvite: (token) => request(`/auth/invite/${token}`),

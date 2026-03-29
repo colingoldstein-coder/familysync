@@ -82,6 +82,20 @@ const respondToEvent = z.object({
   parentNotes: z.string().max(1000).optional(),
 });
 
+const updatePassword = z.object({
+  currentPassword: z.string().min(1).max(128),
+  newPassword: z.string().min(8).max(128),
+});
+
+const updateEmail = z.object({
+  newEmail: z.string().email().max(255),
+  password: z.string().min(1).max(128),
+});
+
+const updateName = z.object({
+  name: z.string().min(1).max(100),
+});
+
 const contact = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email().max(255),
@@ -114,5 +128,8 @@ module.exports = {
     createEvent,
     respondToEvent,
     contact,
+    updatePassword,
+    updateEmail,
+    updateName,
   },
 };

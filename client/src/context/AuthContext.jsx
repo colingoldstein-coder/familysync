@@ -46,6 +46,16 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const updateToken = (token) => {
+    localStorage.setItem('familysync_token', token);
+  };
+
+  const refreshUser = async () => {
+    const data = await api.getMe();
+    setUser(data.user);
+    setFamily(data.family);
+  };
+
   const logout = () => {
     localStorage.removeItem('familysync_token');
     setUser(null);
@@ -53,7 +63,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, family, loading, login, registerFamily, acceptInvite, logout }}>
+    <AuthContext.Provider value={{ user, family, loading, login, registerFamily, acceptInvite, logout, updateToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

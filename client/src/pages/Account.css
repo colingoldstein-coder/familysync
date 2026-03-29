@@ -1,0 +1,18 @@
+.account-section {
+  background: var(--bg-secondary);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.account-section h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.account-current {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}

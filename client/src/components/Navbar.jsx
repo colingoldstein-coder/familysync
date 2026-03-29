@@ -31,6 +31,7 @@ export default function Navbar() {
                 <>
                   <Link to="/dashboard" className="nav-link">Dashboard</Link>
                   {user.role === 'parent' && <Link to="/family" className="nav-link">Family</Link>}
+                  <Link to="/account" className="nav-link">Account</Link>
                   <Link to="/about" className="nav-link">About</Link>
                   <Link to="/contact" className="nav-link">Contact</Link>
                 </>

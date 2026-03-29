@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import RecurrencePicker from '../components/RecurrencePicker';
 import EventForm from '../components/EventForm';
-import CalendarSync from '../components/CalendarSync';
 import '../styles/shared.css';
 import './Dashboard.css';
 
@@ -344,7 +343,6 @@ export default function ChildDashboard() {
         </div>
       )}
 
-      <CalendarSync />
     </div>
   );
 }
