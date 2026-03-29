@@ -4,6 +4,7 @@ import { api } from '../api';
 import RecurrencePicker from '../components/RecurrencePicker';
 import EventCard from '../components/EventCard';
 import EventForm from '../components/EventForm';
+import CalendarSync from '../components/CalendarSync';
 import '../styles/shared.css';
 import './Dashboard.css';
 
@@ -468,6 +469,8 @@ export default function ParentDashboard() {
           </div>
         </div>
       )}
+
+      <CalendarSync />
     </div>
   );
 }

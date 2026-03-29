@@ -298,6 +298,88 @@
   flex: 1;
 }
 
+/* Calendar Sync */
+.calendar-sync {
+  background: var(--bg-secondary);
+  border-radius: var(--card-radius);
+  padding: 20px;
+  margin-top: 32px;
+  border: 1px solid var(--border-color);
+}
+
+.calendar-sync-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.calendar-sync-header p {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.feed-url-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.feed-url-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-highlight);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-family: monospace;
+}
+
+.feed-url-input:focus {
+  border-color: var(--accent-green);
+  outline: none;
+}
+
+.calendar-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.calendar-instructions {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.instruction-block {
+  margin-bottom: 16px;
+}
+
+.instruction-block h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--accent-green);
+}
+
+.instruction-block ol {
+  padding-left: 20px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.instruction-note {
+  font-size: 0.75rem;
+  color: var(--text-subdued);
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--bg-elevated);
+  border-radius: var(--card-radius);
+}
+
 /* Tab badge */
 .tab-badge {
   background: var(--accent-green);

@@ -51,6 +51,10 @@ export const api = {
   respondToEvent: (id, data) => request(`/events/${id}/respond`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteEvent: (id, series = false) => request(`/events/${id}${series ? '?series=true' : ''}`, { method: 'DELETE' }),
 
+  // Calendar
+  getCalendarToken: () => request('/calendar/token'),
+  regenerateCalendarToken: () => request('/calendar/token/regenerate', { method: 'POST' }),
+
   // Contact
   sendContactMessage: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) }),
 };

@@ -16,6 +16,7 @@ const taskRoutes = require('./routes/tasks');
 const requestRoutes = require('./routes/requests');
 const contactRoutes = require('./routes/contact');
 const eventRoutes = require('./routes/events');
+const calendarRoutes = require('./routes/calendar');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -89,6 +90,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/calendar', calendarRoutes);
 
 // Serve static frontend when built files exist
 const staticDir = path.join(__dirname, 'public');
