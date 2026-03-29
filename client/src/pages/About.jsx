@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './About.css';
 
 const useCases = [
@@ -113,6 +114,7 @@ const illustrations = {
 };
 
 export default function About() {
+  const { user } = useAuth();
   return (
     <div className="about-page">
       <section className="hero">
@@ -129,7 +131,7 @@ export default function About() {
             Assign chores, track progress, and keep your household running smoothly — all in one place.
           </p>
           <div className="hero-actions">
-            <Link to="/register" className="btn btn-primary btn-large">Get Started Free</Link>
+            {!user && <Link to="/register" className="btn btn-primary btn-large">Get Started Free</Link>}
             <Link to="/contact" className="btn btn-secondary btn-large">Get in Touch</Link>
           </div>
         </div>
@@ -160,11 +162,13 @@ export default function About() {
         })}
       </section>
 
-      <section className="cta">
-        <h2>Ready to get your family in sync?</h2>
-        <p>It's free and takes less than a minute to set up.</p>
-        <Link to="/register" className="btn btn-primary btn-large">Create Your Family</Link>
-      </section>
+      {!user && (
+        <section className="cta">
+          <h2>Ready to get your family in sync?</h2>
+          <p>It's free and takes less than a minute to set up.</p>
+          <Link to="/register" className="btn btn-primary btn-large">Create Your Family</Link>
+        </section>
+      )}
 
       <footer className="about-footer">
         <Link to="/privacy">Privacy</Link>
