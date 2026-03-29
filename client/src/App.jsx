@@ -12,6 +12,7 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import AdminDashboard from './pages/AdminDashboard';
 import Account from './pages/Account';
+import Welcome from './pages/Welcome';
 import './index.css';
 
 function ProtectedRoute({ children, requireRole }) {
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/family" element={<ProtectedRoute requireRole="parent"><Family /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+        <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />

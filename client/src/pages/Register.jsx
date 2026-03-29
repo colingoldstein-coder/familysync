@@ -19,7 +19,7 @@ export default function Register() {
     setError('');
     try {
       await registerFamily(familyName, name, email, password);
-      navigate('/dashboard');
+      navigate('/welcome');
     } catch (err) {
       setError(err.message);
     }
