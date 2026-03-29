@@ -72,21 +72,6 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// TEMPORARY: database reset endpoint — remove after use
-app.post('/api/reset-db-temp', async (req, res) => {
-  try {
-    await db('help_requests').del();
-    await db('tasks').del();
-    await db('invitations').del();
-    await db('users').del();
-    await db('families').del();
-    res.json({ message: 'Database cleared' });
-  } catch (err) {
-    console.error('Reset error:', err);
-    res.status(500).json({ error: 'Reset failed' });
-  }
-});
-
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
