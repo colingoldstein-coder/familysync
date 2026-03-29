@@ -31,7 +31,6 @@ export default function Navbar() {
                 <>
                   <Link to="/dashboard" className="nav-link">Dashboard</Link>
                   {user.role === 'parent' && <Link to="/family" className="nav-link">Family</Link>}
-                  <Link to="/account" className="nav-link">Account</Link>
                   <Link to="/about" className="nav-link">About</Link>
                   <Link to="/contact" className="nav-link">Contact</Link>
                 </>
@@ -39,9 +38,9 @@ export default function Navbar() {
             </div>
 
             <div className="navbar-user">
-              <span className="user-badge" data-role={user.isSuperAdmin ? 'admin' : user.role}>
+              <Link to={user.isSuperAdmin ? '/admin' : '/account'} className="user-badge-link" data-role={user.isSuperAdmin ? 'admin' : user.role}>
                 {user.isSuperAdmin ? '⚙' : user.isAdmin ? '★' : user.role === 'parent' ? '☆' : '●'} {user.name}
-              </span>
+              </Link>
               <button onClick={handleLogout} className="btn btn-secondary btn-small">
                 Log out
               </button>
