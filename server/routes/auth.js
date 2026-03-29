@@ -86,13 +86,17 @@ router.post('/invite', authenticate, requireAdmin, validate(schemas.invite), asy
 
     const family = await db('families').where({ id: req.user.familyId }).first();
 
-    sendInviteEmail({
-      to: email,
-      familyName: family.name,
-      role,
-      token: inviteToken,
-      inviterName: req.user.name,
-    });
+    try {
+      await sendInviteEmail({
+        to: email,
+        familyName: family.name,
+        role,
+        token: inviteToken,
+        inviterName: req.user.name,
+      });
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr);
+    }
 
     res.json({ message: 'Invitation sent', inviteToken });
   } catch (err) {
@@ -182,13 +186,17 @@ router.post('/invitations/:id/resend', authenticate, requireAdmin, async (req, r
 
     const family = await db('families').where({ id: req.user.familyId }).first();
 
-    sendInviteEmail({
-      to: invite.email,
-      familyName: family.name,
-      role: invite.role,
-      token: invite.token,
-      inviterName: req.user.name,
-    });
+    try {
+      await sendInviteEmail({
+        to: invite.email,
+        familyName: family.name,
+        role: invite.role,
+        token: invite.token,
+        inviterName: req.user.name,
+      });
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr);
+    }
 
     res.json({ message: `Invitation resent to ${invite.email}` });
   } catch (err) {
