@@ -8,20 +8,29 @@ import CalendarSync from '../components/CalendarSync';
 import '../styles/shared.css';
 import './Dashboard.css';
 
+const STORAGE_KEY = 'familysync_parent_filters';
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function formatRecurrence(task) {
-  const type = task.recurrence_type;
+function loadFilters() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { tasks: true, requests: true, events: true, completed: false };
+}
+
+function saveFilters(filters) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+}
+
+function formatRecurrence(item) {
+  const type = item.recurrence_type;
   if (!type || type === 'none') return null;
-
-  const interval = task.recurrence_interval || 1;
-  const unit = task.recurrence_unit || 'week';
-
-  if (type === 'daily') {
-    return interval === 1 ? 'Daily' : `Every ${interval} days`;
-  }
+  const interval = item.recurrence_interval || 1;
+  const unit = item.recurrence_unit || 'week';
+  if (type === 'daily') return interval === 1 ? 'Daily' : `Every ${interval} days`;
   if (type === 'weekly') {
-    const days = task.recurrence_days;
+    const days = item.recurrence_days;
     if (days === '1,2,3,4,5') return 'Weekdays';
     if (days) {
       const dayLabels = days.split(',').map(d => DAY_NAMES[Number(d)]).join(', ');
@@ -29,9 +38,7 @@ function formatRecurrence(task) {
     }
     return interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
   }
-  if (type === 'monthly') {
-    return interval === 1 ? 'Monthly' : `Every ${interval} months`;
-  }
+  if (type === 'monthly') return interval === 1 ? 'Monthly' : `Every ${interval} months`;
   if (type === 'custom') {
     const unitLabel = interval === 1 ? unit : unit + 's';
     return `Every ${interval === 1 ? '' : interval + ' '}${unitLabel}`;
@@ -39,27 +46,47 @@ function formatRecurrence(task) {
   return null;
 }
 
-function formatDeadline(dateStr) {
+function formatTime(timeStr) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':');
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  return `${hour % 12 || 12}:${m} ${ampm}`;
+}
+
+function getSortDate(item) {
+  if (item._type === 'event') return item.event_date || '9999-99-99';
+  if (item._type === 'task') return item.deadline || '9999-99-99';
+  return '9999-99-99';
+}
+
+function getDateLabel(dateStr) {
   if (!dateStr) return null;
-  const deadline = new Date(dateStr + 'T00:00:00');
+  const d = new Date(dateStr + 'T00:00:00');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const diffDays = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
-  const formatted = deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  if (diffDays < 0) return { text: `Overdue (${formatted})`, className: 'deadline-overdue' };
-  if (diffDays === 0) return { text: `Due today`, className: 'deadline-today' };
-  if (diffDays === 1) return { text: `Due tomorrow`, className: 'deadline-soon' };
-  if (diffDays <= 3) return { text: `Due ${formatted}`, className: 'deadline-soon' };
-  return { text: `Due ${formatted}`, className: 'deadline-normal' };
+  const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+  const formatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (diff < 0) return { text: `Overdue — ${formatted}`, className: 'overdue' };
+  if (diff === 0) return { text: `Today — ${formatted}`, className: 'today' };
+  if (diff === 1) return { text: `Tomorrow — ${formatted}`, className: '' };
+  return { text: formatted, className: '' };
+}
+
+function isCompleted(item) {
+  if (item._type === 'task') return item.status === 'completed' || item.status === 'rejected';
+  if (item._type === 'request') return item.status === 'accepted' || item.status === 'rejected';
+  if (item._type === 'event') return item.status === 'rejected';
+  return false;
 }
 
 export default function ParentDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('tasks');
   const [tasks, setTasks] = useState([]);
   const [requests, setRequests] = useState([]);
   const [members, setMembers] = useState([]);
   const [events, setEvents] = useState([]);
+  const [filters, setFilters] = useState(loadFilters);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [error, setError] = useState('');
@@ -80,10 +107,7 @@ export default function ParentDashboard() {
   const loadData = async () => {
     try {
       const [tasksData, requestsData, membersData, eventsData] = await Promise.all([
-        api.getTasks(),
-        api.getRequests(),
-        api.getFamilyMembers(),
-        api.getEvents(),
+        api.getTasks(), api.getRequests(), api.getFamilyMembers(), api.getEvents(),
       ]);
       setTasks(tasksData.tasks);
       setRequests(requestsData.requests);
@@ -96,6 +120,14 @@ export default function ParentDashboard() {
 
   useEffect(() => { loadData(); }, []);
 
+  const updateFilters = (key) => {
+    setFilters(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveFilters(next);
+      return next;
+    });
+  };
+
   const children = members.filter(m => m.role === 'child');
 
   const handleCreateTask = async (e) => {
@@ -103,28 +135,19 @@ export default function ParentDashboard() {
     setError('');
     try {
       await api.createTask({
-        title: taskTitle,
-        description: taskDesc,
+        title: taskTitle, description: taskDesc,
         assignedTo: taskAssignAll ? null : Number(taskAssignTo),
-        assignToAll: taskAssignAll,
-        rejectable: taskRejectable,
-        deadline: taskDeadline || null,
-        ...taskRecurrence,
+        assignToAll: taskAssignAll, rejectable: taskRejectable,
+        deadline: taskDeadline || null, ...taskRecurrence,
       });
       setSuccess('Task created!');
       setShowTaskModal(false);
-      setTaskTitle('');
-      setTaskDesc('');
-      setTaskAssignTo('');
-      setTaskAssignAll(false);
-      setTaskRejectable(false);
-      setTaskDeadline('');
+      setTaskTitle(''); setTaskDesc(''); setTaskAssignTo('');
+      setTaskAssignAll(false); setTaskRejectable(false); setTaskDeadline('');
       setTaskRecurrence({ recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week', recurrenceDays: null, recurrenceEnd: null });
       loadData();
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message);
-    }
+    } catch (err) { setError(err.message); }
   };
 
   const handleRespondRequest = async (id, status) => {
@@ -133,18 +156,12 @@ export default function ParentDashboard() {
       setSuccess(`Request ${status}!`);
       loadData();
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message);
-    }
+    } catch (err) { setError(err.message); }
   };
 
   const handleDeleteTask = async (id, series = false) => {
-    try {
-      await api.deleteTask(id, series);
-      loadData();
-    } catch (err) {
-      setError(err.message);
-    }
+    try { await api.deleteTask(id, series); loadData(); }
+    catch (err) { setError(err.message); }
   };
 
   const handleCreateEvent = async (data) => {
@@ -155,9 +172,7 @@ export default function ParentDashboard() {
       setShowEventForm(false);
       loadData();
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message);
-    }
+    } catch (err) { setError(err.message); }
   };
 
   const handleRespondEvent = async (id, data) => {
@@ -166,32 +181,71 @@ export default function ParentDashboard() {
       setSuccess(`Event ${data.status}!`);
       loadData();
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message);
-    }
+    } catch (err) { setError(err.message); }
   };
 
   const handleDeleteEvent = async (id, series = false) => {
-    try {
-      await api.deleteEvent(id, series);
-      loadData();
-    } catch (err) {
-      setError(err.message);
-    }
+    try { await api.deleteEvent(id, series); loadData(); }
+    catch (err) { setError(err.message); }
   };
 
+  // Build unified timeline items
+  const allItems = [];
+
+  if (filters.tasks) {
+    tasks.forEach(t => {
+      if (!filters.completed && isCompleted({ ...t, _type: 'task' })) return;
+      allItems.push({ ...t, _type: 'task' });
+    });
+  }
+
+  if (filters.requests) {
+    requests.forEach(r => {
+      if (!filters.completed && isCompleted({ ...r, _type: 'request' })) return;
+      allItems.push({ ...r, _type: 'request' });
+    });
+  }
+
+  if (filters.events) {
+    events.forEach(e => {
+      if (!filters.completed && isCompleted({ ...e, _type: 'event' })) return;
+      allItems.push({ ...e, _type: 'event' });
+    });
+  }
+
+  // Sort by date
+  allItems.sort((a, b) => {
+    const da = getSortDate(a);
+    const db = getSortDate(b);
+    if (da === db) return 0;
+    return da < db ? -1 : 1;
+  });
+
+  // Group by date
+  const groups = [];
+  let lastDate = null;
+  allItems.forEach(item => {
+    const date = getSortDate(item);
+    const dateKey = date === '9999-99-99' ? '__none__' : date;
+    if (dateKey !== lastDate) {
+      groups.push({ dateKey, items: [] });
+      lastDate = dateKey;
+    }
+    groups[groups.length - 1].items.push(item);
+  });
+
+  const taskCount = tasks.length;
+  const requestCount = requests.length;
+  const eventCount = events.length;
+
+  const activeTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'rejected');
   const pendingRequests = requests.filter(r => r.status === 'pending');
-  const pendingEvents = events.filter(e => e.status === 'pending');
-  const activeTasks = tasks.filter(t => t.status !== 'completed');
-  const completedTasks = tasks.filter(t => t.status === 'completed');
-  const upcomingEvents = events.filter(e => e.status !== 'rejected');
-  const pastEvents = events.filter(e => e.status === 'rejected');
 
   return (
     <div className="page-container">
       <div className="page-header">
         <h1>Welcome back, {user.name}</h1>
-        <p>Manage your family's tasks and requests</p>
+        <p>Your family overview</p>
       </div>
 
       {error && <div className="error-msg">{error}</div>}
@@ -208,164 +262,70 @@ export default function ParentDashboard() {
           <div className="stat-label">Pending Requests</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{completedTasks.length}</div>
-          <div className="stat-label">Completed</div>
+          <div className="stat-number">{events.filter(e => e.status !== 'rejected').length}</div>
+          <div className="stat-label">Upcoming Events</div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs">
-        <button className={`tab ${activeTab === 'tasks' ? 'active' : ''}`} onClick={() => setActiveTab('tasks')}>
-          Tasks
-        </button>
-        <button className={`tab ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
-          Help Requests {pendingRequests.length > 0 && <span className="tab-badge">{pendingRequests.length}</span>}
-        </button>
-        <button className={`tab ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
-          Events {pendingEvents.length > 0 && <span className="tab-badge">{pendingEvents.length}</span>}
-        </button>
+      {/* Action buttons */}
+      <div className="section-header">
+        <h2>Timeline</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary btn-small" onClick={() => setShowTaskModal(true)}>+ New Task</button>
+          <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>+ New Event</button>
+        </div>
       </div>
 
-      {/* Tasks Tab */}
-      {activeTab === 'tasks' && (
-        <>
-          <div className="section-header">
-            <h2>Tasks</h2>
-            <button className="btn btn-primary btn-small" onClick={() => setShowTaskModal(true)}>
-              + New Task
-            </button>
-          </div>
+      {/* Filters */}
+      <div className="filter-bar">
+        <span className="filter-bar-label">Show:</span>
+        <label className="filter-check">
+          <input type="checkbox" checked={filters.tasks} onChange={() => updateFilters('tasks')} />
+          <span>Tasks <span className="filter-count">({taskCount})</span></span>
+        </label>
+        <label className="filter-check">
+          <input type="checkbox" checked={filters.requests} onChange={() => updateFilters('requests')} />
+          <span>Requests <span className="filter-count">({requestCount})</span></span>
+        </label>
+        <label className="filter-check">
+          <input type="checkbox" checked={filters.events} onChange={() => updateFilters('events')} />
+          <span>Events <span className="filter-count">({eventCount})</span></span>
+        </label>
+        <label className="filter-check">
+          <input type="checkbox" checked={filters.completed} onChange={() => updateFilters('completed')} />
+          <span>Completed</span>
+        </label>
+      </div>
 
-          {activeTasks.length === 0 && completedTasks.length === 0 ? (
-            <div className="empty-state">
-              <h3>No tasks yet</h3>
-              <p>Create a task to get your family organized</p>
-            </div>
-          ) : (
-            <div className="card-grid">
-              {activeTasks.map(task => (
-                <div key={task.id} className="card task-card">
-                  <div className="task-header">
-                    <div>
-                      <h3 className="task-title">{task.title}</h3>
-                      {task.description && <p className="task-desc">{task.description}</p>}
-                    </div>
-                    <span className={`badge badge-${task.status}`}>{task.status.replace('_', ' ')}</span>
-                  </div>
-                  <div className="task-meta">
-                    <span>Assigned to: <strong>{task.assigned_to_name}</strong></span>
-                    {task.rejectable ? <span className="meta-tag">Rejectable</span> : null}
-                    {task.deadline && (() => {
-                      const dl = formatDeadline(task.deadline);
-                      return <span className={`meta-tag ${dl.className}`}>{dl.text}</span>;
-                    })()}
-                    {formatRecurrence(task) && (
-                      <span className="meta-tag recurrence-tag">{formatRecurrence(task)}</span>
-                    )}
-                  </div>
-                  <div className="task-actions">
-                    <button className="btn btn-danger btn-small" onClick={() => handleDeleteTask(task.id)}>Delete</button>
-                    {task.series_id && (
-                      <button className="btn btn-danger btn-small" onClick={() => handleDeleteTask(task.id, true)}>Delete Series</button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {completedTasks.map(task => (
-                <div key={task.id} className="card task-card completed">
-                  <div className="task-header">
-                    <div>
-                      <h3 className="task-title">{task.title}</h3>
-                    </div>
-                    <span className="badge badge-completed">completed</span>
-                  </div>
-                  <div className="task-meta">
-                    <span>Done by: <strong>{task.assigned_to_name}</strong></span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Requests Tab */}
-      {activeTab === 'requests' && (
-        <>
-          <div className="section-header">
-            <h2>Help Requests</h2>
-          </div>
-
-          {requests.length === 0 ? (
-            <div className="empty-state">
-              <h3>No requests yet</h3>
-              <p>Your children's help requests will appear here</p>
-            </div>
-          ) : (
-            <div className="card-grid">
-              {requests.map(req => (
-                <div key={req.id} className="card request-card">
-                  <div className="task-header">
-                    <div>
-                      <h3 className="task-title">{req.title}</h3>
-                      {req.description && <p className="task-desc">{req.description}</p>}
-                    </div>
-                    <span className={`badge badge-${req.status}`}>{req.status}</span>
-                  </div>
-                  <div className="task-meta">
-                    <span>From: <strong>{req.requested_by_name}</strong></span>
-                    {req.request_to_all ? <span className="meta-tag">All Parents</span> : null}
-                    {req.accepted_by_name && <span>Accepted by: <strong>{req.accepted_by_name}</strong></span>}
-                    {formatRecurrence(req) && (
-                      <span className="meta-tag recurrence-tag">{formatRecurrence(req)}</span>
-                    )}
-                  </div>
-                  {req.status === 'pending' && (
-                    <div className="task-actions">
-                      <button className="btn btn-primary btn-small" onClick={() => handleRespondRequest(req.id, 'accepted')}>
-                        Accept
-                      </button>
-                      <button className="btn btn-danger btn-small" onClick={() => handleRespondRequest(req.id, 'rejected')}>
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Events Tab */}
-      {activeTab === 'events' && (
-        <>
-          <div className="section-header">
-            <h2>Events</h2>
-            <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>
-              + New Event
-            </button>
-          </div>
-
-          {upcomingEvents.length === 0 ? (
-            <div className="empty-state">
-              <h3>No events yet</h3>
-              <p>Events from your family will appear here</p>
-            </div>
-          ) : (
-            <div className="card-grid">
-              {upcomingEvents.map(event => (
-                <EventCard
-                  key={event.id}
-                  event={event}
+      {/* Timeline */}
+      {allItems.length === 0 ? (
+        <div className="empty-state">
+          <h3>Nothing to show</h3>
+          <p>{!filters.tasks && !filters.requests && !filters.events ? 'Select a category above' : 'Create a task or event to get started'}</p>
+        </div>
+      ) : (
+        groups.map(group => {
+          const label = group.dateKey === '__none__'
+            ? { text: 'No date set', className: 'no-date' }
+            : getDateLabel(group.dateKey);
+          return (
+            <div key={group.dateKey} className="timeline-group">
+              <div className={`timeline-date ${label.className}`}>{label.text}</div>
+              {group.items.map(item => (
+                <TimelineItem
+                  key={`${item._type}-${item.id}`}
+                  item={item}
                   userRole="parent"
-                  onRespond={handleRespondEvent}
-                  onDelete={handleDeleteEvent}
+                  onUpdateTask={handleDeleteTask}
+                  onRespondRequest={handleRespondRequest}
+                  onRespondEvent={handleRespondEvent}
+                  onDeleteTask={handleDeleteTask}
+                  onDeleteEvent={handleDeleteEvent}
                 />
               ))}
             </div>
-          )}
-        </>
+          );
+        })
       )}
 
       {/* Event Form Modal */}
@@ -386,55 +346,26 @@ export default function ParentDashboard() {
             <form onSubmit={handleCreateTask}>
               <div className="form-group">
                 <label>Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Hang up the laundry"
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                  required
-                />
+                <input type="text" placeholder="e.g. Hang up the laundry" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required />
               </div>
-
               <div className="form-group">
                 <label>Description (optional)</label>
-                <textarea
-                  placeholder="Any extra details..."
-                  value={taskDesc}
-                  onChange={(e) => setTaskDesc(e.target.value)}
-                  rows={3}
-                />
+                <textarea placeholder="Any extra details..." value={taskDesc} onChange={(e) => setTaskDesc(e.target.value)} rows={3} />
               </div>
-
               <div className="form-group">
                 <label>Deadline (optional)</label>
-                <input
-                  type="date"
-                  value={taskDeadline}
-                  onChange={(e) => setTaskDeadline(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
+                <input type="date" value={taskDeadline} onChange={(e) => setTaskDeadline(e.target.value)} min={new Date().toISOString().split('T')[0]} />
               </div>
-
               <div className="form-group">
                 <div className="checkbox-group">
-                  <input
-                    type="checkbox"
-                    id="assignAll"
-                    checked={taskAssignAll}
-                    onChange={(e) => setTaskAssignAll(e.target.checked)}
-                  />
+                  <input type="checkbox" id="assignAll" checked={taskAssignAll} onChange={(e) => setTaskAssignAll(e.target.checked)} />
                   <label htmlFor="assignAll">Assign to all children</label>
                 </div>
               </div>
-
               {!taskAssignAll && (
                 <div className="form-group">
                   <label>Assign to</label>
-                  <select
-                    value={taskAssignTo}
-                    onChange={(e) => setTaskAssignTo(e.target.value)}
-                    required={!taskAssignAll}
-                  >
+                  <select value={taskAssignTo} onChange={(e) => setTaskAssignTo(e.target.value)} required={!taskAssignAll}>
                     <option value="">Select a child...</option>
                     {children.map(child => (
                       <option key={child.id} value={child.id}>{child.name}</option>
@@ -442,28 +373,16 @@ export default function ParentDashboard() {
                   </select>
                 </div>
               )}
-
               <div className="form-group">
                 <div className="checkbox-group">
-                  <input
-                    type="checkbox"
-                    id="rejectable"
-                    checked={taskRejectable}
-                    onChange={(e) => setTaskRejectable(e.target.checked)}
-                  />
+                  <input type="checkbox" id="rejectable" checked={taskRejectable} onChange={(e) => setTaskRejectable(e.target.checked)} />
                   <label htmlFor="rejectable">Allow child to reject this task</label>
                 </div>
               </div>
-
               <RecurrencePicker value={taskRecurrence} onChange={setTaskRecurrence} />
-
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowTaskModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Create Task
-                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowTaskModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create Task</button>
               </div>
             </form>
           </div>
@@ -471,6 +390,105 @@ export default function ParentDashboard() {
       )}
 
       <CalendarSync />
+    </div>
+  );
+}
+
+function TimelineItem({ item, userRole, onRespondRequest, onRespondEvent, onDeleteTask, onDeleteEvent }) {
+  const completed = isCompleted(item);
+
+  if (item._type === 'event') {
+    return (
+      <div className={`timeline-item ${completed ? 'completed' : ''}`}>
+        <div className="timeline-type-indicator type-event" />
+        <div className="timeline-content">
+          <div className="timeline-top-row">
+            <span className="timeline-title">{item.title}</span>
+            <div className="timeline-badges">
+              <span className="timeline-category cat-event">Event</span>
+              <span className={`badge badge-${item.status}`}>{item.status}</span>
+            </div>
+          </div>
+          <div className="timeline-summary">
+            {item.event_date && <span className="timeline-time">{formatTime(item.event_time)}{item.end_time ? ` – ${formatTime(item.end_time)}` : ''}</span>}
+            {item.description && <span>{item.description}</span>}
+            {item.location_name && <span className="timeline-location">{item.location_name}</span>}
+            {item.requested_by_name && <span>From: <strong>{item.requested_by_name}</strong></span>}
+            {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
+          </div>
+          {item.status === 'pending' && userRole === 'parent' && (
+            <EventCard
+              event={item}
+              userRole="parent"
+              onRespond={onRespondEvent}
+              onDelete={onDeleteEvent}
+            />
+          )}
+          {item.status !== 'pending' && (
+            <div className="timeline-actions">
+              <button className="btn btn-danger btn-small" onClick={() => onDeleteEvent(item.id)}>Delete</button>
+              {item.series_id && <button className="btn btn-danger btn-small" onClick={() => onDeleteEvent(item.id, true)}>Delete Series</button>}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (item._type === 'request') {
+    return (
+      <div className={`timeline-item ${completed ? 'completed' : ''}`}>
+        <div className="timeline-type-indicator type-request" />
+        <div className="timeline-content">
+          <div className="timeline-top-row">
+            <span className="timeline-title">{item.title}</span>
+            <div className="timeline-badges">
+              <span className="timeline-category cat-request">Request</span>
+              <span className={`badge badge-${item.status}`}>{item.status}</span>
+            </div>
+          </div>
+          <div className="timeline-summary">
+            {item.description && <span>{item.description}</span>}
+            <span>From: <strong>{item.requested_by_name}</strong></span>
+            {item.request_to_all && <span>To: <strong>All Parents</strong></span>}
+            {item.accepted_by_name && <span>Accepted by: <strong>{item.accepted_by_name}</strong></span>}
+            {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
+          </div>
+          {item.status === 'pending' && (
+            <div className="timeline-actions">
+              <button className="btn btn-primary btn-small" onClick={() => onRespondRequest(item.id, 'accepted')}>Accept</button>
+              <button className="btn btn-danger btn-small" onClick={() => onRespondRequest(item.id, 'rejected')}>Reject</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Task
+  return (
+    <div className={`timeline-item ${completed ? 'completed' : ''}`}>
+      <div className="timeline-type-indicator type-task" />
+      <div className="timeline-content">
+        <div className="timeline-top-row">
+          <span className="timeline-title">{item.title}</span>
+          <div className="timeline-badges">
+            <span className="timeline-category cat-task">Task</span>
+            <span className={`badge badge-${item.status}`}>{item.status.replace('_', ' ')}</span>
+          </div>
+        </div>
+        <div className="timeline-summary">
+          {item.description && <span>{item.description}</span>}
+          <span>Assigned to: <strong>{item.assigned_to_name}</strong></span>
+          {item.rejectable ? <span className="meta-tag">Rejectable</span> : null}
+          {item.deadline && <span>Due: <strong>{new Date(item.deadline + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</strong></span>}
+          {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
+        </div>
+        <div className="timeline-actions">
+          <button className="btn btn-danger btn-small" onClick={() => onDeleteTask(item.id)}>Delete</button>
+          {item.series_id && <button className="btn btn-danger btn-small" onClick={() => onDeleteTask(item.id, true)}>Delete Series</button>}
+        </div>
+      </div>
     </div>
   );
 }
