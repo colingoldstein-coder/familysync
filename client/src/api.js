@@ -45,6 +45,12 @@ export const api = {
   getRequests: () => request('/requests'),
   respondToRequest: (id, status) => request(`/requests/${id}/respond`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
+  // Events
+  createEvent: (data) => request('/events', { method: 'POST', body: JSON.stringify(data) }),
+  getEvents: () => request('/events'),
+  respondToEvent: (id, data) => request(`/events/${id}/respond`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteEvent: (id) => request(`/events/${id}`, { method: 'DELETE' }),
+
   // Contact
   sendContactMessage: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) }),
 };

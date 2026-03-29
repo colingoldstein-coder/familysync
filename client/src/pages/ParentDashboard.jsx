@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import RecurrencePicker from '../components/RecurrencePicker';
+import EventCard from '../components/EventCard';
+import EventForm from '../components/EventForm';
 import '../styles/shared.css';
 import './Dashboard.css';
 
@@ -56,7 +58,9 @@ export default function ParentDashboard() {
   const [tasks, setTasks] = useState([]);
   const [requests, setRequests] = useState([]);
   const [members, setMembers] = useState([]);
+  const [events, setEvents] = useState([]);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showEventForm, setShowEventForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -74,14 +78,16 @@ export default function ParentDashboard() {
 
   const loadData = async () => {
     try {
-      const [tasksData, requestsData, membersData] = await Promise.all([
+      const [tasksData, requestsData, membersData, eventsData] = await Promise.all([
         api.getTasks(),
         api.getRequests(),
         api.getFamilyMembers(),
+        api.getEvents(),
       ]);
       setTasks(tasksData.tasks);
       setRequests(requestsData.requests);
       setMembers(membersData.members);
+      setEvents(eventsData.events);
     } catch (err) {
       setError(err.message);
     }
@@ -140,9 +146,45 @@ export default function ParentDashboard() {
     }
   };
 
+  const handleCreateEvent = async (data) => {
+    setError('');
+    try {
+      await api.createEvent(data);
+      setSuccess('Event created!');
+      setShowEventForm(false);
+      loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleRespondEvent = async (id, data) => {
+    try {
+      await api.respondToEvent(id, data);
+      setSuccess(`Event ${data.status}!`);
+      loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteEvent = async (id) => {
+    try {
+      await api.deleteEvent(id);
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const pendingRequests = requests.filter(r => r.status === 'pending');
+  const pendingEvents = events.filter(e => e.status === 'pending');
   const activeTasks = tasks.filter(t => t.status !== 'completed');
   const completedTasks = tasks.filter(t => t.status === 'completed');
+  const upcomingEvents = events.filter(e => e.status !== 'rejected');
+  const pastEvents = events.filter(e => e.status === 'rejected');
 
   return (
     <div className="page-container">
@@ -177,6 +219,9 @@ export default function ParentDashboard() {
         </button>
         <button className={`tab ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
           Help Requests {pendingRequests.length > 0 && <span className="tab-badge">{pendingRequests.length}</span>}
+        </button>
+        <button className={`tab ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
+          Events {pendingEvents.length > 0 && <span className="tab-badge">{pendingEvents.length}</span>}
         </button>
       </div>
 
@@ -289,6 +334,47 @@ export default function ParentDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {/* Events Tab */}
+      {activeTab === 'events' && (
+        <>
+          <div className="section-header">
+            <h2>Events</h2>
+            <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>
+              + New Event
+            </button>
+          </div>
+
+          {upcomingEvents.length === 0 ? (
+            <div className="empty-state">
+              <h3>No events yet</h3>
+              <p>Events from your family will appear here</p>
+            </div>
+          ) : (
+            <div className="card-grid">
+              {upcomingEvents.map(event => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  userRole="parent"
+                  onRespond={handleRespondEvent}
+                  onDelete={handleDeleteEvent}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Event Form Modal */}
+      {showEventForm && (
+        <EventForm
+          members={members}
+          userRole="parent"
+          onSubmit={handleCreateEvent}
+          onCancel={() => setShowEventForm(false)}
+        />
       )}
 
       {/* Create Task Modal */}

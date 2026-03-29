@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import RecurrencePicker from '../components/RecurrencePicker';
+import EventCard from '../components/EventCard';
+import EventForm from '../components/EventForm';
 import '../styles/shared.css';
 import './Dashboard.css';
 
@@ -52,7 +54,9 @@ export default function ChildDashboard() {
   const [tasks, setTasks] = useState([]);
   const [requests, setRequests] = useState([]);
   const [members, setMembers] = useState([]);
+  const [events, setEvents] = useState([]);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showEventForm, setShowEventForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -68,14 +72,16 @@ export default function ChildDashboard() {
 
   const loadData = async () => {
     try {
-      const [tasksData, requestsData, membersData] = await Promise.all([
+      const [tasksData, requestsData, membersData, eventsData] = await Promise.all([
         api.getTasks(),
         api.getRequests(),
         api.getFamilyMembers(),
+        api.getEvents(),
       ]);
       setTasks(tasksData.tasks);
       setRequests(requestsData.requests);
       setMembers(membersData.members);
+      setEvents(eventsData.events);
     } catch (err) {
       setError(err.message);
     }
@@ -121,8 +127,31 @@ export default function ChildDashboard() {
     }
   };
 
+  const handleCreateEvent = async (data) => {
+    setError('');
+    try {
+      await api.createEvent(data);
+      setSuccess('Event created!');
+      setShowEventForm(false);
+      loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteEvent = async (id) => {
+    try {
+      await api.deleteEvent(id);
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'accepted' || t.status === 'in_progress');
   const completedTasks = tasks.filter(t => t.status === 'completed' || t.status === 'rejected');
+  const myEvents = events;
 
   return (
     <div className="page-container">
@@ -157,6 +186,9 @@ export default function ChildDashboard() {
         </button>
         <button className={`tab ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
           My Requests
+        </button>
+        <button className={`tab ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
+          Events {myEvents.filter(e => e.status === 'pending').length > 0 && <span className="tab-badge">{myEvents.filter(e => e.status === 'pending').length}</span>}
         </button>
       </div>
 
@@ -276,6 +308,46 @@ export default function ChildDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {/* Events Tab */}
+      {activeTab === 'events' && (
+        <>
+          <div className="section-header">
+            <h2>Your Events</h2>
+            <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>
+              + New Event
+            </button>
+          </div>
+
+          {myEvents.length === 0 ? (
+            <div className="empty-state">
+              <h3>No events yet</h3>
+              <p>Need a lift? Create an event!</p>
+            </div>
+          ) : (
+            <div className="card-grid">
+              {myEvents.map(event => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  userRole="child"
+                  onDelete={handleDeleteEvent}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Event Form Modal */}
+      {showEventForm && (
+        <EventForm
+          members={members}
+          userRole="child"
+          onSubmit={handleCreateEvent}
+          onCancel={() => setShowEventForm(false)}
+        />
       )}
 
       {/* Create Request Modal */}

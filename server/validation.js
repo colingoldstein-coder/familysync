@@ -59,6 +59,28 @@ const respondToRequest = z.object({
   status: z.enum(['accepted', 'rejected']),
 });
 
+const timePattern = z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)');
+
+const createEvent = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  eventDate: datePattern,
+  eventTime: timePattern,
+  endTime: timePattern.optional().nullable(),
+  eventType: z.enum(['drop_off', 'pick_up', 'both']),
+  locationName: z.string().max(200).optional(),
+  locationAddress: z.string().max(500).optional(),
+  requestedTo: z.number().int().positive().optional(),
+  requestToAll: z.boolean().optional(),
+});
+
+const respondToEvent = z.object({
+  status: z.enum(['accepted', 'rejected']),
+  travelTimeBefore: z.number().int().min(0).max(480).optional(),
+  travelTimeAfter: z.number().int().min(0).max(480).optional(),
+  parentNotes: z.string().max(1000).optional(),
+});
+
 const contact = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email().max(255),
@@ -88,6 +110,8 @@ module.exports = {
     updateTaskStatus,
     createRequest,
     respondToRequest,
+    createEvent,
+    respondToEvent,
     contact,
   },
 };
