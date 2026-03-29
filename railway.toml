@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd client && npm ci && npm run build && cd ../server && npm ci"
+buildCommand = "npm ci --prefix client && npm run build --prefix client && npm ci --prefix server"
 
 [deploy]
-startCommand = "cd server && node server.js"
+startCommand = "node server/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
