@@ -10,6 +10,7 @@ logger.info({
   hasJwtSecret: !!process.env.JWT_SECRET,
   hasDbUrl: !!process.env.DATABASE_URL,
   dbClient: process.env.DATABASE_URL ? 'pg' : 'sqlite',
+  envKeys: Object.keys(process.env).filter(k => !k.startsWith('npm_')).join(','),
 }, 'Starting FamilySync server');
 
 db.migrate.latest()
