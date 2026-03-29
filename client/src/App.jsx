@@ -18,6 +18,7 @@ function ProtectedRoute({ children, requireRole }) {
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#b3b3b3' }}>Loading...</div>;
   if (!user) return <Navigate to="/" />;
+  if (user.isSuperAdmin) return <Navigate to="/admin" />;
   if (requireRole && user.role !== requireRole) return <Navigate to="/dashboard" />;
 
   return children;
@@ -27,7 +28,7 @@ function PublicRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#b3b3b3' }}>Loading...</div>;
-  if (user) return <Navigate to="/dashboard" />;
+  if (user) return <Navigate to={user.isSuperAdmin ? '/admin' : '/dashboard'} />;
 
   return children;
 }
@@ -36,9 +37,15 @@ function HomePage() {
   const { user, loading } = useAuth();
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#b3b3b3' }}>Loading...</div>;
-  if (user) return <Navigate to="/dashboard" />;
+  if (user) return <Navigate to={user.isSuperAdmin ? '/admin' : '/dashboard'} />;
 
   return <About />;
+}
+
+function ContactRoute() {
+  const { user } = useAuth();
+  if (user && user.isSuperAdmin) return <Navigate to="/admin" />;
+  return <Contact />;
 }
 
 function AdminRoute({ children }) {
@@ -62,7 +69,7 @@ function AppRoutes() {
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/contact" element={<ContactRoute />} />
         <Route path="/about" element={<About />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
