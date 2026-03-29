@@ -38,7 +38,7 @@ export const api = {
   createTask: (data) => request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   getTasks: () => request('/tasks'),
   updateTaskStatus: (id, status) => request(`/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  deleteTask: (id) => request(`/tasks/${id}`, { method: 'DELETE' }),
+  deleteTask: (id, series = false) => request(`/tasks/${id}${series ? '?series=true' : ''}`, { method: 'DELETE' }),
 
   // Help Requests
   createRequest: (data) => request('/requests', { method: 'POST', body: JSON.stringify(data) }),

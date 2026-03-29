@@ -1,8 +1,40 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import RecurrencePicker from '../components/RecurrencePicker';
 import '../styles/shared.css';
 import './Dashboard.css';
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function formatRecurrence(task) {
+  const type = task.recurrence_type;
+  if (!type || type === 'none') return null;
+
+  const interval = task.recurrence_interval || 1;
+  const unit = task.recurrence_unit || 'week';
+
+  if (type === 'daily') {
+    return interval === 1 ? 'Daily' : `Every ${interval} days`;
+  }
+  if (type === 'weekly') {
+    const days = task.recurrence_days;
+    if (days === '1,2,3,4,5') return 'Weekdays';
+    if (days) {
+      const dayLabels = days.split(',').map(d => DAY_NAMES[Number(d)]).join(', ');
+      return interval === 1 ? `Weekly (${dayLabels})` : `Every ${interval} weeks (${dayLabels})`;
+    }
+    return interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
+  }
+  if (type === 'monthly') {
+    return interval === 1 ? 'Monthly' : `Every ${interval} months`;
+  }
+  if (type === 'custom') {
+    const unitLabel = interval === 1 ? unit : unit + 's';
+    return `Every ${interval === 1 ? '' : interval + ' '}${unitLabel}`;
+  }
+  return null;
+}
 
 function formatDeadline(dateStr) {
   if (!dateStr) return null;
@@ -35,6 +67,10 @@ export default function ParentDashboard() {
   const [taskAssignAll, setTaskAssignAll] = useState(false);
   const [taskRejectable, setTaskRejectable] = useState(false);
   const [taskDeadline, setTaskDeadline] = useState('');
+  const [taskRecurrence, setTaskRecurrence] = useState({
+    recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week',
+    recurrenceDays: null, recurrenceEnd: null,
+  });
 
   const loadData = async () => {
     try {
@@ -66,6 +102,7 @@ export default function ParentDashboard() {
         assignToAll: taskAssignAll,
         rejectable: taskRejectable,
         deadline: taskDeadline || null,
+        ...taskRecurrence,
       });
       setSuccess('Task created!');
       setShowTaskModal(false);
@@ -75,6 +112,7 @@ export default function ParentDashboard() {
       setTaskAssignAll(false);
       setTaskRejectable(false);
       setTaskDeadline('');
+      setTaskRecurrence({ recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week', recurrenceDays: null, recurrenceEnd: null });
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -93,9 +131,9 @@ export default function ParentDashboard() {
     }
   };
 
-  const handleDeleteTask = async (id) => {
+  const handleDeleteTask = async (id, series = false) => {
     try {
-      await api.deleteTask(id);
+      await api.deleteTask(id, series);
       loadData();
     } catch (err) {
       setError(err.message);
@@ -175,9 +213,15 @@ export default function ParentDashboard() {
                       const dl = formatDeadline(task.deadline);
                       return <span className={`meta-tag ${dl.className}`}>{dl.text}</span>;
                     })()}
+                    {formatRecurrence(task) && (
+                      <span className="meta-tag recurrence-tag">{formatRecurrence(task)}</span>
+                    )}
                   </div>
                   <div className="task-actions">
                     <button className="btn btn-danger btn-small" onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                    {task.series_id && (
+                      <button className="btn btn-danger btn-small" onClick={() => handleDeleteTask(task.id, true)}>Delete Series</button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -226,6 +270,9 @@ export default function ParentDashboard() {
                     <span>From: <strong>{req.requested_by_name}</strong></span>
                     {req.request_to_all ? <span className="meta-tag">All Parents</span> : null}
                     {req.accepted_by_name && <span>Accepted by: <strong>{req.accepted_by_name}</strong></span>}
+                    {formatRecurrence(req) && (
+                      <span className="meta-tag recurrence-tag">{formatRecurrence(req)}</span>
+                    )}
                   </div>
                   {req.status === 'pending' && (
                     <div className="task-actions">
@@ -320,6 +367,8 @@ export default function ParentDashboard() {
                   <label htmlFor="rejectable">Allow child to reject this task</label>
                 </div>
               </div>
+
+              <RecurrencePicker value={taskRecurrence} onChange={setTaskRecurrence} />
 
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowTaskModal(false)}>

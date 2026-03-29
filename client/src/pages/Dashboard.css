@@ -103,6 +103,65 @@
   font-weight: 700;
 }
 
+/* Recurrence picker */
+.recurrence-picker {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+
+.day-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-highlight);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.day-btn:hover {
+  border-color: var(--accent-green);
+  color: var(--text-primary);
+}
+
+.day-btn.active {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: #000;
+}
+
+.custom-interval {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-interval input {
+  width: 70px;
+}
+
+.custom-interval select {
+  flex: 1;
+}
+
+/* Recurrence tag */
+.recurrence-tag {
+  background: rgba(52, 152, 219, 0.15);
+  color: var(--accent-blue);
+}
+
 /* Tab badge */
 .tab-badge {
   background: var(--accent-green);

@@ -23,13 +23,24 @@ const acceptInvite = z.object({
   password: z.string().min(8).max(128),
 });
 
+const datePattern = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format');
+
+const recurrenceFields = {
+  recurrenceType: z.enum(['none', 'daily', 'weekly', 'monthly', 'custom']).optional(),
+  recurrenceInterval: z.number().int().min(1).max(365).optional(),
+  recurrenceUnit: z.enum(['day', 'week', 'month']).optional(),
+  recurrenceDays: z.string().regex(/^[0-6](,[0-6])*$/, 'Invalid days format').optional().nullable(),
+  recurrenceEnd: datePattern.optional().nullable(),
+};
+
 const createTask = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
   assignedTo: z.number().int().positive().optional(),
   assignToAll: z.boolean().optional(),
   rejectable: z.boolean().optional(),
-  deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional().nullable(),
+  deadline: datePattern.optional().nullable(),
+  ...recurrenceFields,
 });
 
 const updateTaskStatus = z.object({
@@ -41,6 +52,7 @@ const createRequest = z.object({
   description: z.string().max(1000).optional(),
   requestedTo: z.number().int().positive().optional(),
   requestToAll: z.boolean().optional(),
+  ...recurrenceFields,
 });
 
 const respondToRequest = z.object({

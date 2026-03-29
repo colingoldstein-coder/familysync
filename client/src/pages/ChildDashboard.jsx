@@ -1,8 +1,36 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import RecurrencePicker from '../components/RecurrencePicker';
 import '../styles/shared.css';
 import './Dashboard.css';
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function formatRecurrence(item) {
+  const type = item.recurrence_type;
+  if (!type || type === 'none') return null;
+
+  const interval = item.recurrence_interval || 1;
+  const unit = item.recurrence_unit || 'week';
+
+  if (type === 'daily') return interval === 1 ? 'Daily' : `Every ${interval} days`;
+  if (type === 'weekly') {
+    const days = item.recurrence_days;
+    if (days === '1,2,3,4,5') return 'Weekdays';
+    if (days) {
+      const dayLabels = days.split(',').map(d => DAY_NAMES[Number(d)]).join(', ');
+      return interval === 1 ? `Weekly (${dayLabels})` : `Every ${interval} weeks (${dayLabels})`;
+    }
+    return interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
+  }
+  if (type === 'monthly') return interval === 1 ? 'Monthly' : `Every ${interval} months`;
+  if (type === 'custom') {
+    const unitLabel = interval === 1 ? unit : unit + 's';
+    return `Every ${interval === 1 ? '' : interval + ' '}${unitLabel}`;
+  }
+  return null;
+}
 
 function formatDeadline(dateStr) {
   if (!dateStr) return null;
@@ -33,6 +61,10 @@ export default function ChildDashboard() {
   const [reqDesc, setReqDesc] = useState('');
   const [reqTo, setReqTo] = useState('');
   const [reqToAll, setReqToAll] = useState(false);
+  const [reqRecurrence, setReqRecurrence] = useState({
+    recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week',
+    recurrenceDays: null, recurrenceEnd: null,
+  });
 
   const loadData = async () => {
     try {
@@ -73,6 +105,7 @@ export default function ChildDashboard() {
         description: reqDesc,
         requestedTo: reqToAll ? null : Number(reqTo),
         requestToAll: reqToAll,
+        ...reqRecurrence,
       });
       setSuccess('Request sent!');
       setShowRequestModal(false);
@@ -80,6 +113,7 @@ export default function ChildDashboard() {
       setReqDesc('');
       setReqTo('');
       setReqToAll(false);
+      setReqRecurrence({ recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week', recurrenceDays: null, recurrenceEnd: null });
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -155,6 +189,9 @@ export default function ChildDashboard() {
                       const dl = formatDeadline(task.deadline);
                       return <span className={`meta-tag ${dl.className}`}>{dl.text}</span>;
                     })()}
+                    {formatRecurrence(task) && (
+                      <span className="meta-tag recurrence-tag">{formatRecurrence(task)}</span>
+                    )}
                   </div>
                   <div className="task-actions">
                     {task.status === 'pending' && (
@@ -230,6 +267,9 @@ export default function ChildDashboard() {
                       <span>Sent to: <strong>{req.requested_to_name}</strong></span>
                     )}
                     {req.accepted_by_name && <span>Accepted by: <strong>{req.accepted_by_name}</strong></span>}
+                    {formatRecurrence(req) && (
+                      <span className="meta-tag recurrence-tag">{formatRecurrence(req)}</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -292,6 +332,8 @@ export default function ChildDashboard() {
                   </select>
                 </div>
               )}
+
+              <RecurrencePicker value={reqRecurrence} onChange={setReqRecurrence} />
 
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowRequestModal(false)}>

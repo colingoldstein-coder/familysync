@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
+const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
 
 const router = express.Router();
 
@@ -9,6 +10,7 @@ const router = express.Router();
 router.post('/', authenticate, requireParent, validate(schemas.createTask), async (req, res) => {
   try {
     const { title, description, assignedTo, assignToAll, rejectable, deadline } = req.body;
+    const recurrence = buildRecurrenceFields(req.body);
 
     if (!assignToAll && !assignedTo) {
       return res.status(400).json({ error: 'Must assign to a child or all children' });
@@ -38,6 +40,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
             assigned_by: req.user.id, assigned_to: child.id,
             assign_to_all: true, family_id: req.user.familyId,
             rejectable: !!rejectable, deadline: deadline || null,
+            ...recurrence,
           }).returning('id');
           ids.push(task.id || task);
         }
@@ -51,6 +54,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
         assigned_by: req.user.id, assigned_to: assignedTo,
         family_id: req.user.familyId, rejectable: !!rejectable,
         deadline: deadline || null,
+        ...recurrence,
       }).returning('id');
 
       res.json({ message: 'Task created', taskId: task.id || task });
@@ -112,13 +116,41 @@ router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), as
 
     await db('tasks').where({ id: req.params.id }).update({ status, updated_at: db.fn.now() });
 
-    res.json({ message: 'Task updated' });
+    // Auto-create next occurrence for recurring tasks
+    let nextTaskId = null;
+    if (status === 'completed' && task.recurrence_type !== 'none') {
+      const config = getRecurrenceConfig(task);
+      const baseDate = task.deadline || today();
+      const nextDate = getNextDate(config, baseDate);
+
+      if (nextDate) {
+        const [nextTask] = await db('tasks').insert({
+          title: task.title,
+          description: task.description,
+          assigned_by: task.assigned_by,
+          assigned_to: task.assigned_to,
+          assign_to_all: task.assign_to_all,
+          family_id: task.family_id,
+          rejectable: task.rejectable,
+          deadline: task.deadline ? nextDate : null,
+          recurrence_type: task.recurrence_type,
+          recurrence_interval: task.recurrence_interval,
+          recurrence_unit: task.recurrence_unit,
+          recurrence_days: task.recurrence_days,
+          recurrence_end: task.recurrence_end,
+          series_id: task.series_id,
+        }).returning('id');
+        nextTaskId = nextTask.id || nextTask;
+      }
+    }
+
+    res.json({ message: 'Task updated', nextTaskId });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Delete task (parent only)
+// Delete task (parent only) — ?series=true to delete all future in series
 router.delete('/:id', authenticate, requireParent, async (req, res) => {
   try {
     const task = await db('tasks')
@@ -128,8 +160,17 @@ router.delete('/:id', authenticate, requireParent, async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    await db('tasks').where({ id: req.params.id }).del();
-    res.json({ message: 'Task deleted' });
+    if (req.query.series === 'true' && task.series_id) {
+      // Delete all pending/future tasks in this series
+      await db('tasks')
+        .where({ series_id: task.series_id, family_id: req.user.familyId })
+        .whereIn('status', ['pending', 'accepted', 'in_progress'])
+        .del();
+      res.json({ message: 'Recurring series deleted' });
+    } else {
+      await db('tasks').where({ id: req.params.id }).del();
+      res.json({ message: 'Task deleted' });
+    }
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

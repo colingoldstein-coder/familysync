@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { authenticate, requireChild, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
+const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
 
 const router = express.Router();
 
@@ -22,10 +23,13 @@ router.post('/', authenticate, requireChild, validate(schemas.createRequest), as
       }
     }
 
+    const recurrence = buildRecurrenceFields(req.body);
+
     const [request] = await db('help_requests').insert({
       title, description: description || null,
       requested_by: req.user.id, requested_to: requestedTo || null,
       request_to_all: !!requestToAll, family_id: req.user.familyId,
+      ...recurrence,
     }).returning('id');
 
     res.json({ message: 'Request created', requestId: request.id || request });
@@ -85,6 +89,29 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
       accepted_by: status === 'accepted' ? req.user.id : null,
       updated_at: db.fn.now(),
     });
+
+    // Auto-create next occurrence for recurring requests when accepted
+    if (status === 'accepted' && request.recurrence_type !== 'none') {
+      const config = getRecurrenceConfig(request);
+      const nextDate = getNextDate(config, today());
+
+      if (nextDate) {
+        await db('help_requests').insert({
+          title: request.title,
+          description: request.description,
+          requested_by: request.requested_by,
+          requested_to: request.requested_to,
+          request_to_all: request.request_to_all,
+          family_id: request.family_id,
+          recurrence_type: request.recurrence_type,
+          recurrence_interval: request.recurrence_interval,
+          recurrence_unit: request.recurrence_unit,
+          recurrence_days: request.recurrence_days,
+          recurrence_end: request.recurrence_end,
+          series_id: request.series_id,
+        });
+      }
+    }
 
     res.json({ message: `Request ${status}` });
   } catch (err) {
