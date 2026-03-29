@@ -1,6 +1,31 @@
 import { useState } from 'react';
 import '../styles/shared.css';
 
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function formatRecurrence(item) {
+  const type = item.recurrence_type;
+  if (!type || type === 'none') return null;
+  const interval = item.recurrence_interval || 1;
+  const unit = item.recurrence_unit || 'week';
+  if (type === 'daily') return interval === 1 ? 'Daily' : `Every ${interval} days`;
+  if (type === 'weekly') {
+    const days = item.recurrence_days;
+    if (days === '1,2,3,4,5') return 'Weekdays';
+    if (days) {
+      const dayLabels = days.split(',').map(d => DAY_NAMES[Number(d)]).join(', ');
+      return interval === 1 ? `Weekly (${dayLabels})` : `Every ${interval} weeks (${dayLabels})`;
+    }
+    return interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
+  }
+  if (type === 'monthly') return interval === 1 ? 'Monthly' : `Every ${interval} months`;
+  if (type === 'custom') {
+    const unitLabel = interval === 1 ? unit : unit + 's';
+    return `Every ${interval === 1 ? '' : interval + ' '}${unitLabel}`;
+  }
+  return null;
+}
+
 const EVENT_TYPE_LABELS = {
   drop_off: 'Drop-off',
   pick_up: 'Pick-up',
@@ -81,6 +106,9 @@ export default function EventCard({ event, userRole, onRespond, onDelete }) {
         <div className="event-badges">
           <span className={`badge badge-${event.status}`}>{event.status}</span>
           <span className="meta-tag event-type-tag">{EVENT_TYPE_LABELS[event.event_type]}</span>
+          {formatRecurrence(event) && (
+            <span className="meta-tag recurrence-tag">{formatRecurrence(event)}</span>
+          )}
         </div>
       </div>
 
@@ -212,6 +240,11 @@ export default function EventCard({ event, userRole, onRespond, onDelete }) {
           <button className="btn btn-danger btn-small" onClick={() => onDelete(event.id)}>
             Delete
           </button>
+          {event.series_id && (
+            <button className="btn btn-danger btn-small" onClick={() => onDelete(event.id, true)}>
+              Delete Series
+            </button>
+          )}
         </div>
       )}
     </div>

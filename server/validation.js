@@ -72,6 +72,7 @@ const createEvent = z.object({
   locationAddress: z.string().max(500).optional(),
   requestedTo: z.number().int().positive().optional(),
   requestToAll: z.boolean().optional(),
+  ...recurrenceFields,
 });
 
 const respondToEvent = z.object({

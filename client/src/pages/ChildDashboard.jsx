@@ -140,9 +140,9 @@ export default function ChildDashboard() {
     }
   };
 
-  const handleDeleteEvent = async (id) => {
+  const handleDeleteEvent = async (id, series = false) => {
     try {
-      await api.deleteEvent(id);
+      await api.deleteEvent(id, series);
       loadData();
     } catch (err) {
       setError(err.message);

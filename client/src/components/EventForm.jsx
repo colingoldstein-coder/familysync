@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import RecurrencePicker from './RecurrencePicker';
 import '../styles/shared.css';
 
 export default function EventForm({ members, userRole, onSubmit, onCancel }) {
@@ -12,6 +13,10 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
   const [locationAddress, setLocationAddress] = useState('');
   const [requestedTo, setRequestedTo] = useState('');
   const [requestToAll, setRequestToAll] = useState(false);
+  const [recurrence, setRecurrence] = useState({
+    recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week',
+    recurrenceDays: null, recurrenceEnd: null,
+  });
 
   // Filter targets: children see parents, parents see children
   const targets = userRole === 'child'
@@ -33,6 +38,7 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
       locationAddress: locationAddress || undefined,
       requestedTo: requestToAll ? undefined : Number(requestedTo),
       requestToAll,
+      ...recurrence,
     });
   };
 
@@ -162,6 +168,8 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
               </select>
             </div>
           )}
+
+          <RecurrencePicker value={recurrence} onChange={setRecurrence} />
 
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onCancel}>

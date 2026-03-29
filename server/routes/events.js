@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
+const { buildRecurrenceFields, getRecurrenceConfig, getNextDate } = require('../recurrence');
 
 const router = express.Router();
 
@@ -12,6 +13,7 @@ router.post('/', authenticate, validate(schemas.createEvent), async (req, res) =
       title, description, eventDate, eventTime, endTime, eventType,
       locationName, locationAddress, requestedTo, requestToAll,
     } = req.body;
+    const recurrence = buildRecurrenceFields(req.body);
 
     if (!requestToAll && !requestedTo) {
       return res.status(400).json({ error: 'Must request from a family member or all parents' });
@@ -38,6 +40,7 @@ router.post('/', authenticate, validate(schemas.createEvent), async (req, res) =
       requested_to: requestedTo || null,
       request_to_all: !!requestToAll,
       family_id: req.user.familyId,
+      ...recurrence,
     }).returning('id');
 
     res.json({ message: 'Event created', eventId: event.id || event });
@@ -113,6 +116,35 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
       updated_at: db.fn.now(),
     });
 
+    // Auto-create next occurrence for recurring events when accepted
+    if (status === 'accepted' && event.recurrence_type !== 'none') {
+      const config = getRecurrenceConfig(event);
+      const nextDate = getNextDate(config, event.event_date);
+
+      if (nextDate) {
+        await db('events').insert({
+          title: event.title,
+          description: event.description,
+          event_date: nextDate,
+          event_time: event.event_time,
+          end_time: event.end_time,
+          event_type: event.event_type,
+          location_name: event.location_name,
+          location_address: event.location_address,
+          requested_by: event.requested_by,
+          requested_to: event.requested_to,
+          request_to_all: event.request_to_all,
+          family_id: event.family_id,
+          recurrence_type: event.recurrence_type,
+          recurrence_interval: event.recurrence_interval,
+          recurrence_unit: event.recurrence_unit,
+          recurrence_days: event.recurrence_days,
+          recurrence_end: event.recurrence_end,
+          series_id: event.series_id,
+        });
+      }
+    }
+
     res.json({ message: `Event ${status}` });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -134,8 +166,16 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    await db('events').where({ id: req.params.id }).del();
-    res.json({ message: 'Event deleted' });
+    if (req.query.series === 'true' && event.series_id) {
+      await db('events')
+        .where({ series_id: event.series_id, family_id: req.user.familyId })
+        .whereIn('status', ['pending'])
+        .del();
+      res.json({ message: 'Recurring event series deleted' });
+    } else {
+      await db('events').where({ id: req.params.id }).del();
+      res.json({ message: 'Event deleted' });
+    }
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
