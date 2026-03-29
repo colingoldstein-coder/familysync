@@ -20,7 +20,7 @@ function generateJoinCode() {
 
 function makeToken(user, familyId) {
   return jwt.sign(
-    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, familyId },
+    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, isSuperAdmin: !!user.is_super_admin, familyId },
     getJwtSecret(),
     { expiresIn: '7d' }
   );
@@ -233,7 +233,7 @@ router.post('/login', validate(schemas.login), async (req, res) => {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, familyId: user.family_id },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, isSuperAdmin: !!user.is_super_admin, familyId: user.family_id },
     });
   } catch (err) {
     console.error('Route error:', err);
@@ -246,11 +246,11 @@ router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await db('users')
       .where({ id: req.user.id })
-      .select('id', 'name', 'email', 'role', 'is_admin', 'family_id', 'avatar_color')
+      .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
     res.json({
-      user: { ...user, isAdmin: !!user.is_admin, familyId: user.family_id },
+      user: { ...user, isAdmin: !!user.is_admin, isSuperAdmin: !!user.is_super_admin, familyId: user.family_id },
       family,
     });
   } catch (err) {

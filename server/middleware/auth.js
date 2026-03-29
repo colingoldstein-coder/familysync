@@ -45,4 +45,11 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { authenticate, requireParent, requireChild, requireAdmin, getJwtSecret };
+function requireSuperAdmin(req, res, next) {
+  if (!req.user.isSuperAdmin) {
+    return res.status(403).json({ error: 'Super admin access required' });
+  }
+  next();
+}
+
+module.exports = { authenticate, requireParent, requireChild, requireAdmin, requireSuperAdmin, getJwtSecret };

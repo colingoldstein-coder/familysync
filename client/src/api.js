@@ -57,4 +57,12 @@ export const api = {
 
   // Contact
   sendContactMessage: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Admin
+  getAdminOverview: () => request('/admin/stats/overview'),
+  getAdminRegistrations: (period = '30d') => request(`/admin/stats/registrations?period=${period}`),
+  getAdminTasks: (period = '30d') => request(`/admin/stats/tasks?period=${period}`),
+  getAdminEvents: (period = '30d') => request(`/admin/stats/events?period=${period}`),
+  getAdminFamilies: (page = 1) => request(`/admin/stats/families?page=${page}`),
+  getAdminActiveUsers: (period = '30d') => request(`/admin/stats/active-users?period=${period}`),
 };

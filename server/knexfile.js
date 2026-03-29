@@ -10,6 +10,9 @@ module.exports = {
     migrations: {
       directory: './migrations',
     },
+    seeds: {
+      directory: './seeds',
+    },
   },
   test: {
     client: 'better-sqlite3',
@@ -20,6 +23,9 @@ module.exports = {
     migrations: {
       directory: './migrations',
     },
+    seeds: {
+      directory: './seeds',
+    },
   },
   production: {
     client: 'pg',
@@ -27,6 +33,9 @@ module.exports = {
     pool: { min: 2, max: 10 },
     migrations: {
       directory: './migrations',
+    },
+    seeds: {
+      directory: './seeds',
     },
   },
 };

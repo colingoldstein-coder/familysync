@@ -10,6 +10,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Contact from './pages/Contact';
 import About from './pages/About';
+import AdminDashboard from './pages/AdminDashboard';
 import './index.css';
 
 function ProtectedRoute({ children, requireRole }) {
@@ -40,6 +41,13 @@ function HomePage() {
   return <About />;
 }
 
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#b3b3b3' }}>Loading...</div>;
+  if (!user || !user.isSuperAdmin) return <Navigate to="/dashboard" />;
+  return children;
+}
+
 function AppRoutes() {
   return (
     <>
@@ -51,6 +59,7 @@ function AppRoutes() {
         <Route path="/join/:token" element={<PublicRoute><AcceptInvite /></PublicRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/family" element={<ProtectedRoute requireRole="parent"><Family /></ProtectedRoute>} />
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
