@@ -170,6 +170,33 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
   }
 });
 
+// Resend invitation email (admin only)
+router.post('/invitations/:id/resend', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const invite = await db('invitations')
+      .where({ id: req.params.id, family_id: req.user.familyId, status: 'pending' }).first();
+
+    if (!invite) {
+      return res.status(404).json({ error: 'Pending invitation not found' });
+    }
+
+    const family = await db('families').where({ id: req.user.familyId }).first();
+
+    sendInviteEmail({
+      to: invite.email,
+      familyName: family.name,
+      role: invite.role,
+      token: invite.token,
+      inviterName: req.user.name,
+    });
+
+    res.json({ message: `Invitation resent to ${invite.email}` });
+  } catch (err) {
+    console.error('Route error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get pending invitations for this family (admin only)
 router.get('/invitations', authenticate, requireAdmin, async (req, res) => {
   try {

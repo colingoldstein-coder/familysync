@@ -32,6 +32,7 @@ export const api = {
   getInvite: (token) => request(`/auth/invite/${token}`),
   acceptInvite: (data) => request('/auth/accept-invite', { method: 'POST', body: JSON.stringify(data) }),
   getInvitations: () => request('/auth/invitations'),
+  resendInvite: (id) => request(`/auth/invitations/${id}/resend`, { method: 'POST' }),
 
   // Tasks
   createTask: (data) => request('/tasks', { method: 'POST', body: JSON.stringify(data) }),

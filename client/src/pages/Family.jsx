@@ -64,6 +64,17 @@ export default function Family() {
     }
   };
 
+  const handleResendInvite = async (invite) => {
+    setError('');
+    setSuccess('');
+    try {
+      await api.resendInvite(invite.id);
+      setSuccess(`Invitation resent to ${invite.email}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const parents = members.filter(m => m.role === 'parent');
   const children = members.filter(m => m.role === 'child');
   const pendingInvites = invitations.filter(i => i.status === 'pending');
@@ -121,6 +132,7 @@ export default function Family() {
                   <p>Invited {new Date(invite.created_at).toLocaleDateString()}</p>
                 </div>
                 <span className="badge badge-pending" style={{ textTransform: 'capitalize' }}>{invite.role}</span>
+                <button className="btn btn-primary btn-sm" onClick={() => handleResendInvite(invite)}>Resend</button>
               </div>
             ))}
           </div>
