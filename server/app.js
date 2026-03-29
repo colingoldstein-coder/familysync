@@ -18,6 +18,7 @@ const contactRoutes = require('./routes/contact');
 const eventRoutes = require('./routes/events');
 const calendarRoutes = require('./routes/calendar');
 const adminRoutes = require('./routes/admin');
+const pushRoutes = require('./routes/push');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -93,6 +94,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/push', pushRoutes);
 
 // Serve static frontend when built files exist
 const staticDir = path.join(__dirname, 'public');
@@ -100,6 +102,18 @@ const fallbackDir = path.join(__dirname, '../client/dist');
 const fs = require('fs');
 const distDir = fs.existsSync(staticDir) ? staticDir : fs.existsSync(fallbackDir) ? fallbackDir : null;
 if (distDir) {
+  // Serve .well-known files with correct content type (before SPA fallback)
+  app.use('/.well-known', express.static(path.join(distDir, '.well-known'), {
+    setHeaders: (res) => res.setHeader('Content-Type', 'application/json'),
+  }));
+
+  // Service worker must not be cached by the browser
+  app.get('/sw.js', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Service-Worker-Allowed', '/');
+    next();
+  });
+
   app.use(express.static(distDir));
   app.get('*', (req, res) => {
     res.sendFile(path.join(distDir, 'index.html'));

@@ -3,6 +3,7 @@ const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
+const { notifyUser } = require('../notifications');
 
 const router = express.Router();
 
@@ -47,6 +48,10 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
         return ids;
       });
 
+      for (const child of children) {
+        notifyUser(child.id, { title: 'New task', body: title, url: '/dashboard', tag: 'task-new' });
+      }
+
       res.json({ message: `Task assigned to ${children.length} children`, taskIds });
     } else {
       const [task] = await db('tasks').insert({
@@ -56,6 +61,8 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
         deadline: deadline || null,
         ...recurrence,
       }).returning('id');
+
+      notifyUser(assignedTo, { title: 'New task', body: title, url: '/dashboard', tag: 'task-new' });
 
       res.json({ message: 'Task created', taskId: task.id || task });
     }
@@ -115,6 +122,16 @@ router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), as
     }
 
     await db('tasks').where({ id: req.params.id }).update({ status, updated_at: db.fn.now() });
+
+    // Notify the parent when a task is completed
+    if (status === 'completed') {
+      notifyUser(task.assigned_by, {
+        title: 'Task completed',
+        body: `${req.user.name} completed: ${task.title}`,
+        url: '/dashboard',
+        tag: 'task-done',
+      });
+    }
 
     // Auto-create next occurrence for recurring tasks
     let nextTaskId = null;

@@ -16,8 +16,18 @@ export function AuthProvider({ children }) {
           setUser(data.user);
           setFamily(data.family);
         })
-        .catch(() => {
-          localStorage.removeItem('familysync_token');
+        .catch((err) => {
+          // If offline, try to decode JWT payload for basic user state
+          if (err.isOffline) {
+            try {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              setUser({ id: payload.id, name: payload.name, email: payload.email, role: payload.role, isAdmin: payload.isAdmin, isSuperAdmin: payload.isSuperAdmin, familyId: payload.familyId });
+            } catch {
+              localStorage.removeItem('familysync_token');
+            }
+          } else {
+            localStorage.removeItem('familysync_token');
+          }
         })
         .finally(() => setLoading(false));
     } else {

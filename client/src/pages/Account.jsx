@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import PasswordInput from '../components/PasswordInput';
 import CalendarSync from '../components/CalendarSync';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import '../styles/shared.css';
 import './Account.css';
 
@@ -185,8 +186,48 @@ export default function Account() {
         </form>
       </div>
 
+      {/* Notifications */}
+      <NotificationSettings />
+
       {/* Calendar Sync */}
       <CalendarSync />
+    </div>
+  );
+}
+
+function NotificationSettings() {
+  const { isSupported, permission, isSubscribed, subscribe, unsubscribe } = usePushNotifications();
+  const [loading, setLoading] = useState(false);
+
+  if (!isSupported) return null;
+
+  const handleToggle = async () => {
+    setLoading(true);
+    if (isSubscribed) {
+      await unsubscribe();
+    } else {
+      await subscribe();
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="account-section">
+      <h2>Notifications</h2>
+      <p className="account-current">
+        {permission === 'denied'
+          ? 'Notifications are blocked in your browser settings.'
+          : 'Get notified when tasks are assigned, requests are made, or events are created.'}
+      </p>
+      {permission !== 'denied' && (
+        <button
+          onClick={handleToggle}
+          className={`btn btn-small ${isSubscribed ? 'btn-secondary' : 'btn-primary'}`}
+          disabled={loading}
+        >
+          {loading ? 'Updating...' : isSubscribed ? 'Disable Notifications' : 'Enable Notifications'}
+        </button>
+      )}
     </div>
   );
 }

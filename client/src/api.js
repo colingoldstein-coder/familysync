@@ -4,12 +4,29 @@ function getToken() {
   return localStorage.getItem('familysync_token');
 }
 
+class OfflineError extends Error {
+  constructor() {
+    super("You're offline. Please check your connection.");
+    this.name = 'OfflineError';
+    this.isOffline = true;
+  }
+}
+
 async function request(path, options = {}) {
   const token = getToken();
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new OfflineError();
+    }
+    throw err;
+  }
+
   const data = await res.json();
 
   if (!res.ok) {
@@ -62,6 +79,11 @@ export const api = {
 
   // Contact
   sendContactMessage: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Push notifications
+  getVapidKey: () => request('/push/vapid-key'),
+  subscribePush: (subscription) => request('/push/subscribe', { method: 'POST', body: JSON.stringify(subscription) }),
+  unsubscribePush: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
 
   // Admin
   getAdminOverview: () => request('/admin/stats/overview'),

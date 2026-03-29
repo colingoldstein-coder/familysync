@@ -3,6 +3,7 @@ const db = require('../db');
 const { authenticate, requireChild, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
+const { notifyUser, notifyFamilyMembers } = require('../notifications');
 
 const router = express.Router();
 
@@ -31,6 +32,14 @@ router.post('/', authenticate, requireChild, validate(schemas.createRequest), as
       request_to_all: !!requestToAll, family_id: req.user.familyId,
       ...recurrence,
     }).returning('id');
+
+    // Notify targeted parent(s)
+    const payload = { title: 'Help request', body: `${req.user.name} needs help: ${title}`, url: '/dashboard', tag: 'request-new' };
+    if (requestToAll) {
+      notifyFamilyMembers(req.user.familyId, req.user.id, payload);
+    } else if (requestedTo) {
+      notifyUser(requestedTo, payload);
+    }
 
     res.json({ message: 'Request created', requestId: request.id || request });
   } catch (err) {
@@ -112,6 +121,14 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
         });
       }
     }
+
+    // Notify the child who made the request
+    notifyUser(request.requested_by, {
+      title: `Request ${status}`,
+      body: `Your help request "${request.title}" was ${status}`,
+      url: '/dashboard',
+      tag: 'request-response',
+    });
 
     res.json({ message: `Request ${status}` });
   } catch (err) {

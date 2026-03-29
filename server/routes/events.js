@@ -3,6 +3,7 @@ const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate } = require('../recurrence');
+const { notifyUser, notifyFamilyMembers } = require('../notifications');
 
 const router = express.Router();
 
@@ -42,6 +43,14 @@ router.post('/', authenticate, validate(schemas.createEvent), async (req, res) =
       family_id: req.user.familyId,
       ...recurrence,
     }).returning('id');
+
+    // Notify targeted family members
+    const payload = { title: 'New event', body: `${title} on ${eventDate}`, url: '/dashboard', tag: 'event-new' };
+    if (requestToAll) {
+      notifyFamilyMembers(req.user.familyId, req.user.id, payload);
+    } else if (requestedTo) {
+      notifyUser(requestedTo, payload);
+    }
 
     res.json({ message: 'Event created', eventId: event.id || event });
   } catch (err) {
@@ -144,6 +153,14 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
         });
       }
     }
+
+    // Notify the event creator
+    notifyUser(event.requested_by, {
+      title: `Event ${status}`,
+      body: `${req.user.name} ${status} "${event.title}"`,
+      url: '/dashboard',
+      tag: 'event-response',
+    });
 
     res.json({ message: `Event ${status}` });
   } catch (err) {
