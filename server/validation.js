@@ -29,6 +29,7 @@ const createTask = z.object({
   assignedTo: z.number().int().positive().optional(),
   assignToAll: z.boolean().optional(),
   rejectable: z.boolean().optional(),
+  deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional().nullable(),
 });
 
 const updateTaskStatus = z.object({

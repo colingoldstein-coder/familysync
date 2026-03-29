@@ -4,6 +4,20 @@ import { api } from '../api';
 import '../styles/shared.css';
 import './Dashboard.css';
 
+function formatDeadline(dateStr) {
+  if (!dateStr) return null;
+  const deadline = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+  const formatted = deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  if (diffDays < 0) return { text: `Overdue (${formatted})`, className: 'deadline-overdue' };
+  if (diffDays === 0) return { text: `Due today`, className: 'deadline-today' };
+  if (diffDays === 1) return { text: `Due tomorrow`, className: 'deadline-soon' };
+  if (diffDays <= 3) return { text: `Due ${formatted}`, className: 'deadline-soon' };
+  return { text: `Due ${formatted}`, className: 'deadline-normal' };
+}
+
 export default function ParentDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
@@ -20,6 +34,7 @@ export default function ParentDashboard() {
   const [taskAssignTo, setTaskAssignTo] = useState('');
   const [taskAssignAll, setTaskAssignAll] = useState(false);
   const [taskRejectable, setTaskRejectable] = useState(false);
+  const [taskDeadline, setTaskDeadline] = useState('');
 
   const loadData = async () => {
     try {
@@ -50,6 +65,7 @@ export default function ParentDashboard() {
         assignedTo: taskAssignAll ? null : Number(taskAssignTo),
         assignToAll: taskAssignAll,
         rejectable: taskRejectable,
+        deadline: taskDeadline || null,
       });
       setSuccess('Task created!');
       setShowTaskModal(false);
@@ -58,6 +74,7 @@ export default function ParentDashboard() {
       setTaskAssignTo('');
       setTaskAssignAll(false);
       setTaskRejectable(false);
+      setTaskDeadline('');
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -154,6 +171,10 @@ export default function ParentDashboard() {
                   <div className="task-meta">
                     <span>Assigned to: <strong>{task.assigned_to_name}</strong></span>
                     {task.rejectable ? <span className="meta-tag">Rejectable</span> : null}
+                    {task.deadline && (() => {
+                      const dl = formatDeadline(task.deadline);
+                      return <span className={`meta-tag ${dl.className}`}>{dl.text}</span>;
+                    })()}
                   </div>
                   <div className="task-actions">
                     <button className="btn btn-danger btn-small" onClick={() => handleDeleteTask(task.id)}>Delete</button>
@@ -247,6 +268,16 @@ export default function ParentDashboard() {
                   value={taskDesc}
                   onChange={(e) => setTaskDesc(e.target.value)}
                   rows={3}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Deadline (optional)</label>
+                <input
+                  type="date"
+                  value={taskDeadline}
+                  onChange={(e) => setTaskDeadline(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
                 />
               </div>
 

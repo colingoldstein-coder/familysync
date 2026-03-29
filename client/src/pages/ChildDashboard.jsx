@@ -4,6 +4,20 @@ import { api } from '../api';
 import '../styles/shared.css';
 import './Dashboard.css';
 
+function formatDeadline(dateStr) {
+  if (!dateStr) return null;
+  const deadline = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+  const formatted = deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  if (diffDays < 0) return { text: `Overdue (${formatted})`, className: 'deadline-overdue' };
+  if (diffDays === 0) return { text: `Due today`, className: 'deadline-today' };
+  if (diffDays === 1) return { text: `Due tomorrow`, className: 'deadline-soon' };
+  if (diffDays <= 3) return { text: `Due ${formatted}`, className: 'deadline-soon' };
+  return { text: `Due ${formatted}`, className: 'deadline-normal' };
+}
+
 export default function ChildDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
@@ -137,6 +151,10 @@ export default function ChildDashboard() {
                   </div>
                   <div className="task-meta">
                     <span>From: <strong>{task.assigned_by_name}</strong></span>
+                    {task.deadline && (() => {
+                      const dl = formatDeadline(task.deadline);
+                      return <span className={`meta-tag ${dl.className}`}>{dl.text}</span>;
+                    })()}
                   </div>
                   <div className="task-actions">
                     {task.status === 'pending' && (

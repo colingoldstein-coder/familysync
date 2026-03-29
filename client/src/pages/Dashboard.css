@@ -80,6 +80,29 @@
   gap: 8px;
 }
 
+/* Deadline tags */
+.deadline-normal {
+  background: var(--bg-highlight);
+  color: var(--text-secondary);
+}
+
+.deadline-soon {
+  background: rgba(243, 156, 18, 0.15);
+  color: var(--accent-orange);
+}
+
+.deadline-today {
+  background: rgba(243, 156, 18, 0.2);
+  color: var(--accent-orange);
+  font-weight: 700;
+}
+
+.deadline-overdue {
+  background: rgba(231, 76, 60, 0.15);
+  color: var(--accent-red);
+  font-weight: 700;
+}
+
 /* Tab badge */
 .tab-badge {
   background: var(--accent-green);

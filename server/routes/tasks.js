@@ -8,7 +8,7 @@ const router = express.Router();
 // Create a task (parent only)
 router.post('/', authenticate, requireParent, validate(schemas.createTask), async (req, res) => {
   try {
-    const { title, description, assignedTo, assignToAll, rejectable } = req.body;
+    const { title, description, assignedTo, assignToAll, rejectable, deadline } = req.body;
 
     if (!assignToAll && !assignedTo) {
       return res.status(400).json({ error: 'Must assign to a child or all children' });
@@ -37,7 +37,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
             title, description: description || null,
             assigned_by: req.user.id, assigned_to: child.id,
             assign_to_all: true, family_id: req.user.familyId,
-            rejectable: !!rejectable,
+            rejectable: !!rejectable, deadline: deadline || null,
           }).returning('id');
           ids.push(task.id || task);
         }
@@ -50,6 +50,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
         title, description: description || null,
         assigned_by: req.user.id, assigned_to: assignedTo,
         family_id: req.user.familyId, rejectable: !!rejectable,
+        deadline: deadline || null,
       }).returning('id');
 
       res.json({ message: 'Task created', taskId: task.id || task });
