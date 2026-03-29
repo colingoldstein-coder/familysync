@@ -258,7 +258,6 @@ router.get('/me', authenticate, async (req, res) => {
       .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
-    console.log('GET /me super_admin raw value:', JSON.stringify(user.is_super_admin), 'type:', typeof user.is_super_admin);
     res.json({
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
