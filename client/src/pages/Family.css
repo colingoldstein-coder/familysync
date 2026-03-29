@@ -1,0 +1,78 @@
+.invite-card {
+  margin-bottom: 32px;
+  padding: 24px;
+}
+
+.invite-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.invite-hint {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.invite-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.invite-form .form-group {
+  flex: 1;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
+.invite-form .btn {
+  flex-shrink: 0;
+  height: 42px;
+}
+
+.members-section {
+  margin-bottom: 32px;
+}
+
+.members-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+}
+
+.member-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.member-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-info h3 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.member-info p {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}

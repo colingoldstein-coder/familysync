@@ -1,0 +1,13 @@
+{
+  "name": "familysync",
+  "version": "1.0.0",
+  "description": "Family task management and help request app",
+  "scripts": {
+    "server": "cd server && node server.js",
+    "client": "cd client && npx vite --host",
+    "dev": "concurrently -n server,client -c green,blue \"npm run server\" \"npm run client\""
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

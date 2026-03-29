@@ -1,0 +1,119 @@
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 60%);
+}
+
+.auth-card {
+  background: var(--bg-secondary);
+  border-radius: var(--card-radius);
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--border-color);
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.brand-icon-large {
+  font-size: 3rem;
+  color: var(--accent-green);
+  display: block;
+  margin-bottom: 16px;
+}
+
+.auth-logo h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.auth-logo p {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  margin-top: 8px;
+}
+
+.auth-footer {
+  margin-top: 32px;
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.auth-footer p {
+  color: var(--text-subdued);
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+}
+
+.auth-footer a {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.auth-divider {
+  display: inline-block;
+  margin: 0 8px;
+  color: var(--text-subdued);
+  font-size: 0.875rem;
+}
+
+.invite-details {
+  background: var(--bg-primary);
+  padding: 16px;
+  border-radius: var(--card-radius);
+  margin-bottom: 24px;
+}
+
+.invite-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.invite-detail-row + .invite-detail-row {
+  border-top: 1px solid var(--border-color);
+}
+
+.invite-detail-row span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.invite-detail-row strong {
+  font-size: 0.875rem;
+}
+
+.join-code-display {
+  background: var(--bg-primary);
+  padding: 16px;
+  border-radius: var(--card-radius);
+  text-align: center;
+  margin: 16px 0;
+}
+
+.join-code-display .code {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--accent-green);
+}
+
+.join-code-display p {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  margin-top: 8px;
+}
