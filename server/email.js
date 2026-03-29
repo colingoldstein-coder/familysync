@@ -1,31 +1,7 @@
-const nodemailer = require('nodemailer');
 const logger = require('./logger');
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-
-let transporter;
-
-if (process.env.RESEND_API_KEY) {
-  transporter = nodemailer.createTransport({
-    host: 'smtp.resend.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: 'resend',
-      pass: process.env.RESEND_API_KEY,
-    },
-  });
-} else if (process.env.GMAIL_USER) {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-}
-
-const fromAddress = process.env.EMAIL_FROM || `"FamilySync" <${process.env.GMAIL_USER || 'noreply@familysync.app'}>`;
+const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0];
+const fromAddress = process.env.EMAIL_FROM || '"FamilySync" <noreply@familysync.app>';
 
 async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
   const joinUrl = `${CLIENT_URL}/join/${token}`;
@@ -44,22 +20,30 @@ async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
     </div>
   `;
 
-  if (!transporter) {
-    logger.warn({ to, joinUrl }, 'No email provider configured — logging invite link');
-    return;
-  }
-
-  try {
-    await transporter.sendMail({
-      from: fromAddress,
-      to,
-      subject: `${inviterName} invited you to join ${familyName} on FamilySync`,
-      html,
+  if (process.env.RESEND_API_KEY) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to,
+        subject: `${inviterName} invited you to join ${familyName} on FamilySync`,
+        html,
+      }),
     });
+
+    if (!res.ok) {
+      const body = await res.text();
+      logger.error({ to, status: res.status, body }, 'Resend API error');
+      throw new Error(`Resend API error: ${res.status} ${body}`);
+    }
+
     logger.info({ to }, 'Invite email sent');
-  } catch (err) {
-    logger.error({ to, err: err.message }, 'Failed to send invite email');
-    logger.info({ to, joinUrl }, 'Invite link (email failed)');
+  } else {
+    logger.warn({ to, joinUrl }, 'No email provider configured — logging invite link');
   }
 }
 
