@@ -73,11 +73,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/requests', requestRoutes);
 
-// Serve static frontend in production
-if (isProduction) {
-  const staticDir = path.join(__dirname, 'public');
-  const fallbackDir = path.join(__dirname, '../client/dist');
-  const distDir = require('fs').existsSync(staticDir) ? staticDir : fallbackDir;
+// Serve static frontend when built files exist
+const staticDir = path.join(__dirname, 'public');
+const fallbackDir = path.join(__dirname, '../client/dist');
+const fs = require('fs');
+const distDir = fs.existsSync(staticDir) ? staticDir : fs.existsSync(fallbackDir) ? fallbackDir : null;
+if (distDir) {
   app.use(express.static(distDir));
   app.get('*', (req, res) => {
     res.sendFile(path.join(distDir, 'index.html'));
