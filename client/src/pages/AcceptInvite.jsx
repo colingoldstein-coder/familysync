@@ -27,7 +27,7 @@ export default function AcceptInvite() {
     setError('');
     try {
       await acceptInvite(token, name, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     }

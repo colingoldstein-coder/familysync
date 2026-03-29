@@ -16,8 +16,8 @@ function ProtectedRoute({ children, requireRole }) {
   const { user, loading } = useAuth();
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#b3b3b3' }}>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-  if (requireRole && user.role !== requireRole) return <Navigate to="/" />;
+  if (!user) return <Navigate to="/" />;
+  if (requireRole && user.role !== requireRole) return <Navigate to="/dashboard" />;
 
   return children;
 }
@@ -26,9 +26,18 @@ function PublicRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#b3b3b3' }}>Loading...</div>;
-  if (user) return <Navigate to="/" />;
+  if (user) return <Navigate to="/dashboard" />;
 
   return children;
+}
+
+function HomePage() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#b3b3b3' }}>Loading...</div>;
+  if (user) return <Navigate to="/dashboard" />;
+
+  return <About />;
 }
 
 function AppRoutes() {
@@ -36,10 +45,11 @@ function AppRoutes() {
     <>
       <Navbar />
       <Routes>
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/join/:token" element={<PublicRoute><AcceptInvite /></PublicRoute>} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/family" element={<ProtectedRoute requireRole="parent"><Family /></ProtectedRoute>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
