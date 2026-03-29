@@ -57,6 +57,7 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
       user: { id: result.userId, name, email, role: 'parent', isAdmin: true, familyId: result.familyId },
     });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -95,6 +96,7 @@ router.post('/invite', authenticate, requireAdmin, validate(schemas.invite), asy
 
     res.json({ message: 'Invitation sent', inviteToken });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -122,6 +124,7 @@ router.get('/invite/:token', async (req, res) => {
       familyName: invite.family_name,
     });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -162,6 +165,7 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
       user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id },
     });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -175,6 +179,7 @@ router.get('/invitations', authenticate, requireAdmin, async (req, res) => {
       .orderBy('created_at', 'desc');
     res.json({ invitations });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -196,6 +201,7 @@ router.post('/login', validate(schemas.login), async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, familyId: user.family_id },
     });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -213,6 +219,7 @@ router.get('/me', authenticate, async (req, res) => {
       family,
     });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -225,6 +232,7 @@ router.get('/family-members', authenticate, async (req, res) => {
       .select('id', 'name', 'email', 'role', 'is_admin', 'avatar_color');
     res.json({ members });
   } catch (err) {
+    console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
