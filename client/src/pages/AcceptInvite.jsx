@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import PasswordInput from '../components/PasswordInput';
 import '../styles/shared.css';
 import './Auth.css';
 
@@ -100,12 +101,10 @@ export default function AcceptInvite() {
 
           <div className="form-group">
             <label>Password</label>
-            <input
-              type="password"
+            <PasswordInput
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </div>
 

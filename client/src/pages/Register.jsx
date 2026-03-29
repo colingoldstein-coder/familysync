@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 import '../styles/shared.css';
 import './Auth.css';
 
@@ -71,12 +72,10 @@ export default function Register() {
 
           <div className="form-group">
             <label>Password</label>
-            <input
-              type="password"
+            <PasswordInput
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </div>
 
