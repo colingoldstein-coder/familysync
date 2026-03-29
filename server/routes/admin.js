@@ -4,6 +4,18 @@ const { authenticate, requireSuperAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Debug endpoint - check if current user has super admin in DB
+router.get('/check', authenticate, async (req, res) => {
+  const user = await db('users').where({ id: req.user.id }).select('id', 'email', 'is_super_admin').first();
+  res.json({
+    jwtClaim: req.user.isSuperAdmin,
+    dbValue: user ? user.is_super_admin : null,
+    dbType: user ? typeof user.is_super_admin : null,
+    userId: req.user.id,
+    email: user ? user.email : null,
+  });
+});
+
 router.use(authenticate, requireSuperAdmin);
 
 function parsePeriod(period) {

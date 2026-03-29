@@ -18,9 +18,13 @@ function generateJoinCode() {
   return code;
 }
 
+function toBool(val) {
+  return val === true || val === 1 || val === '1' || val === 't' || val === 'true';
+}
+
 function makeToken(user, familyId) {
   return jwt.sign(
-    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: user.is_admin === true || user.is_admin === 1, isSuperAdmin: user.is_super_admin === true || user.is_super_admin === 1, familyId },
+    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin), familyId },
     getJwtSecret(),
     { expiresIn: '7d' }
   );
@@ -235,8 +239,8 @@ router.post('/login', validate(schemas.login), async (req, res) => {
       token,
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
-        isAdmin: user.is_admin === true || user.is_admin === 1,
-        isSuperAdmin: user.is_super_admin === true || user.is_super_admin === 1,
+        isAdmin: toBool(user.is_admin),
+        isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
       },
     });
@@ -254,12 +258,13 @@ router.get('/me', authenticate, async (req, res) => {
       .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
+    console.log('GET /me super_admin raw value:', JSON.stringify(user.is_super_admin), 'type:', typeof user.is_super_admin);
     res.json({
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
         avatarColor: user.avatar_color,
-        isAdmin: user.is_admin === true || user.is_admin === 1,
-        isSuperAdmin: user.is_super_admin === true || user.is_super_admin === 1,
+        isAdmin: toBool(user.is_admin),
+        isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
       },
       family,
