@@ -7,6 +7,10 @@ const PORT = process.env.PORT || 3001;
 db.migrate.latest()
   .then(() => {
     logger.info('Migrations complete');
+    return db.seed.run();
+  })
+  .then(() => {
+    logger.info('Seeds complete');
     app.listen(PORT, () => {
       logger.info(`FamilySync server running on port ${PORT}`);
     });
