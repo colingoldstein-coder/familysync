@@ -11,9 +11,14 @@ exports.seed = async function (knex) {
 
   const existing = await knex('users').where({ email }).first();
   if (existing) {
-    // Ensure super admin flag is set
-    await knex('users').where({ id: existing.id }).update({ is_super_admin: true });
-    console.log('Admin user already exists, ensured super admin flag');
+    // Always ensure super admin flag is set
+    await knex('users').where({ id: existing.id }).update({
+      is_super_admin: true,
+      is_admin: true,
+    });
+    // Verify it took effect
+    const updated = await knex('users').where({ id: existing.id }).select('id', 'email', 'is_super_admin').first();
+    console.log(`Admin seed: updated existing user ${updated.email}, is_super_admin=${JSON.stringify(updated.is_super_admin)}`);
     return;
   }
 
@@ -39,5 +44,5 @@ exports.seed = async function (knex) {
     family_id: family.id,
   });
 
-  console.log(`Admin user created: ${email}`);
+  console.log(`Admin seed: created new admin user ${email}`);
 };
