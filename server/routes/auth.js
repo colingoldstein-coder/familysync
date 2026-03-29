@@ -20,7 +20,7 @@ function generateJoinCode() {
 
 function makeToken(user, familyId) {
   return jwt.sign(
-    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, isSuperAdmin: !!user.is_super_admin, familyId },
+    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: user.is_admin === true || user.is_admin === 1, isSuperAdmin: user.is_super_admin === true || user.is_super_admin === 1, familyId },
     getJwtSecret(),
     { expiresIn: '7d' }
   );
@@ -233,7 +233,12 @@ router.post('/login', validate(schemas.login), async (req, res) => {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, isSuperAdmin: !!user.is_super_admin, familyId: user.family_id },
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role,
+        isAdmin: user.is_admin === true || user.is_admin === 1,
+        isSuperAdmin: user.is_super_admin === true || user.is_super_admin === 1,
+        familyId: user.family_id,
+      },
     });
   } catch (err) {
     console.error('Route error:', err);
@@ -250,7 +255,13 @@ router.get('/me', authenticate, async (req, res) => {
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
     res.json({
-      user: { ...user, isAdmin: !!user.is_admin, isSuperAdmin: !!user.is_super_admin, familyId: user.family_id },
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role,
+        avatarColor: user.avatar_color,
+        isAdmin: user.is_admin === true || user.is_admin === 1,
+        isSuperAdmin: user.is_super_admin === true || user.is_super_admin === 1,
+        familyId: user.family_id,
+      },
       family,
     });
   } catch (err) {
