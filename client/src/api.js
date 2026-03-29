@@ -44,4 +44,7 @@ export const api = {
   createRequest: (data) => request('/requests', { method: 'POST', body: JSON.stringify(data) }),
   getRequests: () => request('/requests'),
   respondToRequest: (id, status) => request(`/requests/${id}/respond`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  // Contact
+  sendContactMessage: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) }),
 };

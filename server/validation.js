@@ -46,6 +46,12 @@ const respondToRequest = z.object({
   status: z.enum(['accepted', 'rejected']),
 });
 
+const contact = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email().max(255),
+  message: z.string().min(1).max(2000),
+});
+
 function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
@@ -69,5 +75,6 @@ module.exports = {
     updateTaskStatus,
     createRequest,
     respondToRequest,
+    contact,
   },
 };

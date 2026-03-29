@@ -14,6 +14,7 @@ const db = require('./db');
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const requestRoutes = require('./routes/requests');
+const contactRoutes = require('./routes/contact');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -55,8 +56,17 @@ if (process.env.NODE_ENV !== 'test') {
     legacyHeaders: false,
   });
 
+  const contactLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { error: 'Too many messages, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register-family', authLimiter);
+  app.use('/api/contact', contactLimiter);
   app.use('/api', apiLimiter);
 }
 
@@ -76,6 +86,7 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Serve static frontend when built files exist
 const staticDir = path.join(__dirname, 'public');

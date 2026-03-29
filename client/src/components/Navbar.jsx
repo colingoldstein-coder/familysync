@@ -24,6 +24,7 @@ export default function Navbar() {
         <div className="navbar-links">
           <Link to="/" className="nav-link">Dashboard</Link>
           {user.role === 'parent' && <Link to="/family" className="nav-link">Family</Link>}
+          <Link to="/contact" className="nav-link">Contact</Link>
         </div>
 
         <div className="navbar-user">
