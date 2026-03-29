@@ -243,15 +243,19 @@ export default function ParentDashboard() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1>Welcome back, {user.name}</h1>
-        <p>Your family overview</p>
+      <div className="page-header" style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1>Welcome back, {user.name}</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary btn-small" onClick={() => setShowTaskModal(true)}>+ New Task</button>
+            <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>+ New Event</button>
+          </div>
+        </div>
       </div>
 
       {error && <div className="error-msg">{error}</div>}
       {success && <div className="success-msg">{success}</div>}
 
-      {/* Stats */}
       <div className="stats-row">
         <div className="stat-card">
           <div className="stat-number">{activeTasks.length}</div>
@@ -259,20 +263,11 @@ export default function ParentDashboard() {
         </div>
         <div className="stat-card">
           <div className="stat-number">{pendingRequests.length}</div>
-          <div className="stat-label">Pending Requests</div>
+          <div className="stat-label">Pending</div>
         </div>
         <div className="stat-card">
           <div className="stat-number">{events.filter(e => e.status !== 'rejected').length}</div>
-          <div className="stat-label">Upcoming Events</div>
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="section-header">
-        <h2>Timeline</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary btn-small" onClick={() => setShowTaskModal(true)}>+ New Task</button>
-          <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>+ New Event</button>
+          <div className="stat-label">Events</div>
         </div>
       </div>
 
