@@ -16,7 +16,9 @@ RUN npm ci --omit=dev
 COPY server/ ./
 COPY --from=client-build /app/client/dist ./public
 
-ENV NODE_ENV=production
+# Cache bust to force rebuild
+ARG CACHEBUST=1
+
 ENV PORT=3001
 
 EXPOSE 3001
