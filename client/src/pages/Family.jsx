@@ -51,6 +51,19 @@ export default function Family() {
     }
   };
 
+  const handleRemoveMember = async (member) => {
+    if (!confirm(`Remove ${member.name} from the family? This will delete all their tasks and requests.`)) return;
+    setError('');
+    setSuccess('');
+    try {
+      await api.removeFamilyMember(member.id);
+      setSuccess(`${member.name} has been removed`);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const parents = members.filter(m => m.role === 'parent');
   const children = members.filter(m => m.role === 'child');
   const pendingInvites = invitations.filter(i => i.status === 'pending');
@@ -130,6 +143,9 @@ export default function Family() {
                 <p>{member.email}</p>
               </div>
               <span className="badge badge-accepted">Parent</span>
+              {user.isAdmin && member.id !== user.id && (
+                <button className="btn btn-danger btn-sm" onClick={() => handleRemoveMember(member)}>Remove</button>
+              )}
             </div>
           ))}
         </div>
@@ -154,6 +170,9 @@ export default function Family() {
                   <p>{member.email}</p>
                 </div>
                 <span className="badge badge-pending">Child</span>
+                {user.isAdmin && (
+                  <button className="btn btn-danger btn-sm" onClick={() => handleRemoveMember(member)}>Remove</button>
+                )}
               </div>
             ))}
           </div>

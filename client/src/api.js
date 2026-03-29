@@ -25,6 +25,7 @@ export const api = {
   login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request('/auth/me'),
   getFamilyMembers: () => request('/auth/family-members'),
+  removeFamilyMember: (id) => request(`/auth/family-members/${id}`, { method: 'DELETE' }),
 
   // Invitations
   sendInvite: (data) => request('/auth/invite', { method: 'POST', body: JSON.stringify(data) }),

@@ -237,4 +237,34 @@ router.get('/family-members', authenticate, async (req, res) => {
   }
 });
 
+// Remove a family member (admin only, cannot remove yourself)
+router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const memberId = parseInt(req.params.id);
+
+    if (memberId === req.user.id) {
+      return res.status(400).json({ error: 'You cannot remove yourself' });
+    }
+
+    const member = await db('users')
+      .where({ id: memberId, family_id: req.user.familyId }).first();
+
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    await db.transaction(async (trx) => {
+      await trx('help_requests').where({ requested_by: memberId }).orWhere({ accepted_by: memberId }).del();
+      await trx('tasks').where({ assigned_to: memberId }).orWhere({ assigned_by: memberId }).del();
+      await trx('invitations').where({ invited_by: memberId }).del();
+      await trx('users').where({ id: memberId }).del();
+    });
+
+    res.json({ message: 'Member removed' });
+  } catch (err) {
+    console.error('Route error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
