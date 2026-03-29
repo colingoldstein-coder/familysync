@@ -9,6 +9,7 @@ import Family from './pages/Family';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Contact from './pages/Contact';
+import About from './pages/About';
 import './index.css';
 
 function ProtectedRoute({ children, requireRole }) {
@@ -43,6 +44,7 @@ function AppRoutes() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
