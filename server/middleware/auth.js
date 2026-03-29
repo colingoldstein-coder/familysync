@@ -1,8 +1,11 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return secret;
 }
 
 function authenticate(req, res, next) {
@@ -13,7 +16,7 @@ function authenticate(req, res, next) {
 
   try {
     const token = header.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     req.user = decoded;
     next();
   } catch (err) {
@@ -42,4 +45,4 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { authenticate, requireParent, requireChild, requireAdmin, JWT_SECRET };
+module.exports = { authenticate, requireParent, requireChild, requireAdmin, getJwtSecret };

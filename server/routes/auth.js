@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
-const { JWT_SECRET, authenticate, requireAdmin } = require('../middleware/auth');
+const { getJwtSecret, authenticate, requireAdmin } = require('../middleware/auth');
 const { sendInviteEmail } = require('../email');
 const { validate, schemas } = require('../validation');
 
@@ -21,7 +21,7 @@ function generateJoinCode() {
 function makeToken(user, familyId) {
   return jwt.sign(
     { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: !!user.is_admin, familyId },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: '7d' }
   );
 }
