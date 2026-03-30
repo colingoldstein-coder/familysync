@@ -210,17 +210,39 @@
 .step-icon {
   width: 100%;
   height: 100%;
-  color: var(--text-secondary);
-  background: rgba(29, 185, 84, 0.06);
   border-radius: 50%;
   padding: 18px;
   transition: color 0.3s, background 0.3s;
 }
 
-.step:hover .step-icon {
+/* Per-step colours */
+.step:nth-child(1) .step-icon {
   color: var(--accent-green);
-  background: rgba(29, 185, 84, 0.12);
+  background: rgba(29, 185, 84, 0.1);
 }
+.step:nth-child(1) .step-number { background: var(--accent-green); }
+.step:nth-child(1):hover { border-color: var(--accent-green); box-shadow: 0 12px 32px rgba(29, 185, 84, 0.12); }
+
+.step:nth-child(3) .step-icon {
+  color: var(--accent-blue);
+  background: rgba(52, 152, 219, 0.1);
+}
+.step:nth-child(3) .step-number { background: var(--accent-blue); }
+.step:nth-child(3):hover { border-color: var(--accent-blue); box-shadow: 0 12px 32px rgba(52, 152, 219, 0.12); }
+
+.step:nth-child(5) .step-icon {
+  color: var(--accent-orange);
+  background: rgba(243, 156, 18, 0.1);
+}
+.step:nth-child(5) .step-number { background: var(--accent-orange); }
+.step:nth-child(5):hover { border-color: var(--accent-orange); box-shadow: 0 12px 32px rgba(243, 156, 18, 0.12); }
+
+.step:nth-child(7) .step-icon {
+  color: var(--accent-green);
+  background: rgba(29, 185, 84, 0.1);
+}
+.step:nth-child(7) .step-number { background: var(--accent-green); }
+.step:nth-child(7):hover { border-color: var(--accent-green); box-shadow: 0 12px 32px rgba(29, 185, 84, 0.12); }
 
 /* Step icon animated elements */
 .step-icon-house {
@@ -232,27 +254,37 @@
 }
 
 .step-icon-badge {
-  stroke: var(--accent-green);
-  fill: rgba(29, 185, 84, 0.15);
+  stroke: var(--accent-blue);
+  fill: rgba(52, 152, 219, 0.15);
 }
 
 .step-icon-badge-check {
-  stroke: var(--accent-green);
+  stroke: var(--accent-blue);
 }
 
 .step-icon-recurring {
   animation: stepSpin 8s linear infinite;
   transform-origin: 34px 34px;
+  stroke: var(--accent-orange);
+}
+
+.step-icon-recurring-arrow {
+  stroke: var(--accent-orange);
 }
 
 .step-icon-bar {
-  fill: rgba(29, 185, 84, 0.2);
   stroke: none;
 }
 
-.step:hover .step-icon-bar {
-  fill: rgba(29, 185, 84, 0.35);
-}
+.step-icon-bar.bar-1 { fill: rgba(29, 185, 84, 0.25); }
+.step-icon-bar.bar-2 { fill: rgba(52, 152, 219, 0.25); }
+.step-icon-bar.bar-3 { fill: rgba(243, 156, 18, 0.25); }
+.step-icon-bar.bar-4 { fill: rgba(29, 185, 84, 0.35); }
+
+.step:hover .step-icon-bar.bar-1 { fill: rgba(29, 185, 84, 0.45); }
+.step:hover .step-icon-bar.bar-2 { fill: rgba(52, 152, 219, 0.45); }
+.step:hover .step-icon-bar.bar-3 { fill: rgba(243, 156, 18, 0.45); }
+.step:hover .step-icon-bar.bar-4 { fill: rgba(29, 185, 84, 0.55); }
 
 .step-icon-bar.bar-1 { animation: barGrow 2s ease-in-out infinite; transform-origin: bottom; }
 .step-icon-bar.bar-2 { animation: barGrow 2s ease-in-out infinite 0.2s; transform-origin: bottom; }
@@ -300,8 +332,8 @@
 .connector-line {
   height: 2px;
   flex: 1;
-  background: linear-gradient(90deg, var(--border-color), var(--accent-green), var(--border-color));
-  opacity: 0.4;
+  background: var(--border-color);
+  opacity: 0.5;
 }
 
 .connector-arrow {
@@ -309,8 +341,8 @@
   height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-left: 6px solid var(--accent-green);
-  opacity: 0.5;
+  border-left: 6px solid var(--text-subdued);
+  opacity: 0.6;
 }
 
 .step h3 {
