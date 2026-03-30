@@ -1,10 +1,10 @@
-# Build client — rebuilt 2026-03-30
+# Build client
 FROM node:20-alpine AS client-build
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./
-RUN echo "build-version: $(date +%s)" && npm run build
+RUN cat index.html && echo "---BUILD OUTPUT---" && npm run build && echo "---DIST OUTPUT---" && cat dist/index.html
 
 # Production server
 FROM node:20-alpine
