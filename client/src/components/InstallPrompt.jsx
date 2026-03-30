@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import './InstallPrompt.css';
 
 export default function InstallPrompt() {
-  const { user } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -51,7 +49,7 @@ export default function InstallPrompt() {
     setDismissed(true);
   };
 
-  if (dismissed || !user) return null;
+  if (dismissed) return null;
   if (!deferredPrompt && !showIosPrompt) return null;
 
   return (
