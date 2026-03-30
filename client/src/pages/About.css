@@ -116,7 +116,7 @@
   justify-content: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 32px 24px 48px;
+  margin-top: 40px;
 }
 
 .feature-pill {
@@ -153,47 +153,168 @@
 
 /* ===== HOW IT WORKS ===== */
 .how-it-works {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 48px 24px 64px;
 }
 
 .steps-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
 }
 
 .step {
+  flex: 1;
+  max-width: 240px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 32px 24px;
+  padding: 32px 22px 28px;
   text-align: center;
-  transition: border-color 0.3s, transform 0.3s;
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
 }
 
 .step:hover {
   border-color: var(--accent-green);
-  transform: translateY(-4px);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(29, 185, 84, 0.1);
+}
+
+.step-icon-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 20px;
 }
 
 .step-number {
-  width: 48px;
-  height: 48px;
-  background: rgba(29, 185, 84, 0.15);
-  color: var(--accent-green);
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 28px;
+  height: 28px;
+  background: var(--accent-green);
+  color: #000;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 0.8rem;
   font-weight: 800;
-  margin: 0 auto 20px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
+}
+
+.step-icon {
+  width: 100%;
+  height: 100%;
+  color: var(--text-secondary);
+  background: rgba(29, 185, 84, 0.06);
+  border-radius: 50%;
+  padding: 18px;
+  transition: color 0.3s, background 0.3s;
+}
+
+.step:hover .step-icon {
+  color: var(--accent-green);
+  background: rgba(29, 185, 84, 0.12);
+}
+
+/* Step icon animated elements */
+.step-icon-house {
+  animation: stepPulse 3s ease-in-out infinite;
+}
+
+.step-icon-flap {
+  animation: stepPulse 3s ease-in-out infinite 0.5s;
+}
+
+.step-icon-badge {
+  stroke: var(--accent-green);
+  fill: rgba(29, 185, 84, 0.15);
+}
+
+.step-icon-badge-check {
+  stroke: var(--accent-green);
+}
+
+.step-icon-recurring {
+  animation: stepSpin 8s linear infinite;
+  transform-origin: 34px 34px;
+}
+
+.step-icon-bar {
+  fill: rgba(29, 185, 84, 0.2);
+  stroke: none;
+}
+
+.step:hover .step-icon-bar {
+  fill: rgba(29, 185, 84, 0.35);
+}
+
+.step-icon-bar.bar-1 { animation: barGrow 2s ease-in-out infinite; transform-origin: bottom; }
+.step-icon-bar.bar-2 { animation: barGrow 2s ease-in-out infinite 0.2s; transform-origin: bottom; }
+.step-icon-bar.bar-3 { animation: barGrow 2s ease-in-out infinite 0.4s; transform-origin: bottom; }
+.step-icon-bar.bar-4 { animation: barGrow 2s ease-in-out infinite 0.6s; transform-origin: bottom; }
+
+.step-icon-trend {
+  stroke: var(--accent-green);
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+  animation: drawLine 3s ease-in-out infinite;
+}
+
+@keyframes stepPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes stepSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes barGrow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes drawLine {
+  0% { stroke-dashoffset: 80; }
+  50% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Connector between steps */
+.step-connector {
+  display: flex;
+  align-items: center;
+  padding-top: 44px;
+  width: 40px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.connector-line {
+  height: 2px;
+  flex: 1;
+  background: linear-gradient(90deg, var(--border-color), var(--accent-green), var(--border-color));
+  opacity: 0.4;
+}
+
+.connector-arrow {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid var(--accent-green);
+  opacity: 0.5;
 }
 
 .step h3 {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 10px;
   letter-spacing: -0.3px;
@@ -201,18 +322,28 @@
 
 .step p {
   color: var(--text-secondary);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   line-height: 1.6;
 }
 
 @media (max-width: 768px) {
   .steps-grid {
+    display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
   }
 
+  .step-connector {
+    display: none;
+  }
+
   .step {
     padding: 24px 18px;
+  }
+
+  .step-icon-wrap {
+    width: 72px;
+    height: 72px;
   }
 }
 

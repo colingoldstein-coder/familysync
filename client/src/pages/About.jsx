@@ -134,36 +134,78 @@ export default function About() {
             {!user && <Link to="/register" className="btn btn-primary btn-large">Get Started Free</Link>}
             <Link to="/contact" className="btn btn-secondary btn-large">Get in Touch</Link>
           </div>
+          <div className="features-strip">
+            <div className="feature-pill"><span className="pill-icon">&#9889;</span> Real-time updates</div>
+            <div className="feature-pill"><span className="pill-icon">&#128106;</span> Built for families</div>
+            <div className="feature-pill"><span className="pill-icon">&#128274;</span> Private &amp; secure</div>
+            <div className="feature-pill"><span className="pill-icon">&#127775;</span> Kid-friendly</div>
+          </div>
         </div>
-      </section>
-
-      <section className="features-strip">
-        <div className="feature-pill"><span className="pill-icon">&#9889;</span> Real-time updates</div>
-        <div className="feature-pill"><span className="pill-icon">&#128106;</span> Built for families</div>
-        <div className="feature-pill"><span className="pill-icon">&#128274;</span> Private &amp; secure</div>
-        <div className="feature-pill"><span className="pill-icon">&#127775;</span> Kid-friendly</div>
       </section>
 
       <section className="how-it-works">
         <h2 className="section-title">Get Started in 4 Simple Steps</h2>
         <div className="steps-grid">
           <div className="step">
-            <div className="step-number">1</div>
+            <div className="step-icon-wrap">
+              <div className="step-number">1</div>
+              <svg className="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M24 8L30 4L36 8V16L30 20L24 16V8Z" className="step-icon-house" />
+                <path d="M30 20V28" />
+                <circle cx="20" cy="34" r="5" />
+                <circle cx="30" cy="36" r="4" />
+                <circle cx="40" cy="34" r="3" />
+                <path d="M12 38C12 38 14 32 20 32" className="step-icon-ground" />
+              </svg>
+            </div>
             <h3>Create Your Family</h3>
             <p>Sign up and set up your family group in seconds. You'll be the family admin with full control.</p>
           </div>
+          <div className="step-connector"><div className="connector-line" /><div className="connector-arrow" /></div>
           <div className="step">
-            <div className="step-number">2</div>
+            <div className="step-icon-wrap">
+              <div className="step-number">2</div>
+              <svg className="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="14" width="36" height="24" rx="3" />
+                <path d="M6 18L24 30L42 18" className="step-icon-flap" />
+                <circle cx="36" cy="10" r="6" className="step-icon-badge" />
+                <path d="M33 10L35 12L39 8" className="step-icon-badge-check" />
+              </svg>
+            </div>
             <h3>Invite Your Family</h3>
             <p>Send email invites to family members. Everyone gets their own account to manage their tasks.</p>
           </div>
+          <div className="step-connector"><div className="connector-line" /><div className="connector-arrow" /></div>
           <div className="step">
-            <div className="step-number">3</div>
+            <div className="step-icon-wrap">
+              <div className="step-number">3</div>
+              <svg className="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="10" y="6" width="28" height="36" rx="3" />
+                <path d="M17 16H31" />
+                <path d="M17 22H31" />
+                <path d="M17 28H26" />
+                <circle cx="34" cy="34" r="8" className="step-icon-recurring" />
+                <path d="M34 30V34L37 36" />
+                <path d="M30 27C31 25.5 32.5 25 34 25" className="step-icon-recurring-arrow" />
+              </svg>
+            </div>
             <h3>Create &amp; Assign Tasks</h3>
             <p>Add tasks and events, set deadlines, assign them to family members, and schedule recurring ones.</p>
           </div>
+          <div className="step-connector"><div className="connector-line" /><div className="connector-arrow" /></div>
           <div className="step">
-            <div className="step-number">4</div>
+            <div className="step-icon-wrap">
+              <div className="step-number">4</div>
+              <svg className="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 40L6 12" />
+                <path d="M6 40L42 40" />
+                <rect x="10" y="28" width="6" height="12" rx="1" className="step-icon-bar bar-1" />
+                <rect x="19" y="22" width="6" height="18" rx="1" className="step-icon-bar bar-2" />
+                <rect x="28" y="16" width="6" height="24" rx="1" className="step-icon-bar bar-3" />
+                <rect x="37" y="10" width="6" height="30" rx="1" className="step-icon-bar bar-4" />
+                <path d="M13 24L22 18L31 12L40 6" className="step-icon-trend" />
+              </svg>
+            </div>
             <h3>Track Progress</h3>
             <p>See what's done, what's overdue, and what's coming up. Keep everyone accountable and on track.</p>
           </div>
