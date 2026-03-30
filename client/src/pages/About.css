@@ -255,6 +255,12 @@
   animation: stepPulse 3s ease-in-out infinite 0.5s;
 }
 
+.step-icon-arm {
+  stroke-width: 2.5;
+  opacity: 0.7;
+  animation: stepPulse 3s ease-in-out infinite 0.3s;
+}
+
 .step-icon-flap {
   animation: stepPulse 3s ease-in-out infinite 0.5s;
 }
