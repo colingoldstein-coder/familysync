@@ -144,6 +144,32 @@ export default function About() {
         <div className="feature-pill"><span className="pill-icon">&#127775;</span> Kid-friendly</div>
       </section>
 
+      <section className="how-it-works">
+        <h2 className="section-title">Get Started in 4 Simple Steps</h2>
+        <div className="steps-grid">
+          <div className="step">
+            <div className="step-number">1</div>
+            <h3>Create Your Family</h3>
+            <p>Sign up and set up your family group in seconds. You'll be the family admin with full control.</p>
+          </div>
+          <div className="step">
+            <div className="step-number">2</div>
+            <h3>Invite Your Family</h3>
+            <p>Send email invites to family members. Everyone gets their own account to manage their tasks.</p>
+          </div>
+          <div className="step">
+            <div className="step-number">3</div>
+            <h3>Create &amp; Assign Tasks</h3>
+            <p>Add tasks and events, set deadlines, assign them to family members, and schedule recurring ones.</p>
+          </div>
+          <div className="step">
+            <div className="step-number">4</div>
+            <h3>Track Progress</h3>
+            <p>See what's done, what's overdue, and what's coming up. Keep everyone accountable and on track.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="use-cases">
         <h2 className="section-title">How Families Use FamilySync</h2>
         {useCases.map((uc, i) => {
