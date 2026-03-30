@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import './InstallPrompt.css';
 
 export default function InstallPrompt() {
+  const { user } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -13,7 +16,6 @@ export default function InstallPrompt() {
       return;
     }
 
-    // Already installed as PWA
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setDismissed(true);
       return;
@@ -25,7 +27,6 @@ export default function InstallPrompt() {
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // iOS detection
     const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
     const isSafari = /safari/.test(navigator.userAgent.toLowerCase()) && !/chrome/.test(navigator.userAgent.toLowerCase());
     if (isIos && isSafari) {
@@ -50,18 +51,49 @@ export default function InstallPrompt() {
     setDismissed(true);
   };
 
-  if (dismissed) return null;
+  if (dismissed || !user) return null;
   if (!deferredPrompt && !showIosPrompt) return null;
 
   return (
     <div className="install-prompt">
       <div className="install-prompt-inner">
-        <span className="install-prompt-icon">⟐</span>
+        <img src="/pwa-64x64.png" alt="" className="install-prompt-app-icon" />
         <div className="install-prompt-text">
           {showIosPrompt ? (
-            <p>Install FamilySync: tap <strong>Share</strong> then <strong>Add to Home Screen</strong></p>
+            <>
+              <p>
+                Install FamilySync for instant access and offline support.{' '}
+                <button className="install-guide-toggle" onClick={() => setShowGuide(!showGuide)}>
+                  {showGuide ? 'Hide steps' : 'Show me how'}
+                </button>
+              </p>
+              {showGuide && (
+                <div className="ios-guide">
+                  <div className="ios-guide-step">
+                    <svg className="ios-guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="4" width="16" height="16" rx="2" />
+                      <path d="M12 4V0M12 0L9 3M12 0L15 3" />
+                    </svg>
+                    <span>Tap the <strong>Share</strong> button in Safari</span>
+                  </div>
+                  <div className="ios-guide-step">
+                    <svg className="ios-guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="4" width="16" height="16" rx="2" />
+                      <path d="M12 9V15M9 12H15" />
+                    </svg>
+                    <span>Scroll down, tap <strong>Add to Home Screen</strong></span>
+                  </div>
+                  <div className="ios-guide-step">
+                    <svg className="ios-guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17L4 12" />
+                    </svg>
+                    <span>Tap <strong>Add</strong> in the top right</span>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
-            <p>Install FamilySync for the best experience</p>
+            <p>Install FamilySync for instant access, offline support, and notifications</p>
           )}
         </div>
         <div className="install-prompt-actions">

@@ -102,11 +102,6 @@ const fallbackDir = path.join(__dirname, '../client/dist');
 const fs = require('fs');
 const distDir = fs.existsSync(staticDir) ? staticDir : fs.existsSync(fallbackDir) ? fallbackDir : null;
 if (distDir) {
-  // Serve .well-known files with correct content type (before SPA fallback)
-  app.use('/.well-known', express.static(path.join(distDir, '.well-known'), {
-    setHeaders: (res) => res.setHeader('Content-Type', 'application/json'),
-  }));
-
   // Service worker must not be cached by the browser
   app.get('/sw.js', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-cache');

@@ -118,10 +118,13 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--bg-secondary);
+  background: rgba(24, 24, 24, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-color);
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom);
+  will-change: transform;
 }
 
 .mobile-tab-bar {
@@ -144,6 +147,9 @@
   text-transform: uppercase;
   transition: color 0.2s;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .mobile-tab:hover {
@@ -161,6 +167,13 @@
 
 .mobile-tab.active svg {
   opacity: 1;
+  animation: tabPop 0.25s ease;
+}
+
+@keyframes tabPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 @media (max-width: 768px) {

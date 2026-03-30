@@ -1,0 +1,24 @@
+.update-prompt {
+  background: rgba(29, 185, 84, 0.1);
+  border-bottom: 1px solid rgba(29, 185, 84, 0.2);
+  padding: 10px 24px;
+}
+
+.update-prompt-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.update-prompt-icon {
+  font-size: 1rem;
+}
+
+.update-prompt-inner p {
+  flex: 1;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}

@@ -54,6 +54,8 @@ a:hover {
 button {
   cursor: pointer;
   font-family: var(--font-family);
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 input, select, textarea {

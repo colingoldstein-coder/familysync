@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import OfflineBanner from './components/OfflineBanner';
 import InstallPrompt from './components/InstallPrompt';
+import UpdatePrompt from './components/UpdatePrompt';
+import { setShowUpdateCallback, applyUpdate } from './main';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AcceptInvite from './pages/AcceptInvite';
@@ -60,8 +63,15 @@ function AdminRoute({ children }) {
 }
 
 function AppRoutes() {
+  const [showUpdate, setShowUpdate] = useState(false);
+
+  useEffect(() => {
+    setShowUpdateCallback(setShowUpdate);
+  }, []);
+
   return (
     <>
+      {showUpdate && <UpdatePrompt onRefresh={applyUpdate} />}
       <OfflineBanner />
       <InstallPrompt />
       <Navbar />

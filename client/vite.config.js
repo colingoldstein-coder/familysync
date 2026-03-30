@@ -18,12 +18,20 @@ export default defineConfig({
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        id: '/',
         categories: ['productivity', 'lifestyle'],
+        prefer_related_applications: false,
+        launch_handler: { client_mode: 'navigate-existing' },
+        handle_links: 'preferred',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        shortcuts: [
+          { name: 'Dashboard', url: '/dashboard', icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
+          { name: 'Family', url: '/family', icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
         ],
       },
       workbox: {

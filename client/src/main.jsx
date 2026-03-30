@@ -4,7 +4,22 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.jsx'
 
-registerSW({ immediate: true })
+let showUpdateCallback = null
+
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    if (showUpdateCallback) showUpdateCallback(true)
+  },
+})
+
+export function setShowUpdateCallback(cb) {
+  showUpdateCallback = cb
+}
+
+export function applyUpdate() {
+  updateSW(true)
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
