@@ -255,6 +255,8 @@ export default function About() {
         <Link to="/terms">Terms</Link>
         <span className="dot" />
         <Link to="/contact">Contact</Link>
+        <span className="dot" />
+        <Link to="/install">Install App</Link>
       </footer>
     </div>
   );

@@ -15,6 +15,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Contact from './pages/Contact';
 import About from './pages/About';
+import Install from './pages/Install';
 import AdminDashboard from './pages/AdminDashboard';
 import Account from './pages/Account';
 import Welcome from './pages/Welcome';
@@ -89,6 +90,7 @@ function AppRoutes() {
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<ContactRoute />} />
         <Route path="/about" element={<About />} />
+        <Route path="/install" element={<Install />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
