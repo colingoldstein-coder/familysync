@@ -4,7 +4,7 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./
-RUN cat index.html && echo "---BUILD OUTPUT---" && npm run build && echo "---DIST OUTPUT---" && cat dist/index.html
+RUN npm run build
 
 # Production server
 FROM node:20-alpine
