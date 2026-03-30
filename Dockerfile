@@ -4,6 +4,7 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./
+ARG CACHEBUST
 RUN npm run build
 
 # Production server
@@ -15,9 +16,6 @@ RUN npm ci --omit=dev
 
 COPY server/ ./
 COPY --from=client-build /app/client/dist ./public
-
-# Cache bust to force rebuild
-ARG CACHEBUST=1
 
 ENV PORT=3001
 
