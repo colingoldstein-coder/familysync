@@ -172,7 +172,7 @@ export default function About() {
                 <path d="M33 10L35 12L39 8" className="step-icon-badge-check" />
               </svg>
             </div>
-            <h3>Invite Your Family</h3>
+            <h3>Invite Family Members</h3>
             <p>Send email invites to family members. Everyone gets their own account to manage their tasks.</p>
           </div>
           <div className="step-connector"><div className="connector-line" /><div className="connector-arrow" /></div>
