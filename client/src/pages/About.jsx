@@ -149,13 +149,19 @@ export default function About() {
           <div className="step">
             <div className="step-icon-wrap">
               <div className="step-number">1</div>
-              <svg className="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M24 8L30 4L36 8V16L30 20L24 16V8Z" className="step-icon-house" />
-                <path d="M30 20V28" />
-                <circle cx="20" cy="34" r="5" />
-                <circle cx="30" cy="36" r="4" />
-                <circle cx="40" cy="34" r="3" />
-                <path d="M12 38C12 38 14 32 20 32" className="step-icon-ground" />
+              <svg className="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {/* Parent 1 */}
+                <circle cx="14" cy="10" r="4" className="step-icon-family" />
+                <path d="M14 14C10 14 7 17 7 21V24H21V21C21 17 18 14 14 14Z" className="step-icon-family" />
+                {/* Parent 2 */}
+                <circle cx="34" cy="10" r="4" className="step-icon-family" />
+                <path d="M34 14C30 14 27 17 27 21V24H41V21C41 17 38 14 34 14Z" className="step-icon-family" />
+                {/* Child 1 */}
+                <circle cx="19" cy="30" r="3" className="step-icon-child" />
+                <path d="M19 33C16.5 33 14 35 14 37.5V40H24V37.5C24 35 21.5 33 19 33Z" className="step-icon-child" />
+                {/* Child 2 */}
+                <circle cx="29" cy="30" r="3" className="step-icon-child" />
+                <path d="M29 33C26.5 33 24 35 24 37.5V40H34V37.5C34 35 31.5 33 29 33Z" className="step-icon-child" />
               </svg>
             </div>
             <h3>Create Your Family</h3>

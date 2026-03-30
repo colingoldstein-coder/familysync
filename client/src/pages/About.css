@@ -245,8 +245,14 @@
 .step:nth-child(7):hover { border-color: var(--accent-green); box-shadow: 0 12px 32px rgba(29, 185, 84, 0.12); }
 
 /* Step icon animated elements */
-.step-icon-house {
+.step-icon-family {
+  fill: rgba(29, 185, 84, 0.15);
   animation: stepPulse 3s ease-in-out infinite;
+}
+
+.step-icon-child {
+  fill: rgba(29, 185, 84, 0.1);
+  animation: stepPulse 3s ease-in-out infinite 0.5s;
 }
 
 .step-icon-flap {
