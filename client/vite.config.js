@@ -29,6 +29,9 @@ export default defineConfig({
       workbox: {
         importScripts: ['sw-push.js'],
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        skipWaiting: true,
+        clientsClaim: true,
+        navigateFallback: 'index.html',
         runtimeCaching: [
           {
             urlPattern: /\/api\/(tasks|requests|events|auth\/me|auth\/family-members)/,
