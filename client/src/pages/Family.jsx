@@ -83,7 +83,7 @@ export default function Family() {
     <div className="page-container">
       <div className="page-header">
         <h1>{familyInfo?.name || 'Your Family'}</h1>
-        <p>Manage your family members</p>
+        <p>{user.isAdmin ? 'Manage your family members' : 'Your family members'}</p>
       </div>
 
       {error && <div className="error-msg">{error}</div>}
@@ -178,7 +178,7 @@ export default function Family() {
                   {member.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="member-info">
-                  <h3>{member.name}</h3>
+                  <h3>{member.name} {member.id === user.id ? '(You)' : ''}</h3>
                   <p>{member.email}</p>
                 </div>
                 <span className="badge badge-pending">Child</span>
