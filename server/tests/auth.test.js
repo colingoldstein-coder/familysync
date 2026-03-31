@@ -11,7 +11,7 @@ describe('Auth API', () => {
     it('should register a new family and return token', async () => {
       const res = await request(app)
         .post('/api/auth/register-family')
-        .send({ familyName: 'Test Family', name: 'Parent', email: 'parent@test.com', password: 'password123' });
+        .send({ familyName: 'Test Family', name: 'Parent', email: 'parent@test.com', password: 'Password1test' });
 
       expect(res.status).toBe(200);
       expect(res.body.token).toBeDefined();
@@ -21,18 +21,18 @@ describe('Auth API', () => {
     });
 
     it('should reject duplicate email', async () => {
-      const data = { familyName: 'Test', name: 'Parent', email: 'dup@test.com', password: 'password123' };
+      const data = { familyName: 'Test', name: 'Parent', email: 'dup@test.com', password: 'Password1test' };
       await request(app).post('/api/auth/register-family').send(data);
       const res = await request(app).post('/api/auth/register-family').send(data);
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('already registered');
+      expect(res.body.error).toContain('Unable to register');
     });
 
     it('should reject invalid email', async () => {
       const res = await request(app)
         .post('/api/auth/register-family')
-        .send({ familyName: 'Test', name: 'Parent', email: 'notanemail', password: 'password123' });
+        .send({ familyName: 'Test', name: 'Parent', email: 'notanemail', password: 'Password1test' });
 
       expect(res.status).toBe(400);
     });
@@ -50,11 +50,11 @@ describe('Auth API', () => {
     it('should login with valid credentials', async () => {
       await request(app)
         .post('/api/auth/register-family')
-        .send({ familyName: 'Test', name: 'Parent', email: 'login@test.com', password: 'password123' });
+        .send({ familyName: 'Test', name: 'Parent', email: 'login@test.com', password: 'Password1test' });
 
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'login@test.com', password: 'password123' });
+        .send({ email: 'login@test.com', password: 'Password1test' });
 
       expect(res.status).toBe(200);
       expect(res.body.token).toBeDefined();
@@ -64,7 +64,7 @@ describe('Auth API', () => {
     it('should reject invalid password', async () => {
       await request(app)
         .post('/api/auth/register-family')
-        .send({ familyName: 'Test', name: 'Parent', email: 'login2@test.com', password: 'password123' });
+        .send({ familyName: 'Test', name: 'Parent', email: 'login2@test.com', password: 'Password1test' });
 
       const res = await request(app)
         .post('/api/auth/login')
@@ -78,7 +78,7 @@ describe('Auth API', () => {
     it('should return current user with valid token', async () => {
       const reg = await request(app)
         .post('/api/auth/register-family')
-        .send({ familyName: 'Test', name: 'Parent', email: 'me@test.com', password: 'password123' });
+        .send({ familyName: 'Test', name: 'Parent', email: 'me@test.com', password: 'Password1test' });
 
       const res = await request(app)
         .get('/api/auth/me')
@@ -99,7 +99,7 @@ describe('Auth API', () => {
     it('should send invite and accept it', async () => {
       const reg = await request(app)
         .post('/api/auth/register-family')
-        .send({ familyName: 'Test', name: 'Parent', email: 'admin@test.com', password: 'password123' });
+        .send({ familyName: 'Test', name: 'Parent', email: 'admin@test.com', password: 'Password1test' });
 
       const token = reg.body.token;
 
@@ -119,7 +119,7 @@ describe('Auth API', () => {
 
       const acceptRes = await request(app)
         .post('/api/auth/accept-invite')
-        .send({ token: inviteRes.body.inviteToken, name: 'Child', password: 'password123' });
+        .send({ token: inviteRes.body.inviteToken, name: 'Child', password: 'Password1test' });
 
       expect(acceptRes.status).toBe(200);
       expect(acceptRes.body.user.role).toBe('child');

@@ -5,7 +5,7 @@ const { setup, teardown, cleanup } = require('./setup');
 async function createFamilyWithChild() {
   const reg = await request(app)
     .post('/api/auth/register-family')
-    .send({ familyName: 'Test', name: 'Parent', email: 'parent@test.com', password: 'password123' });
+    .send({ familyName: 'Test', name: 'Parent', email: 'parent@test.com', password: 'Password1test' });
 
   const parentToken = reg.body.token;
 
@@ -16,7 +16,7 @@ async function createFamilyWithChild() {
 
   const accept = await request(app)
     .post('/api/auth/accept-invite')
-    .send({ token: invite.body.inviteToken, name: 'Child', password: 'password123' });
+    .send({ token: invite.body.inviteToken, name: 'Child', password: 'Password1test' });
 
   return { parentToken, childToken: accept.body.token, childId: accept.body.user.id };
 }
