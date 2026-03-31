@@ -155,20 +155,23 @@
 
 .steps-grid {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
   gap: 0;
 }
 
 .step {
-  flex: 1;
+  flex: 1 1 0;
   max-width: 240px;
+  min-width: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 32px 22px 28px;
   text-align: center;
   transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
 }
 
 .step:hover {
@@ -363,6 +366,7 @@
   color: var(--text-secondary);
   font-size: 0.88rem;
   line-height: 1.6;
+  flex: 1;
 }
 
 @media (max-width: 768px) {
@@ -378,6 +382,7 @@
 
   .step {
     padding: 24px 18px;
+    min-height: 0;
   }
 
   .step-icon-wrap {
