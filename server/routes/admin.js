@@ -25,6 +25,12 @@ function dateFrom(days) {
   return d.toISOString().split('T')[0];
 }
 
+function toDateStr(val) {
+  if (!val) return '';
+  if (val instanceof Date) return val.toISOString().split('T')[0];
+  return String(val).split('T')[0];
+}
+
 // Overview stats
 router.get('/stats/overview', async (req, res) => {
   try {
@@ -83,8 +89,8 @@ router.get('/stats/registrations', async (req, res) => {
       .orderBy('date');
 
     res.json({
-      users: usersByDay.map(r => ({ date: r.date, count: Number(r.count) })),
-      families: familiesByDay.map(r => ({ date: r.date, count: Number(r.count) })),
+      users: usersByDay.map(r => ({ date: toDateStr(r.date), count: Number(r.count) })),
+      families: familiesByDay.map(r => ({ date: toDateStr(r.date), count: Number(r.count) })),
     });
   } catch (err) {
     logger.error({ msg: 'Admin stats error', error: err.message });
@@ -119,8 +125,8 @@ router.get('/stats/tasks', async (req, res) => {
       .groupBy('status');
 
     res.json({
-      created: createdByDay.map(r => ({ date: r.date, count: Number(r.count) })),
-      completed: completedByDay.map(r => ({ date: r.date, count: Number(r.count) })),
+      created: createdByDay.map(r => ({ date: toDateStr(r.date), count: Number(r.count) })),
+      completed: completedByDay.map(r => ({ date: toDateStr(r.date), count: Number(r.count) })),
       statusDistribution: statusDist.map(r => ({ status: r.status, count: Number(r.count) })),
     });
   } catch (err) {
@@ -153,7 +159,7 @@ router.get('/stats/events', async (req, res) => {
       .groupBy('status');
 
     res.json({
-      created: createdByDay.map(r => ({ date: r.date, count: Number(r.count) })),
+      created: createdByDay.map(r => ({ date: toDateStr(r.date), count: Number(r.count) })),
       typeDistribution: typeDist.map(r => ({ type: r.event_type, count: Number(r.count) })),
       statusDistribution: statusDist.map(r => ({ status: r.status, count: Number(r.count) })),
     });
@@ -352,10 +358,12 @@ router.get('/stats/active-users', async (req, res) => {
     // Merge into a single timeline
     const dateMap = {};
     taskActivity.forEach(r => {
-      dateMap[r.date] = (dateMap[r.date] || 0) + Number(r.count);
+      const d = toDateStr(r.date);
+      dateMap[d] = (dateMap[d] || 0) + Number(r.count);
     });
     eventActivity.forEach(r => {
-      dateMap[r.date] = (dateMap[r.date] || 0) + Number(r.count);
+      const d = toDateStr(r.date);
+      dateMap[d] = (dateMap[d] || 0) + Number(r.count);
     });
 
     const activeUsers = Object.entries(dateMap)

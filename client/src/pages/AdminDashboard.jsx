@@ -31,7 +31,12 @@ const tooltipStyle = {
 };
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
+  if (!dateStr) return '';
+  // Handle ISO timestamps, date objects, and plain YYYY-MM-DD strings
+  const str = String(dateStr);
+  const plain = str.includes('T') ? str.split('T')[0] : str.slice(0, 10);
+  const d = new Date(plain + 'T00:00:00');
+  if (isNaN(d)) return str;
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
