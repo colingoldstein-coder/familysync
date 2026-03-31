@@ -41,10 +41,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],
-      imgSrc: ["'self'", 'data:', 'blob:'],
-      connectSrc: ["'self'", 'https://accounts.google.com'],
+      scriptSrc: ["'self'", 'https://accounts.google.com'],
+      scriptSrcAttr: ["'none'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
+      connectSrc: ["'self'", 'https://accounts.google.com', 'https://oauth2.googleapis.com'],
       fontSrc: ["'self'"],
       frameSrc: ['https://accounts.google.com'],
       objectSrc: ["'none'"],
