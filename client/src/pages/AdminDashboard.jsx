@@ -604,8 +604,6 @@ export default function AdminDashboard() {
   const [taskStats, setTaskStats] = useState(null);
   const [eventStats, setEventStats] = useState(null);
   const [activeUsers, setActiveUsers] = useState(null);
-  const [families, setFamilies] = useState(null);
-  const [familyPage, setFamilyPage] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -640,14 +638,6 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const loadFamilies = useCallback(async (page) => {
-    try {
-      const data = await api.getAdminFamilies(page);
-      setFamilies(data);
-    } catch (err) {
-      setError(err.message);
-    }
-  }, []);
 
   const loadUserRecords = useCallback(async (page, search) => {
     try {
@@ -669,7 +659,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadStats(period);
-    loadFamilies(1);
     loadUserRecords(1, '');
     loadFamilyRecords(1, '');
   }, []);
@@ -678,11 +667,6 @@ export default function AdminDashboard() {
     setPeriod(p);
     setLoading(true);
     loadStats(p);
-  };
-
-  const handlePageChange = (page) => {
-    setFamilyPage(page);
-    loadFamilies(page);
   };
 
   if (loading && !overview) {
@@ -1017,46 +1001,6 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </div>
       </ChartSection>
-
-      {/* Families Table */}
-      {families && (
-        <div className="families-section">
-          <h3>Families ({families.total})</h3>
-          <DataTable
-            columns={[
-              { key: 'ref', label: 'Ref' },
-              { key: 'name', label: 'Family' },
-              { key: 'members', label: 'Members' },
-              { key: 'tasks', label: 'Tasks' },
-              { key: 'completedTasks', label: 'Completed' },
-              { key: 'events', label: 'Events' },
-              { key: 'requests', label: 'Requests' },
-              { key: 'createdAt', label: 'Created', render: (v) => v ? formatDateTime(v) : '' },
-            ]}
-            rows={families.families}
-            defaultSort={2}
-          />
-          {families.totalPages > 1 && (
-            <div className="pagination">
-              <button
-                className="btn btn-secondary btn-small"
-                disabled={familyPage <= 1}
-                onClick={() => handlePageChange(familyPage - 1)}
-              >
-                Prev
-              </button>
-              <span>Page {familyPage} of {families.totalPages}</span>
-              <button
-                className="btn btn-secondary btn-small"
-                disabled={familyPage >= families.totalPages}
-                onClick={() => handlePageChange(familyPage + 1)}
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       </>}
     </div>
