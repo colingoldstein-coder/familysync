@@ -124,17 +124,13 @@
   padding: 10px 22px;
   border-radius: 500px;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--text-subdued);
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: border-color 0.3s, color 0.3s;
-}
-
-.feature-pill:hover {
-  border-color: var(--accent-green);
-  color: var(--text-primary);
+  cursor: default;
+  user-select: none;
 }
 
 .pill-icon {
