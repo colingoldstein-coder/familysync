@@ -42,8 +42,40 @@
 /* Period selector */
 .period-selector {
   display: flex;
+  align-items: center;
   gap: 6px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.period-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+.period-date-label {
+  font-size: 0.75rem;
+  color: var(--text-subdued);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.period-date {
+  padding: 5px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+}
+
+.period-date:focus {
+  border-color: var(--accent-green);
+  outline: none;
 }
 
 .period-btn {

@@ -664,6 +664,8 @@ function SystemTab() {
 export default function AdminDashboard() {
   const [mainTab, setMainTab] = useState('analytics');
   const [period, setPeriod] = useState('30d');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [overview, setOverview] = useState(null);
   const [registrations, setRegistrations] = useState(null);
   const [taskStats, setTaskStats] = useState(null);
@@ -911,11 +913,31 @@ export default function AdminDashboard() {
           <button
             key={p.value}
             className={`period-btn ${period === p.value ? 'active' : ''}`}
-            onClick={() => handlePeriodChange(p.value)}
+            onClick={() => { setCustomFrom(''); setCustomTo(''); handlePeriodChange(p.value); }}
           >
             {p.label}
           </button>
         ))}
+        <span className="period-sep" />
+        <label className="period-date-label">From</label>
+        <input type="date" className="period-date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+        <label className="period-date-label">To</label>
+        <input type="date" className="period-date" value={customTo} max={new Date().toISOString().split('T')[0]} onChange={(e) => setCustomTo(e.target.value)} />
+        <button
+          className="btn btn-secondary btn-small"
+          disabled={!customFrom || !customTo}
+          onClick={() => {
+            const from = new Date(customFrom);
+            const to = new Date(customTo);
+            const days = Math.max(1, Math.ceil((to - from) / (1000 * 60 * 60 * 24)));
+            const p = `${days}d`;
+            setPeriod(p);
+            setLoading(true);
+            loadStats(p);
+          }}
+        >
+          Apply
+        </button>
       </div>
 
       {/* Registrations Chart */}
