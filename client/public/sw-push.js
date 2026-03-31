@@ -7,7 +7,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || '',
     icon: '/pwa-192x192.png',
-    badge: '/pwa-64x64.png',
+    badge: '/notification-badge.png',
     tag: data.tag || 'default',
     data: { url: data.url || '/' },
   };
