@@ -56,6 +56,13 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const biometricLogin = async (email, response) => {
+    const data = await api.webauthnLogin({ email, response });
+    localStorage.setItem('familysync_token', data.token);
+    setUser(data.user);
+    return data;
+  };
+
   const updateToken = (token) => {
     localStorage.setItem('familysync_token', token);
   };
@@ -73,7 +80,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, family, loading, login, registerFamily, acceptInvite, logout, updateToken, refreshUser }}>
+    <AuthContext.Provider value={{ user, family, loading, login, biometricLogin, registerFamily, acceptInvite, logout, updateToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api';
+import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import PasswordInput from '../components/PasswordInput';
 import '../styles/shared.css';
 import './Auth.css';
@@ -9,8 +11,19 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const { login, biometricLogin } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if this device supports biometrics and user previously logged in
+    const savedEmail = localStorage.getItem('familysync_biometric_email');
+    if (savedEmail && browserSupportsWebAuthn()) {
+      setEmail(savedEmail);
+      setBiometricAvailable(true);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,16 +36,60 @@ export default function Login() {
     }
   };
 
+  const handleBiometricLogin = async () => {
+    setError('');
+    setBiometricLoading(true);
+    try {
+      const options = await api.webauthnLoginOptions(email);
+      const authResponse = await startAuthentication({ optionsJSON: options });
+      await biometricLogin(email, authResponse);
+      navigate('/dashboard');
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setError('Biometric authentication was cancelled');
+      } else {
+        setError(err.message || 'Biometric login failed');
+      }
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
   return (
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <span className="brand-icon-large">⟐</span>
+          <span className="brand-icon-large">&#x27D0;</span>
           <h1>FamilySync</h1>
           <p>Log in to continue</p>
         </div>
 
         {error && <div className="error-msg">{error}</div>}
+
+        {biometricAvailable && (
+          <div className="biometric-section">
+            <button
+              type="button"
+              className="btn btn-primary auth-btn biometric-btn"
+              onClick={handleBiometricLogin}
+              disabled={biometricLoading}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 10V14" />
+                <path d="M7.5 7.5C7.5 5 9.5 3 12 3s4.5 2 4.5 4.5" />
+                <path d="M5 9.5C5 5.5 8 2 12 2s7 3.5 7 7.5" />
+                <path d="M12 14c1.5 0 3 1 3 3v2" />
+                <path d="M9 17v-1c0-1 .5-2 1.5-2.5" />
+                <path d="M3 11.5c0 4 2 7.5 5.5 9.5" />
+                <path d="M21 11.5c0 4-2 7.5-5.5 9.5" />
+              </svg>
+              {biometricLoading ? 'Verifying...' : 'Sign in with Biometrics'}
+            </button>
+            <div className="biometric-divider">
+              <span>or use password</span>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

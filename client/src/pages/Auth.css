@@ -117,3 +117,38 @@
   font-size: 0.8125rem;
   margin-top: 8px;
 }
+
+/* Biometric login */
+.biometric-section {
+  margin-bottom: 8px;
+}
+
+.biometric-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.biometric-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 16px;
+}
+
+.biometric-divider::before,
+.biometric-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.biometric-divider span {
+  font-size: 0.75rem;
+  color: var(--text-subdued);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}

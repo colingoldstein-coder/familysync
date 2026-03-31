@@ -16,3 +16,32 @@
   color: var(--text-secondary);
   margin-bottom: 12px;
 }
+
+/* Biometric credentials list */
+.biometric-credentials {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.biometric-credential {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.biometric-credential strong {
+  font-size: 0.875rem;
+  display: block;
+}
+
+.biometric-date {
+  font-size: 0.75rem;
+  color: var(--text-subdued);
+}

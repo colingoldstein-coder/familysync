@@ -1,0 +1,249 @@
+const express = require('express');
+const {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} = require('@simplewebauthn/server');
+const db = require('../db');
+const jwt = require('jsonwebtoken');
+const { authenticate, getJwtSecret } = require('../middleware/auth');
+const logger = require('../logger');
+
+const router = express.Router();
+
+const rpName = 'FamilySync';
+
+function getRpId(req) {
+  const host = req.hostname;
+  // Strip port and www prefix for RP ID
+  return host.replace(/^www\./, '').split(':')[0];
+}
+
+function getOrigin(req) {
+  const proto = req.header('x-forwarded-proto') || req.protocol;
+  return `${proto}://${req.hostname}`;
+}
+
+function toBool(val) {
+  return val === true || val === 1 || val === '1' || val === 't' || val === 'true';
+}
+
+function makeToken(user) {
+  return jwt.sign(
+    {
+      id: user.id, name: user.name, email: user.email, role: user.role,
+      isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin),
+      familyId: user.family_id, tv: user.token_version || 0,
+    },
+    getJwtSecret(),
+    { expiresIn: '7d' }
+  );
+}
+
+// ===== REGISTRATION (requires auth - user adds biometric to their account) =====
+
+router.post('/register-options', authenticate, async (req, res) => {
+  try {
+    const user = await db('users').where({ id: req.user.id }).first();
+    const existingCreds = await db('webauthn_credentials').where({ user_id: user.id });
+
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID: getRpId(req),
+      userName: user.email,
+      userDisplayName: user.name,
+      attestationType: 'none',
+      excludeCredentials: existingCreds.map(c => ({
+        id: c.credential_id,
+        transports: c.transports ? JSON.parse(c.transports) : undefined,
+      })),
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform',
+        userVerification: 'required',
+        residentKey: 'preferred',
+      },
+    });
+
+    await db('users').where({ id: user.id }).update({
+      webauthn_challenge: options.challenge,
+    });
+
+    res.json(options);
+  } catch (err) {
+    logger.error({ msg: 'WebAuthn register-options error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/register', authenticate, async (req, res) => {
+  try {
+    const user = await db('users').where({ id: req.user.id }).first();
+
+    if (!user.webauthn_challenge) {
+      return res.status(400).json({ error: 'No registration challenge found' });
+    }
+
+    const verification = await verifyRegistrationResponse({
+      response: req.body,
+      expectedChallenge: user.webauthn_challenge,
+      expectedOrigin: getOrigin(req),
+      expectedRPID: getRpId(req),
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return res.status(400).json({ error: 'Verification failed' });
+    }
+
+    const { credential } = verification.registrationInfo;
+
+    await db('webauthn_credentials').insert({
+      user_id: user.id,
+      credential_id: credential.id,
+      public_key: Buffer.from(credential.publicKey).toString('base64'),
+      counter: credential.counter,
+      device_name: req.body.deviceName || 'This device',
+      transports: req.body.response?.transports ? JSON.stringify(req.body.response.transports) : null,
+    });
+
+    // Clear challenge
+    await db('users').where({ id: user.id }).update({ webauthn_challenge: null });
+
+    res.json({ verified: true });
+  } catch (err) {
+    logger.error({ msg: 'WebAuthn register error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ===== AUTHENTICATION (public - biometric login) =====
+
+router.post('/login-options', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await db('users').where({ email }).first();
+    if (!user) {
+      // Don't reveal whether user exists - return plausible options
+      return res.status(400).json({ error: 'No biometric credentials found' });
+    }
+
+    const credentials = await db('webauthn_credentials').where({ user_id: user.id });
+    if (credentials.length === 0) {
+      return res.status(400).json({ error: 'No biometric credentials found' });
+    }
+
+    const options = await generateAuthenticationOptions({
+      rpID: getRpId(req),
+      userVerification: 'required',
+      allowCredentials: credentials.map(c => ({
+        id: c.credential_id,
+        transports: c.transports ? JSON.parse(c.transports) : undefined,
+      })),
+    });
+
+    await db('users').where({ id: user.id }).update({
+      webauthn_challenge: options.challenge,
+    });
+
+    res.json(options);
+  } catch (err) {
+    logger.error({ msg: 'WebAuthn login-options error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  try {
+    const { email, response } = req.body;
+    if (!email || !response) {
+      return res.status(400).json({ error: 'Email and response are required' });
+    }
+
+    const user = await db('users').where({ email }).first();
+    if (!user || !user.webauthn_challenge) {
+      return res.status(400).json({ error: 'Authentication failed' });
+    }
+
+    const credential = await db('webauthn_credentials')
+      .where({ credential_id: response.id, user_id: user.id })
+      .first();
+
+    if (!credential) {
+      return res.status(400).json({ error: 'Authentication failed' });
+    }
+
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge: user.webauthn_challenge,
+      expectedOrigin: getOrigin(req),
+      expectedRPID: getRpId(req),
+      credential: {
+        id: credential.credential_id,
+        publicKey: Buffer.from(credential.public_key, 'base64'),
+        counter: Number(credential.counter),
+        transports: credential.transports ? JSON.parse(credential.transports) : undefined,
+      },
+    });
+
+    if (!verification.verified) {
+      return res.status(400).json({ error: 'Authentication failed' });
+    }
+
+    // Update counter
+    await db('webauthn_credentials')
+      .where({ id: credential.id })
+      .update({ counter: verification.authenticationInfo.newCounter });
+
+    // Clear challenge
+    await db('users').where({ id: user.id }).update({ webauthn_challenge: null });
+
+    const token = makeToken(user);
+
+    res.json({
+      token,
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role,
+        isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin),
+        familyId: user.family_id,
+      },
+    });
+  } catch (err) {
+    logger.error({ msg: 'WebAuthn login error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ===== MANAGE CREDENTIALS =====
+
+router.get('/credentials', authenticate, async (req, res) => {
+  try {
+    const credentials = await db('webauthn_credentials')
+      .where({ user_id: req.user.id })
+      .select('id', 'device_name', 'created_at');
+    res.json({ credentials });
+  } catch (err) {
+    logger.error({ msg: 'WebAuthn credentials error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/credentials/:id', authenticate, async (req, res) => {
+  try {
+    const deleted = await db('webauthn_credentials')
+      .where({ id: req.params.id, user_id: req.user.id })
+      .del();
+    if (!deleted) {
+      return res.status(404).json({ error: 'Credential not found' });
+    }
+    res.json({ message: 'Credential removed' });
+  } catch (err) {
+    logger.error({ msg: 'WebAuthn delete error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+module.exports = router;

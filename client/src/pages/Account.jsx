@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import PasswordInput from '../components/PasswordInput';
 import CalendarSync from '../components/CalendarSync';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -187,6 +188,9 @@ export default function Account() {
         </form>
       </div>
 
+      {/* Biometric Login */}
+      <BiometricSettings />
+
       {/* Notifications */}
       <NotificationSettings />
 
@@ -229,6 +233,100 @@ function NotificationSettings() {
           {loading ? 'Updating...' : isSubscribed ? 'Disable Notifications' : 'Enable Notifications'}
         </button>
       )}
+    </div>
+  );
+}
+
+function BiometricSettings() {
+  const { user } = useAuth();
+  const [credentials, setCredentials] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const supportsWebAuthn = browserSupportsWebAuthn();
+
+  const loadCredentials = useCallback(async () => {
+    try {
+      const data = await api.webauthnCredentials();
+      setCredentials(data.credentials);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (supportsWebAuthn) loadCredentials();
+  }, [supportsWebAuthn, loadCredentials]);
+
+  if (!supportsWebAuthn) return null;
+
+  const handleSetup = async () => {
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      const options = await api.webauthnRegisterOptions();
+      const regResponse = await startRegistration({ optionsJSON: options });
+      await api.webauthnRegister(regResponse);
+      // Save email so login page knows biometric is available
+      localStorage.setItem('familysync_biometric_email', user.email);
+      setSuccess('Biometric login enabled for this device');
+      setTimeout(() => setSuccess(''), 3000);
+      loadCredentials();
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setError('Biometric setup was cancelled');
+      } else {
+        setError(err.message || 'Failed to set up biometric login');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = async (id) => {
+    try {
+      await api.webauthnDeleteCredential(id);
+      const updated = credentials.filter(c => c.id !== id);
+      setCredentials(updated);
+      if (updated.length === 0) {
+        localStorage.removeItem('familysync_biometric_email');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="account-section">
+      <h2>Biometric Login</h2>
+      <p className="account-current">
+        Use fingerprint or face recognition to sign in on this device.
+      </p>
+      {error && <div className="error-msg">{error}</div>}
+      {success && <div className="success-msg">{success}</div>}
+
+      {credentials.length > 0 && (
+        <div className="biometric-credentials">
+          {credentials.map(c => (
+            <div key={c.id} className="biometric-credential">
+              <div>
+                <strong>{c.device_name || 'Device'}</strong>
+                <span className="biometric-date">Added {new Date(c.created_at).toLocaleDateString()}</span>
+              </div>
+              <button className="btn btn-secondary btn-small" onClick={() => handleRemove(c.id)}>Remove</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={handleSetup}
+        className="btn btn-primary btn-small"
+        disabled={loading}
+      >
+        {loading ? 'Setting up...' : credentials.length > 0 ? 'Add Another Device' : 'Set Up Biometric Login'}
+      </button>
     </div>
   );
 }

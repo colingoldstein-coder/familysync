@@ -19,6 +19,7 @@ const eventRoutes = require('./routes/events');
 const calendarRoutes = require('./routes/calendar');
 const adminRoutes = require('./routes/admin');
 const pushRoutes = require('./routes/push');
+const webauthnRoutes = require('./routes/webauthn');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -104,6 +105,8 @@ if (process.env.NODE_ENV !== 'test') {
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register-family', authLimiter);
   app.use('/api/auth/accept-invite', authLimiter);
+  app.use('/api/webauthn/login-options', authLimiter);
+  app.use('/api/webauthn/login', authLimiter);
   app.use('/api/auth/invite', tokenLimiter);
   app.use('/api/calendar/feed', tokenLimiter);
   app.use('/api/contact', contactLimiter);
@@ -131,6 +134,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/webauthn', webauthnRoutes);
 
 // Serve static frontend when built files exist
 const staticDir = path.join(__dirname, 'public');
