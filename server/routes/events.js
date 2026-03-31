@@ -96,7 +96,7 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Respond to an event (parent only — accept with travel time, or reject)
+// Respond to an event (parent only — accept with travel time, or decline)
 router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respondToEvent), async (req, res) => {
   try {
     const { status, travelTimeBefore, travelTimeAfter, parentNotes } = req.body;

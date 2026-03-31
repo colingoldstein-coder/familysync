@@ -1,26 +1,28 @@
 const express = require('express');
 const db = require('../db');
-const { authenticate, requireChild, requireParent } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
 const { notifyUser, notifyFamilyMembers } = require('../notifications');
 
 const router = express.Router();
 
-// Create a help request (child only)
-router.post('/', authenticate, requireChild, validate(schemas.createRequest), async (req, res) => {
+// Create a help request
+router.post('/', authenticate, validate(schemas.createRequest), async (req, res) => {
   try {
     const { title, description, requestedTo, requestToAll } = req.body;
 
     if (!requestToAll && !requestedTo) {
-      return res.status(400).json({ error: 'Must request from a parent or all parents' });
+      return res.status(400).json({ error: 'Must request from a family member or all' });
     }
 
     if (requestedTo) {
-      const parent = await db('users')
-        .where({ id: requestedTo, family_id: req.user.familyId, role: 'parent' }).first();
-      if (!parent) {
-        return res.status(400).json({ error: 'Invalid parent' });
+      const member = await db('users')
+        .where({ id: requestedTo, family_id: req.user.familyId })
+        .whereNot({ id: req.user.id })
+        .first();
+      if (!member) {
+        return res.status(400).json({ error: 'Invalid family member' });
       }
     }
 
@@ -57,14 +59,12 @@ router.get('/', authenticate, async (req, res) => {
       .select('r.*', 'u.name as requested_by_name', 'p.name as requested_to_name', 'a.name as accepted_by_name')
       .orderBy('r.created_at', 'desc');
 
-    if (req.user.role === 'parent') {
-      query = query.where('r.family_id', req.user.familyId)
-        .andWhere(function () {
-          this.where('r.requested_to', req.user.id).orWhere('r.request_to_all', true);
-        });
-    } else {
-      query = query.where('r.requested_by', req.user.id);
-    }
+    query = query.where('r.family_id', req.user.familyId)
+      .andWhere(function () {
+        this.where('r.requested_by', req.user.id)
+          .orWhere('r.requested_to', req.user.id)
+          .orWhere('r.request_to_all', true);
+      });
 
     const requests = await query;
     res.json({ requests });
@@ -73,8 +73,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Respond to a help request (parent only)
-router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respondToRequest), async (req, res) => {
+// Respond to a help request
+router.patch('/:id/respond', authenticate, validate(schemas.respondToRequest), async (req, res) => {
   try {
     const { status } = req.body;
 
@@ -87,6 +87,10 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
 
     if (request.status !== 'pending') {
       return res.status(400).json({ error: 'Request already responded to' });
+    }
+
+    if (request.requested_by === req.user.id) {
+      return res.status(403).json({ error: 'Cannot respond to your own request' });
     }
 
     if (!request.request_to_all && request.requested_to !== req.user.id) {
@@ -122,10 +126,11 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
       }
     }
 
-    // Notify the child who made the request
+    // Notify the person who made the request
+    const displayStatus = status === 'rejected' ? 'declined' : status;
     notifyUser(request.requested_by, {
-      title: `Request ${status}`,
-      body: `Your help request "${request.title}" was ${status}`,
+      title: `Request ${displayStatus}`,
+      body: `Your help request "${request.title}" was ${displayStatus}`,
       url: '/dashboard',
       tag: 'request-response',
     });

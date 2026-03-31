@@ -131,7 +131,8 @@ export default function ChildDashboard() {
   const handleUpdateTask = async (id, status) => {
     try {
       await api.updateTaskStatus(id, status);
-      setSuccess(`Task ${status}!`);
+      const displayStatus = status === 'rejected' ? 'declined' : status;
+      setSuccess(`Task ${displayStatus}!`);
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) { setError(err.message); }
@@ -361,7 +362,7 @@ function ChildTimelineItem({ item, onUpdateTask, onDeleteEvent }) {
             <span className="timeline-title">{item.title}</span>
             <div className="timeline-badges">
               <span className="timeline-category cat-event">Event</span>
-              <span className={`badge badge-${item.status}`}>{item.status}</span>
+              <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status}</span>
             </div>
           </div>
           <div className="timeline-summary">
@@ -389,7 +390,7 @@ function ChildTimelineItem({ item, onUpdateTask, onDeleteEvent }) {
             <span className="timeline-title">{item.title}</span>
             <div className="timeline-badges">
               <span className="timeline-category cat-request">Request</span>
-              <span className={`badge badge-${item.status}`}>{item.status}</span>
+              <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status}</span>
             </div>
           </div>
           <div className="timeline-summary">
@@ -416,7 +417,7 @@ function ChildTimelineItem({ item, onUpdateTask, onDeleteEvent }) {
           <span className="timeline-title">{item.title}</span>
           <div className="timeline-badges">
             <span className="timeline-category cat-task">Task</span>
-            <span className={`badge badge-${item.status}`}>{item.status.replace('_', ' ')}</span>
+            <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status.replace('_', ' ')}</span>
           </div>
         </div>
         <div className="timeline-summary">
@@ -431,7 +432,7 @@ function ChildTimelineItem({ item, onUpdateTask, onDeleteEvent }) {
               <>
                 <button className="btn btn-primary btn-small" onClick={() => onUpdateTask(item.id, 'accepted')}>Accept</button>
                 {item.rejectable === 1 && (
-                  <button className="btn btn-danger btn-small" onClick={() => onUpdateTask(item.id, 'rejected')}>Reject</button>
+                  <button className="btn btn-danger btn-small" onClick={() => onUpdateTask(item.id, 'rejected')}>Decline</button>
                 )}
               </>
             )}

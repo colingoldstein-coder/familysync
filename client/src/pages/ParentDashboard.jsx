@@ -105,6 +105,17 @@ export default function ParentDashboard() {
     recurrenceDays: null, recurrenceEnd: null,
   });
 
+  // Request form
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [reqTitle, setReqTitle] = useState('');
+  const [reqDesc, setReqDesc] = useState('');
+  const [reqTo, setReqTo] = useState('');
+  const [reqToAll, setReqToAll] = useState(false);
+  const [reqRecurrence, setReqRecurrence] = useState({
+    recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week',
+    recurrenceDays: null, recurrenceEnd: null,
+  });
+
   const loadData = async () => {
     try {
       const [tasksData, requestsData, membersData, eventsData] = await Promise.all([
@@ -129,7 +140,7 @@ export default function ParentDashboard() {
     });
   };
 
-  const children = members.filter(m => m.role === 'child');
+  const assignableMembers = members.filter(m => m.id !== user.id);
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
@@ -151,10 +162,39 @@ export default function ParentDashboard() {
     } catch (err) { setError(err.message); }
   };
 
+  const handleUpdateTask = async (id, status) => {
+    try {
+      await api.updateTaskStatus(id, status);
+      const displayStatus = status === 'rejected' ? 'declined' : status;
+      setSuccess(`Task ${displayStatus}!`);
+      loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) { setError(err.message); }
+  };
+
   const handleRespondRequest = async (id, status) => {
     try {
       await api.respondToRequest(id, status);
-      setSuccess(`Request ${status}!`);
+      const displayStatus = status === 'rejected' ? 'declined' : status;
+      setSuccess(`Request ${displayStatus}!`);
+      loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleCreateRequest = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await api.createRequest({
+        title: reqTitle, description: reqDesc,
+        requestedTo: reqToAll ? null : Number(reqTo),
+        requestToAll: reqToAll, ...reqRecurrence,
+      });
+      setSuccess('Request sent!');
+      setShowRequestModal(false);
+      setReqTitle(''); setReqDesc(''); setReqTo(''); setReqToAll(false);
+      setReqRecurrence({ recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week', recurrenceDays: null, recurrenceEnd: null });
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) { setError(err.message); }
@@ -249,6 +289,7 @@ export default function ParentDashboard() {
           <h1>Welcome back, {user.name}</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-primary btn-small" onClick={() => setShowTaskModal(true)}>+ New Task</button>
+            <button className="btn btn-primary btn-small" onClick={() => setShowRequestModal(true)}>+ New Request</button>
             <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>+ New Event</button>
           </div>
         </div>
@@ -312,7 +353,8 @@ export default function ParentDashboard() {
                   key={`${item._type}-${item.id}`}
                   item={item}
                   userRole="parent"
-                  onUpdateTask={handleDeleteTask}
+                  currentUserId={user.id}
+                  onUpdateTask={handleUpdateTask}
                   onRespondRequest={handleRespondRequest}
                   onRespondEvent={handleRespondEvent}
                   onDeleteTask={handleDeleteTask}
@@ -335,6 +377,46 @@ export default function ParentDashboard() {
       )}
 
       {/* Create Task Modal */}
+      {showRequestModal && (
+        <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Ask for Help</h2>
+            <form onSubmit={handleCreateRequest}>
+              <div className="form-group">
+                <label>What do you need?</label>
+                <input type="text" placeholder="e.g. Pick up groceries" value={reqTitle} onChange={(e) => setReqTitle(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Details (optional)</label>
+                <textarea placeholder="When, where, any extra info..." value={reqDesc} onChange={(e) => setReqDesc(e.target.value)} rows={3} />
+              </div>
+              <div className="form-group">
+                <div className="checkbox-group">
+                  <input type="checkbox" id="reqAll" checked={reqToAll} onChange={(e) => setReqToAll(e.target.checked)} />
+                  <label htmlFor="reqAll">Ask everyone</label>
+                </div>
+              </div>
+              {!reqToAll && (
+                <div className="form-group">
+                  <label>Ask who?</label>
+                  <select value={reqTo} onChange={(e) => setReqTo(e.target.value)} required={!reqToAll}>
+                    <option value="">Select a person...</option>
+                    {assignableMembers.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <RecurrencePicker value={reqRecurrence} onChange={setReqRecurrence} />
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRequestModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Send Request</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showTaskModal && (
         <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -355,16 +437,16 @@ export default function ParentDashboard() {
               <div className="form-group">
                 <div className="checkbox-group">
                   <input type="checkbox" id="assignAll" checked={taskAssignAll} onChange={(e) => setTaskAssignAll(e.target.checked)} />
-                  <label htmlFor="assignAll">Assign to all children</label>
+                  <label htmlFor="assignAll">Assign to everyone</label>
                 </div>
               </div>
               {!taskAssignAll && (
                 <div className="form-group">
                   <label>Assign to</label>
                   <select value={taskAssignTo} onChange={(e) => setTaskAssignTo(e.target.value)} required={!taskAssignAll}>
-                    <option value="">Select a child...</option>
-                    {children.map(child => (
-                      <option key={child.id} value={child.id}>{child.name}</option>
+                    <option value="">Select a person...</option>
+                    {assignableMembers.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                   </select>
                 </div>
@@ -372,7 +454,7 @@ export default function ParentDashboard() {
               <div className="form-group">
                 <div className="checkbox-group">
                   <input type="checkbox" id="rejectable" checked={taskRejectable} onChange={(e) => setTaskRejectable(e.target.checked)} />
-                  <label htmlFor="rejectable">Allow child to reject this task</label>
+                  <label htmlFor="rejectable">Allow decline</label>
                 </div>
               </div>
               <RecurrencePicker value={taskRecurrence} onChange={setTaskRecurrence} />
@@ -389,7 +471,7 @@ export default function ParentDashboard() {
   );
 }
 
-function TimelineItem({ item, userRole, onRespondRequest, onRespondEvent, onDeleteTask, onDeleteEvent }) {
+function TimelineItem({ item, userRole, currentUserId, onUpdateTask, onRespondRequest, onRespondEvent, onDeleteTask, onDeleteEvent }) {
   const completed = isCompleted(item);
 
   if (item._type === 'event') {
@@ -401,7 +483,7 @@ function TimelineItem({ item, userRole, onRespondRequest, onRespondEvent, onDele
             <span className="timeline-title">{item.title}</span>
             <div className="timeline-badges">
               <span className="timeline-category cat-event">Event</span>
-              <span className={`badge badge-${item.status}`}>{item.status}</span>
+              <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status}</span>
             </div>
           </div>
           <div className="timeline-summary">
@@ -439,20 +521,20 @@ function TimelineItem({ item, userRole, onRespondRequest, onRespondEvent, onDele
             <span className="timeline-title">{item.title}</span>
             <div className="timeline-badges">
               <span className="timeline-category cat-request">Request</span>
-              <span className={`badge badge-${item.status}`}>{item.status}</span>
+              <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status}</span>
             </div>
           </div>
           <div className="timeline-summary">
             {item.description && <span>{item.description}</span>}
             <span>From: <strong>{item.requested_by_name}</strong></span>
-            {item.request_to_all && <span>To: <strong>All Parents</strong></span>}
+            {item.request_to_all && <span>To: <strong>Everyone</strong></span>}
             {item.accepted_by_name && <span>Accepted by: <strong>{item.accepted_by_name}</strong></span>}
             {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
           </div>
-          {item.status === 'pending' && (
+          {item.status === 'pending' && item.requested_by !== currentUserId && (
             <div className="timeline-actions">
               <button className="btn btn-primary btn-small" onClick={() => onRespondRequest(item.id, 'accepted')}>Accept</button>
-              <button className="btn btn-danger btn-small" onClick={() => onRespondRequest(item.id, 'rejected')}>Reject</button>
+              <button className="btn btn-danger btn-small" onClick={() => onRespondRequest(item.id, 'rejected')}>Decline</button>
             </div>
           )}
         </div>
@@ -469,20 +551,41 @@ function TimelineItem({ item, userRole, onRespondRequest, onRespondEvent, onDele
           <span className="timeline-title">{item.title}</span>
           <div className="timeline-badges">
             <span className="timeline-category cat-task">Task</span>
-            <span className={`badge badge-${item.status}`}>{item.status.replace('_', ' ')}</span>
+            <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status.replace('_', ' ')}</span>
           </div>
         </div>
         <div className="timeline-summary">
           {item.description && <span>{item.description}</span>}
-          <span>Assigned to: <strong>{item.assigned_to_name}</strong></span>
-          {item.rejectable ? <span className="meta-tag">Rejectable</span> : null}
+          {item.assigned_to === currentUserId
+            ? <span>From: <strong>{item.assigned_by_name}</strong></span>
+            : <span>Assigned to: <strong>{item.assigned_to_name}</strong></span>
+          }
+          {item.rejectable ? <span className="meta-tag">Declinable</span> : null}
           {item.deadline && <span>Due: <strong>{(() => { const s = String(item.deadline); const p = s.includes('T') ? s.split('T')[0] : s.slice(0, 10); return new Date(p + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); })()}</strong></span>}
           {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
         </div>
-        <div className="timeline-actions">
-          <button className="btn btn-danger btn-small" onClick={() => onDeleteTask(item.id)}>Delete</button>
-          {item.series_id && <button className="btn btn-danger btn-small" onClick={() => onDeleteTask(item.id, true)}>Delete Series</button>}
-        </div>
+        {item.assigned_to === currentUserId && !completed && (
+          <div className="timeline-actions">
+            {item.status === 'pending' && (
+              <>
+                <button className="btn btn-primary btn-small" onClick={() => onUpdateTask(item.id, 'accepted')}>Accept</button>
+                {item.rejectable ? <button className="btn btn-danger btn-small" onClick={() => onUpdateTask(item.id, 'rejected')}>Decline</button> : null}
+              </>
+            )}
+            {item.status === 'accepted' && (
+              <button className="btn btn-primary btn-small" onClick={() => onUpdateTask(item.id, 'in_progress')}>Start Working</button>
+            )}
+            {(item.status === 'accepted' || item.status === 'in_progress') && (
+              <button className="btn btn-primary btn-small" onClick={() => onUpdateTask(item.id, 'completed')}>Mark Done</button>
+            )}
+          </div>
+        )}
+        {item.assigned_by === currentUserId && (
+          <div className="timeline-actions">
+            <button className="btn btn-danger btn-small" onClick={() => onDeleteTask(item.id)}>Delete</button>
+            {item.series_id && <button className="btn btn-danger btn-small" onClick={() => onDeleteTask(item.id, true)}>Delete Series</button>}
+          </div>
+        )}
       </div>
     </div>
   );

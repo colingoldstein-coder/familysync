@@ -14,31 +14,33 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
     const recurrence = buildRecurrenceFields(req.body);
 
     if (!assignToAll && !assignedTo) {
-      return res.status(400).json({ error: 'Must assign to a child or all children' });
+      return res.status(400).json({ error: 'Must assign to a family member or all' });
     }
 
     if (assignedTo) {
-      const child = await db('users')
-        .where({ id: assignedTo, family_id: req.user.familyId, role: 'child' }).first();
-      if (!child) {
-        return res.status(400).json({ error: 'Invalid child' });
+      const member = await db('users')
+        .where({ id: assignedTo, family_id: req.user.familyId }).first();
+      if (!member) {
+        return res.status(400).json({ error: 'Invalid family member' });
       }
     }
 
     if (assignToAll) {
-      const children = await db('users')
-        .where({ family_id: req.user.familyId, role: 'child' }).select('id');
+      const assignees = await db('users')
+        .where({ family_id: req.user.familyId })
+        .whereNot({ id: req.user.id })
+        .select('id');
 
-      if (children.length === 0) {
-        return res.status(400).json({ error: 'No children in the family' });
+      if (assignees.length === 0) {
+        return res.status(400).json({ error: 'No other family members' });
       }
 
       const taskIds = await db.transaction(async (trx) => {
         const ids = [];
-        for (const child of children) {
+        for (const member of assignees) {
           const [task] = await trx('tasks').insert({
             title, description: description || null,
-            assigned_by: req.user.id, assigned_to: child.id,
+            assigned_by: req.user.id, assigned_to: member.id,
             assign_to_all: true, family_id: req.user.familyId,
             rejectable: !!rejectable, deadline: deadline || null,
             ...recurrence,
@@ -48,11 +50,11 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
         return ids;
       });
 
-      for (const child of children) {
-        notifyUser(child.id, { title: 'New task', body: title, url: '/dashboard', tag: 'task-new' });
+      for (const member of assignees) {
+        notifyUser(member.id, { title: 'New task', body: title, url: '/dashboard', tag: 'task-new' });
       }
 
-      res.json({ message: `Task assigned to ${children.length} children`, taskIds });
+      res.json({ message: `Task assigned to ${assignees.length} family members`, taskIds });
     } else {
       const [task] = await db('tasks').insert({
         title, description: description || null,
@@ -83,7 +85,10 @@ router.get('/', authenticate, async (req, res) => {
     if (req.user.role === 'parent') {
       query = query.where('t.family_id', req.user.familyId);
     } else {
-      query = query.where('t.assigned_to', req.user.id);
+      query = query.where(function () {
+        this.where('t.assigned_to', req.user.id)
+          .orWhere('t.assigned_by', req.user.id);
+      });
     }
 
     const tasks = await query;
@@ -107,18 +112,17 @@ router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), as
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    if (req.user.role === 'child') {
-      if (task.assigned_to !== req.user.id) {
-        return res.status(403).json({ error: 'Not your task' });
-      }
-
+    // Task assignees (children or parents) can update their own tasks
+    if (task.assigned_to === req.user.id) {
       if (status === 'rejected' && !task.rejectable) {
-        return res.status(403).json({ error: 'This task cannot be rejected' });
+        return res.status(403).json({ error: 'This task cannot be declined' });
       }
 
       if (!['accepted', 'in_progress', 'completed', 'rejected'].includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
+    } else if (req.user.role === 'child') {
+      return res.status(403).json({ error: 'Not your task' });
     }
 
     await db('tasks').where({ id: req.params.id }).update({ status, updated_at: db.fn.now() });

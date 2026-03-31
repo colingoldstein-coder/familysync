@@ -106,7 +106,7 @@ export default function EventCard({ event, userRole, onRespond, onDelete }) {
           </div>
         </div>
         <div className="event-badges">
-          <span className={`badge badge-${event.status}`}>{event.status}</span>
+          <span className={`badge badge-${event.status}`}>{event.status === 'rejected' ? 'declined' : event.status}</span>
           <span className="meta-tag event-type-tag">{EVENT_TYPE_LABELS[event.event_type]}</span>
           {formatRecurrence(event) && (
             <span className="meta-tag recurrence-tag">{formatRecurrence(event)}</span>
@@ -178,7 +178,7 @@ export default function EventCard({ event, userRole, onRespond, onDelete }) {
             className="btn btn-danger btn-small"
             onClick={() => onRespond(event.id, { status: 'rejected' })}
           >
-            Reject
+            Decline
           </button>
         </div>
       )}
