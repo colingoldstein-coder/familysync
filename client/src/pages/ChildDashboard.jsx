@@ -85,6 +85,7 @@ export default function ChildDashboard() {
   const [events, setEvents] = useState([]);
   const [filters, setFilters] = useState(loadFilters);
   const [showEventForm, setShowEventForm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -189,37 +190,42 @@ export default function ChildDashboard() {
       {error && <div className="error-msg">{error}</div>}
       {success && <div className="success-msg">{success}</div>}
 
-      <div className="stats-row">
-        <div className="stat-card">
-          <div className="stat-number">{tasks.filter(t => t.status === 'pending').length}</div>
-          <div className="stat-label">Requests</div>
+      <div className="summary-bar">
+        <div className="summary-counts">
+          <span className="summary-item"><strong>{tasks.filter(t => t.status === 'pending').length}</strong> Requests</span>
+          <span className="summary-sep" />
+          <span className="summary-item"><strong>{pendingTasks.length}</strong> Active Tasks</span>
+          <span className="summary-sep" />
+          <span className="summary-item"><strong>{events.filter(e => e.status !== 'rejected').length}</strong> Events</span>
+          {filters.completed && (
+            <>
+              <span className="summary-sep" />
+              <span className="summary-item"><strong>{tasks.filter(t => isCompleted({ ...t, _type: 'task' })).length + events.filter(e => e.status === 'rejected').length}</strong> Completed</span>
+            </>
+          )}
         </div>
-        <div className="stat-card">
-          <div className="stat-number">{pendingTasks.length}</div>
-          <div className="stat-label">Active Tasks</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number">{events.filter(e => e.status !== 'rejected').length}</div>
-          <div className="stat-label">Events</div>
-        </div>
+        <button className={`filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(f => !f)} title="Filters">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+          </svg>
+        </button>
       </div>
-
-      {/* Filters */}
-      <div className="filter-bar">
-        <span className="filter-bar-label">Show:</span>
-        <label className="filter-check">
-          <input type="checkbox" checked={filters.tasks} onChange={() => updateFilters('tasks')} />
-          <span>Requests &amp; Tasks <span className="filter-count">({tasks.length})</span></span>
-        </label>
-        <label className="filter-check">
-          <input type="checkbox" checked={filters.events} onChange={() => updateFilters('events')} />
-          <span>Events <span className="filter-count">({events.length})</span></span>
-        </label>
-        <label className="filter-check">
-          <input type="checkbox" checked={filters.completed} onChange={() => updateFilters('completed')} />
-          <span>Completed</span>
-        </label>
-      </div>
+      {showFilters && (
+        <div className="filter-bar">
+          <label className="filter-check">
+            <input type="checkbox" checked={filters.tasks} onChange={() => updateFilters('tasks')} />
+            <span>Requests &amp; Tasks</span>
+          </label>
+          <label className="filter-check">
+            <input type="checkbox" checked={filters.events} onChange={() => updateFilters('events')} />
+            <span>Events</span>
+          </label>
+          <label className="filter-check">
+            <input type="checkbox" checked={filters.completed} onChange={() => updateFilters('completed')} />
+            <span>Completed</span>
+          </label>
+        </div>
+      )}
 
       {/* Timeline */}
       {allItems.length === 0 ? (
