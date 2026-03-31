@@ -5,10 +5,10 @@
 }
 
 :root {
-  --bg-primary: #121212;
-  --bg-secondary: #181818;
-  --bg-elevated: #282828;
-  --bg-highlight: #333333;
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #222222;
+  --bg-elevated: #2e2e2e;
+  --bg-highlight: #3a3a3a;
   --text-primary: #ffffff;
   --text-secondary: #b3b3b3;
   --text-subdued: #6a6a6a;
