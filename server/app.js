@@ -25,9 +25,10 @@ const app = express();
 app.set('trust proxy', 1);
 const isProduction = process.env.NODE_ENV === 'production';
 
-// HTTPS redirect in production
+// HTTPS redirect in production (skip health check for internal probes)
 if (isProduction) {
   app.use((req, res, next) => {
+    if (req.path === '/health') return next();
     if (req.header('x-forwarded-proto') !== 'https') {
       return res.redirect(301, `https://${req.header('host')}${req.url}`);
     }
