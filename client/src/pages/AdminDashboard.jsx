@@ -317,7 +317,7 @@ function EmailLogCard() {
       setLogs(data.logs);
       setTotalPages(data.totalPages);
       setTotal(data.total);
-    } catch {} finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   }, []);

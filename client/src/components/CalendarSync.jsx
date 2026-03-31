@@ -41,7 +41,7 @@ export default function CalendarSync() {
     try {
       const data = await api.regenerateCalendarToken();
       setToken(data.calendarToken);
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   if (loading) return null;

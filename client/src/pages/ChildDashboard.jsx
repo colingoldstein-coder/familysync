@@ -12,7 +12,7 @@ function loadFilters() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) return JSON.parse(saved);
-  } catch {}
+  } catch { /* ignore parse errors */ }
   return { tasks: true, events: true, completed: false };
 }
 
