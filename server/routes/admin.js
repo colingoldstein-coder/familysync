@@ -523,12 +523,20 @@ router.get('/email-recipients', async (req, res) => {
 // Send branded email to selected users
 router.post('/send-email', async (req, res) => {
   try {
-    const { subject, bodyContent, userIds } = req.body;
+    const { subject, bodyHtml: rawHtml, bodyContent, userIds } = req.body;
 
     if (!subject || !subject.trim()) {
       return res.status(400).json({ error: 'Subject is required' });
     }
-    if (!bodyContent || !bodyContent.trim()) {
+    // Accept either rich HTML (bodyHtml) or plain text (bodyContent) for backwards compat
+    const bodyHtml = rawHtml
+      ? rawHtml.trim()
+      : bodyContent
+        ? bodyContent.trim().split('\n').map(line =>
+            line.trim() ? `<p style="margin: 0 0 12px;">${escapeHtml(line)}</p>` : '<br/>'
+          ).join('\n')
+        : '';
+    if (!bodyHtml) {
       return res.status(400).json({ error: 'Email content is required' });
     }
     if (!Array.isArray(userIds) || userIds.length === 0) {
@@ -543,11 +551,6 @@ router.post('/send-email', async (req, res) => {
     if (users.length === 0) {
       return res.status(400).json({ error: 'No valid recipients found' });
     }
-
-    // Convert plain text body to HTML paragraphs
-    const bodyHtml = bodyContent.trim().split('\n').map(line =>
-      line.trim() ? `<p style="margin: 0 0 12px;">${escapeHtml(line)}</p>` : '<br/>'
-    ).join('\n');
 
     const recipients = users.map(u => ({ userId: u.id, name: u.name, email: u.email }));
     const emails = users.map(u => u.email);

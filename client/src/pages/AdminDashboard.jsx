@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
@@ -135,7 +135,7 @@ function EmailComposerCard() {
   const [selectedFamily, setSelectedFamily] = useState('');
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [subject, setSubject] = useState('');
-  const [bodyContent, setBodyContent] = useState('');
+  const editorRef = useRef(null);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
@@ -187,19 +187,20 @@ function EmailComposerCard() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (selectedUsers.size === 0 || !subject.trim() || !bodyContent.trim()) return;
+    const html = editorRef.current?.innerHTML?.trim() || '';
+    if (selectedUsers.size === 0 || !subject.trim() || !html || html === '<br>') return;
     setSending(true);
     setResult('');
     setError('');
     try {
       const res = await api.adminSendEmail({
         subject: subject.trim(),
-        bodyContent: bodyContent.trim(),
+        bodyHtml: html,
         userIds: [...selectedUsers],
       });
       setResult(`Email sent to ${res.sent} recipient${res.sent !== 1 ? 's' : ''}`);
       setSubject('');
-      setBodyContent('');
+      if (editorRef.current) editorRef.current.innerHTML = '';
       setSelectedUsers(new Set());
     } catch (err) {
       setError(err.message);
@@ -268,18 +269,29 @@ function EmailComposerCard() {
         </div>
         <div className="form-field">
           <label>Message</label>
-          <textarea
-            value={bodyContent}
-            onChange={(e) => setBodyContent(e.target.value)}
-            placeholder="Write your email content here. Each line becomes a paragraph."
-            rows={6}
-            required
+          <div className="rte-toolbar">
+            <button type="button" className="rte-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); document.execCommand('bold'); }}><strong>B</strong></button>
+            <button type="button" className="rte-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); document.execCommand('italic'); }}><em>I</em></button>
+            <button type="button" className="rte-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); document.execCommand('underline'); }}><u>U</u></button>
+            <span className="rte-sep" />
+            <button type="button" className="rte-btn" title="Bullet List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList'); }}>• List</button>
+            <button type="button" className="rte-btn" title="Numbered List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList'); }}>1. List</button>
+            <span className="rte-sep" />
+            <button type="button" className="rte-btn" title="Link" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter URL:'); if (url) document.execCommand('createLink', false, url); }}>Link</button>
+            <button type="button" className="rte-btn" title="Remove Link" onMouseDown={(e) => { e.preventDefault(); document.execCommand('unlink'); }}>Unlink</button>
+          </div>
+          <div
+            ref={editorRef}
+            className="rte-editor"
+            contentEditable
+            data-placeholder="Write your email content here..."
+            onInput={() => setError('')}
           />
         </div>
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={sending || selectedUsers.size === 0 || !subject.trim() || !bodyContent.trim()}
+          disabled={sending || selectedUsers.size === 0 || !subject.trim()}
         >
           {sending ? 'Sending...' : `Send to ${selectedUsers.size} Recipient${selectedUsers.size !== 1 ? 's' : ''}`}
         </button>

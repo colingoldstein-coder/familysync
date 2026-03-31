@@ -582,6 +582,84 @@
   min-height: 100px;
 }
 
+/* Rich text editor */
+.rte-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  flex-wrap: wrap;
+}
+
+.rte-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.rte-btn:hover {
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+}
+
+.rte-btn:active {
+  background: var(--accent-green);
+  color: #000;
+}
+
+.rte-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-color);
+  margin: 0 2px;
+}
+
+.rte-editor {
+  width: 100%;
+  min-height: 120px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 0 0 8px 8px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.6;
+  outline: none;
+}
+
+.rte-editor:focus {
+  border-color: var(--accent-green);
+}
+
+.rte-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-subdued);
+  pointer-events: none;
+}
+
+.rte-editor a {
+  color: var(--accent-green);
+}
+
+.rte-editor ul,
+.rte-editor ol {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
 /* Email log */
 .email-log-entry {
   border: 1px solid var(--border-color);
