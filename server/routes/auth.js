@@ -18,6 +18,20 @@ function generateJoinCode() {
   return code;
 }
 
+async function nextRefNumber(trx, table, prefix) {
+  const [last] = await trx(table)
+    .whereNotNull('ref_number')
+    .orderBy('id', 'desc')
+    .limit(1)
+    .select('ref_number');
+  let next = 1;
+  if (last && last.ref_number) {
+    const num = parseInt(last.ref_number.split('-')[2], 10);
+    if (!isNaN(num)) next = num + 1;
+  }
+  return `${prefix}${String(next).padStart(5, '0')}`;
+}
+
 function toBool(val) {
   return val === true || val === 1 || val === '1' || val === 't' || val === 'true';
 }
@@ -44,10 +58,12 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
     const passwordHash = bcrypt.hashSync(password, 10);
 
     const result = await db.transaction(async (trx) => {
-      const [family] = await trx('families').insert({ name: familyName, join_code: joinCode }).returning('id');
+      const familyRef = await nextRefNumber(trx, 'families', 'FS-F-');
+      const [family] = await trx('families').insert({ name: familyName, join_code: joinCode, ref_number: familyRef }).returning('id');
       const familyId = family.id || family;
+      const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
       const [user] = await trx('users').insert({
-        name, email, password_hash: passwordHash, role: 'parent', is_admin: true, family_id: familyId,
+        name, email, password_hash: passwordHash, role: 'parent', is_admin: true, family_id: familyId, ref_number: userRef,
       }).returning('id');
       const userId = user.id || user;
       return { familyId, userId };
@@ -155,8 +171,9 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
     const passwordHash = bcrypt.hashSync(password, 10);
 
     const result = await db.transaction(async (trx) => {
+      const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
       const [user] = await trx('users').insert({
-        name, email: invite.email, password_hash: passwordHash, role: invite.role, family_id: invite.family_id,
+        name, email: invite.email, password_hash: passwordHash, role: invite.role, family_id: invite.family_id, ref_number: userRef,
       }).returning('id');
       const userId = user.id || user;
 

@@ -129,6 +129,15 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Records state
+  const [recordsTab, setRecordsTab] = useState('users');
+  const [userRecords, setUserRecords] = useState(null);
+  const [familyRecords, setFamilyRecords] = useState(null);
+  const [userRecordsPage, setUserRecordsPage] = useState(1);
+  const [familyRecordsPage, setFamilyRecordsPage] = useState(1);
+  const [recordsSearch, setRecordsSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+
   const loadStats = useCallback(async (p) => {
     try {
       setError('');
@@ -160,9 +169,29 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const loadUserRecords = useCallback(async (page, search) => {
+    try {
+      const data = await api.getAdminUserRecords(page, search);
+      setUserRecords(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, []);
+
+  const loadFamilyRecords = useCallback(async (page, search) => {
+    try {
+      const data = await api.getAdminFamilyRecords(page, search);
+      setFamilyRecords(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, []);
+
   useEffect(() => {
     loadStats(period);
     loadFamilies(1);
+    loadUserRecords(1, '');
+    loadFamilyRecords(1, '');
   }, []);
 
   const handlePeriodChange = (p) => {
@@ -419,6 +448,7 @@ export default function AdminDashboard() {
           <h3>Families ({families.total})</h3>
           <DataTable
             columns={[
+              { key: 'ref', label: 'Ref' },
               { key: 'name', label: 'Family' },
               { key: 'members', label: 'Members' },
               { key: 'tasks', label: 'Tasks' },
@@ -428,7 +458,7 @@ export default function AdminDashboard() {
               { key: 'createdAt', label: 'Created', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
             ]}
             rows={families.families}
-            defaultSort={1}
+            defaultSort={2}
           />
           {families.totalPages > 1 && (
             <div className="pagination">
@@ -451,6 +481,93 @@ export default function AdminDashboard() {
           )}
         </div>
       )}
+
+      {/* Records Section */}
+      <div className="records-section" id="records">
+        <h3>Records</h3>
+        <div className="records-tabs">
+          <button className={`records-tab ${recordsTab === 'users' ? 'active' : ''}`} onClick={() => { setRecordsTab('users'); setRecordsSearch(''); setSearchInput(''); loadUserRecords(1, ''); setUserRecordsPage(1); }}>
+            Users {userRecords ? `(${userRecords.total})` : ''}
+          </button>
+          <button className={`records-tab ${recordsTab === 'families' ? 'active' : ''}`} onClick={() => { setRecordsTab('families'); setRecordsSearch(''); setSearchInput(''); loadFamilyRecords(1, ''); setFamilyRecordsPage(1); }}>
+            Families {familyRecords ? `(${familyRecords.total})` : ''}
+          </button>
+        </div>
+
+        <form className="records-search" onSubmit={(e) => {
+          e.preventDefault();
+          setRecordsSearch(searchInput);
+          if (recordsTab === 'users') { setUserRecordsPage(1); loadUserRecords(1, searchInput); }
+          else { setFamilyRecordsPage(1); loadFamilyRecords(1, searchInput); }
+        }}>
+          <input
+            type="text"
+            placeholder={recordsTab === 'users' ? 'Search by name, email, or ref...' : 'Search by name or ref...'}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="records-search-input"
+          />
+          <button type="submit" className="btn btn-secondary btn-small">Search</button>
+          {recordsSearch && (
+            <button type="button" className="btn btn-secondary btn-small" onClick={() => {
+              setSearchInput(''); setRecordsSearch('');
+              if (recordsTab === 'users') { setUserRecordsPage(1); loadUserRecords(1, ''); }
+              else { setFamilyRecordsPage(1); loadFamilyRecords(1, ''); }
+            }}>Clear</button>
+          )}
+        </form>
+
+        {recordsTab === 'users' && userRecords && (
+          <>
+            <DataTable
+              columns={[
+                { key: 'ref', label: 'Ref' },
+                { key: 'name', label: 'Name' },
+                { key: 'email', label: 'Email' },
+                { key: 'role', label: 'Role', render: (v) => v ? v.charAt(0).toUpperCase() + v.slice(1) : '' },
+                { key: 'familyRef', label: 'Family Ref' },
+                { key: 'familyName', label: 'Family' },
+                { key: 'createdAt', label: 'Joined', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
+              ]}
+              rows={userRecords.users}
+              defaultSort={0}
+            />
+            {userRecords.totalPages > 1 && (
+              <div className="pagination">
+                <button className="btn btn-secondary btn-small" disabled={userRecordsPage <= 1} onClick={() => { const p = userRecordsPage - 1; setUserRecordsPage(p); loadUserRecords(p, recordsSearch); }}>Prev</button>
+                <span>Page {userRecordsPage} of {userRecords.totalPages}</span>
+                <button className="btn btn-secondary btn-small" disabled={userRecordsPage >= userRecords.totalPages} onClick={() => { const p = userRecordsPage + 1; setUserRecordsPage(p); loadUserRecords(p, recordsSearch); }}>Next</button>
+              </div>
+            )}
+          </>
+        )}
+
+        {recordsTab === 'families' && familyRecords && (
+          <>
+            <DataTable
+              columns={[
+                { key: 'ref', label: 'Ref' },
+                { key: 'name', label: 'Family Name' },
+                { key: 'members', label: 'Members' },
+                { key: 'memberList', label: 'Member Details', render: (list) => list && list.length > 0
+                  ? list.map(m => `${m.name} (${m.role}${m.isAdmin ? ', admin' : ''})`).join(', ')
+                  : 'None'
+                },
+                { key: 'createdAt', label: 'Created', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
+              ]}
+              rows={familyRecords.families}
+              defaultSort={0}
+            />
+            {familyRecords.totalPages > 1 && (
+              <div className="pagination">
+                <button className="btn btn-secondary btn-small" disabled={familyRecordsPage <= 1} onClick={() => { const p = familyRecordsPage - 1; setFamilyRecordsPage(p); loadFamilyRecords(p, recordsSearch); }}>Prev</button>
+                <span>Page {familyRecordsPage} of {familyRecords.totalPages}</span>
+                <button className="btn btn-secondary btn-small" disabled={familyRecordsPage >= familyRecords.totalPages} onClick={() => { const p = familyRecordsPage + 1; setFamilyRecordsPage(p); loadFamilyRecords(p, recordsSearch); }}>Next</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

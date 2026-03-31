@@ -92,4 +92,6 @@ export const api = {
   getAdminEvents: (period = '30d') => request(`/admin/stats/events?period=${period}`),
   getAdminFamilies: (page = 1) => request(`/admin/stats/families?page=${page}`),
   getAdminActiveUsers: (period = '30d') => request(`/admin/stats/active-users?period=${period}`),
+  getAdminUserRecords: (page = 1, search = '') => request(`/admin/records/users?page=${page}&search=${encodeURIComponent(search)}`),
+  getAdminFamilyRecords: (page = 1, search = '') => request(`/admin/records/families?page=${page}&search=${encodeURIComponent(search)}`),
 };

@@ -227,6 +227,76 @@
   border-radius: 500px;
 }
 
+/* Records section */
+.records-section {
+  background: var(--bg-secondary);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.records-section h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.records-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0;
+}
+
+.records-tab {
+  padding: 8px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.records-tab:hover {
+  color: var(--text-primary);
+}
+
+.records-tab.active {
+  color: var(--accent-green);
+  border-bottom-color: var(--accent-green);
+}
+
+.records-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.records-search-input {
+  flex: 1;
+  max-width: 360px;
+  padding: 8px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.records-search-input:focus {
+  border-color: var(--accent-green);
+}
+
+.records-search-input::placeholder {
+  color: var(--text-subdued);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .overview-grid {
