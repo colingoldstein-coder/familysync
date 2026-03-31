@@ -492,15 +492,18 @@ router.get('/push-stats', async (req, res) => {
 // Get users for email recipient picker (lightweight list)
 router.get('/email-recipients', async (req, res) => {
   try {
-    const { familyId } = req.query;
+    const { familyId, excludeOptedOut } = req.query;
 
     let query = db('users as u')
       .leftJoin('families as f', 'f.id', 'u.family_id')
       .where({ 'u.is_active': true })
-      .select('u.id', 'u.name', 'u.email', 'u.role', 'u.family_id', 'f.name as family_name');
+      .select('u.id', 'u.name', 'u.email', 'u.role', 'u.family_id', 'f.name as family_name', 'u.email_opt_out');
 
     if (familyId) {
       query = query.where({ 'u.family_id': parseInt(familyId) });
+    }
+    if (excludeOptedOut === 'true') {
+      query = query.where({ 'u.email_opt_out': false });
     }
 
     const users = await query.orderBy('f.name').orderBy('u.name');
@@ -510,7 +513,7 @@ router.get('/email-recipients', async (req, res) => {
     users.forEach(u => {
       const key = u.family_id || 0;
       if (!families[key]) families[key] = { id: u.family_id, name: u.family_name || 'No Family', users: [] };
-      families[key].users.push({ id: u.id, name: u.name, email: u.email, role: u.role });
+      families[key].users.push({ id: u.id, name: u.name, email: u.email, role: u.role, optedOut: !!u.email_opt_out });
     });
 
     res.json({ families: Object.values(families) });
@@ -553,13 +556,13 @@ router.post('/send-email', async (req, res) => {
     }
 
     const recipients = users.map(u => ({ userId: u.id, name: u.name, email: u.email }));
-    const emails = users.map(u => u.email);
+    const emailRecipients = users.map(u => ({ email: u.email, userId: u.id }));
 
     let status = 'sent';
     let errorMessage = null;
 
     try {
-      await sendBrandedEmail({ to: emails, subject: subject.trim(), bodyHtml });
+      await sendBrandedEmail({ to: emailRecipients, subject: subject.trim(), bodyHtml });
     } catch (err) {
       status = 'failed';
       errorMessage = err.message;

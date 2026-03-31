@@ -19,6 +19,7 @@ import Install from './pages/Install';
 import AdminDashboard from './pages/AdminDashboard';
 import Account from './pages/Account';
 import Welcome from './pages/Welcome';
+import EmailPreferences from './pages/EmailPreferences';
 import './index.css';
 
 function ProtectedRoute({ children, requireRole }) {
@@ -91,6 +92,7 @@ function AppRoutes() {
         <Route path="/contact" element={<ContactRoute />} />
         <Route path="/about" element={<About />} />
         <Route path="/install" element={<Install />} />
+        <Route path="/email-preferences/:token" element={<EmailPreferences />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>

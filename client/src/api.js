@@ -103,9 +103,19 @@ export const api = {
   adminBroadcastPush: (data) => request('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(data) }),
   getAdminInactiveUsers: () => request('/admin/inactive-users'),
   adminReactivateUsers: (userIds) => request('/admin/reactivate', { method: 'POST', body: JSON.stringify({ userIds }) }),
-  getAdminEmailRecipients: (familyId) => request(`/admin/email-recipients${familyId ? `?familyId=${familyId}` : ''}`),
+  getAdminEmailRecipients: (familyId, excludeOptedOut = false) => {
+    const params = new URLSearchParams();
+    if (familyId) params.set('familyId', familyId);
+    if (excludeOptedOut) params.set('excludeOptedOut', 'true');
+    const qs = params.toString();
+    return request(`/admin/email-recipients${qs ? `?${qs}` : ''}`);
+  },
   adminSendEmail: (data) => request('/admin/send-email', { method: 'POST', body: JSON.stringify(data) }),
   getAdminEmailLog: (page = 1) => request(`/admin/email-log?page=${page}`),
+
+  // Email preferences (public, token-based)
+  getEmailPreferences: (token) => request(`/auth/email-preferences/${token}`),
+  updateEmailPreferences: (token, optOut) => request(`/auth/email-preferences/${token}`, { method: 'POST', body: JSON.stringify({ optOut }) }),
 
   // WebAuthn (biometric login)
   webauthnRegisterOptions: () => request('/webauthn/register-options', { method: 'POST' }),

@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const logger = require('./logger');
 
 const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0];
@@ -96,9 +97,12 @@ async function sendContactEmail({ name, email, message }) {
   }
 }
 
+// recipients: array of { email, userId } or array of email strings (backwards compat)
 async function sendBrandedEmail({ to, subject, bodyHtml }) {
   const logoUrl = `${CLIENT_URL}/pwa-192x192.png`;
-  const html = `
+
+  function buildHtml(unsubUrl) {
+    return `
     <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; overflow: hidden;">
       <div style="background: #1DB954; padding: 16px 32px;">
         <a href="${CLIENT_URL}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
@@ -112,9 +116,11 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
       </div>
       <div style="padding: 16px 32px; border-top: 1px solid #333; color: #888; font-size: 12px; text-align: center;">
         Sent by FamilySync &bull; <a href="${CLIENT_URL}" style="color: #1DB954; text-decoration: none;">Open App</a>
+        ${unsubUrl ? `<br/><a href="${unsubUrl}" style="color: #888; text-decoration: underline; font-size: 11px;">Email preferences &amp; unsubscribe</a>` : ''}
       </div>
     </div>
-  `;
+    `;
+  }
 
   if (!process.env.RESEND_API_KEY) {
     logger.warn({ to: Array.isArray(to) ? to.length + ' recipients' : to }, 'No email provider configured — skipping branded email');
@@ -124,6 +130,10 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
   const recipients = Array.isArray(to) ? to : [to];
 
   for (const recipient of recipients) {
+    const email = typeof recipient === 'string' ? recipient : recipient.email;
+    const userId = typeof recipient === 'object' ? recipient.userId : null;
+    const unsubUrl = userId ? getUnsubscribeUrl(userId) : null;
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -132,20 +142,41 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
       },
       body: JSON.stringify({
         from: fromAddress,
-        to: recipient,
+        to: email,
         subject,
-        html,
+        html: buildHtml(unsubUrl),
       }),
     });
 
     if (!res.ok) {
       const body = await res.text();
-      logger.error({ to: recipient, status: res.status, body }, 'Resend API error (branded)');
-      throw new Error(`Resend API error for ${recipient}: ${res.status} ${body}`);
+      logger.error({ to: email, status: res.status, body }, 'Resend API error (branded)');
+      throw new Error(`Resend API error for ${email}: ${res.status} ${body}`);
     }
   }
 
   logger.info({ recipientCount: recipients.length }, 'Branded email sent');
 }
 
-module.exports = { sendInviteEmail, sendContactEmail, sendBrandedEmail, escapeHtml };
+function generateEmailPrefToken(userId) {
+  const secret = process.env.JWT_SECRET || 'dev-secret';
+  const data = `email-pref:${userId}`;
+  const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
+  return `${userId}.${hmac}`;
+}
+
+function verifyEmailPrefToken(token) {
+  const parts = (token || '').split('.');
+  if (parts.length !== 2) return null;
+  const userId = parseInt(parts[0]);
+  if (isNaN(userId)) return null;
+  const expected = generateEmailPrefToken(userId);
+  if (token !== expected) return null;
+  return userId;
+}
+
+function getUnsubscribeUrl(userId) {
+  return `${CLIENT_URL}/email-preferences/${generateEmailPrefToken(userId)}`;
+}
+
+module.exports = { sendInviteEmail, sendContactEmail, sendBrandedEmail, escapeHtml, getUnsubscribeUrl, verifyEmailPrefToken };

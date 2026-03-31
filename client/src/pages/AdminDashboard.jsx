@@ -132,30 +132,26 @@ function ChartSection({ title, children, tableColumns, tableRows, defaultSort })
 
 function EmailComposerCard() {
   const [families, setFamilies] = useState([]);
-  const [selectedFamily, setSelectedFamily] = useState('');
   const [selectedUsers, setSelectedUsers] = useState(new Set());
+  const [excludeOptedOut, setExcludeOptedOut] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [expandedFamilies, setExpandedFamilies] = useState(new Set());
   const [subject, setSubject] = useState('');
   const editorRef = useRef(null);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
 
-  const loadRecipients = useCallback(async (familyId) => {
+  const loadRecipients = useCallback(async (exclude) => {
     try {
-      const data = await api.getAdminEmailRecipients(familyId || '');
+      const data = await api.getAdminEmailRecipients('', exclude);
       setFamilies(data.families);
     } catch (err) {
       setError(err.message);
     }
   }, []);
 
-  useEffect(() => { loadRecipients(''); }, [loadRecipients]);
-
-  const handleFamilyFilter = (familyId) => {
-    setSelectedFamily(familyId);
-    setSelectedUsers(new Set());
-    loadRecipients(familyId);
-  };
+  useEffect(() => { loadRecipients(excludeOptedOut); }, [loadRecipients, excludeOptedOut]);
 
   const allUsers = families.flatMap(f => f.users);
 
@@ -167,12 +163,20 @@ function EmailComposerCard() {
     });
   };
 
-  const toggleFamily = (familyUsers) => {
+  const toggleFamily = (family) => {
+    const ids = family.users.map(u => u.id);
     setSelectedUsers(prev => {
       const next = new Set(prev);
-      const ids = familyUsers.map(u => u.id);
       const allSelected = ids.every(id => next.has(id));
       ids.forEach(id => allSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
+  };
+
+  const toggleExpandFamily = (familyId) => {
+    setExpandedFamilies(prev => {
+      const next = new Set(prev);
+      if (next.has(familyId)) next.delete(familyId); else next.add(familyId);
       return next;
     });
   };
@@ -183,6 +187,12 @@ function EmailComposerCard() {
     } else {
       setSelectedUsers(new Set(allUsers.map(u => u.id)));
     }
+  };
+
+  const handleOptOutToggle = () => {
+    const next = !excludeOptedOut;
+    setExcludeOptedOut(next);
+    setSelectedUsers(new Set());
   };
 
   const handleSend = async (e) => {
@@ -209,51 +219,86 @@ function EmailComposerCard() {
     }
   };
 
+  const optedOutCount = families.flatMap(f => f.users).filter(u => u.optedOut).length;
+
   return (
     <div className="system-card">
       <h3>Send Email</h3>
-      <p className="system-description">Send a branded email to selected users. Filter by family or select individuals.</p>
+      <p className="system-description">Send a branded email to selected users.</p>
 
       <div className="email-filter-row">
-        <select
-          value={selectedFamily}
-          onChange={(e) => handleFamilyFilter(e.target.value)}
-          className="email-family-select"
+        <button
+          className={`email-filter-toggle ${showFilters ? 'active' : ''}`}
+          onClick={() => setShowFilters(!showFilters)}
+          title="Filter recipients"
         >
-          <option value="">All Families</option>
-          {families.map(f => (
-            <option key={f.id} value={f.id}>{f.name}</option>
-          ))}
-        </select>
-        <button className="btn btn-secondary btn-small" onClick={selectAll}>
-          {selectedUsers.size === allUsers.length && allUsers.length > 0 ? 'Deselect All' : 'Select All'}
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 3h14M4 8h8M6 13h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          Recipients
         </button>
         <span className="email-selected-count">{selectedUsers.size} selected</span>
       </div>
 
-      <div className="email-recipients-list">
-        {families.map(f => (
-          <div key={f.id} className="email-family-group">
-            <div className="email-family-header" onClick={() => toggleFamily(f.users)}>
-              <strong>{f.name}</strong>
-              <span className="email-family-count">{f.users.length} member{f.users.length !== 1 ? 's' : ''}</span>
-            </div>
-            {f.users.map(u => (
-              <label key={u.id} className="email-user-row">
-                <input
-                  type="checkbox"
-                  checked={selectedUsers.has(u.id)}
-                  onChange={() => toggleUser(u.id)}
-                />
-                <span className="email-user-name">{u.name}</span>
-                <span className="email-user-email">{u.email}</span>
-                <span className="email-user-role">{u.role}</span>
-              </label>
-            ))}
+      {showFilters && (
+        <div className="email-filter-panel">
+          <div className="email-filter-options">
+            <label className="email-opt-out-toggle">
+              <input
+                type="checkbox"
+                checked={excludeOptedOut}
+                onChange={handleOptOutToggle}
+              />
+              Exclude users who opted out of marketing emails
+              {!excludeOptedOut && optedOutCount > 0 && <span className="email-opt-out-count">({optedOutCount} opted out)</span>}
+            </label>
+            <button className="btn btn-secondary btn-small" onClick={selectAll}>
+              {selectedUsers.size === allUsers.length && allUsers.length > 0 ? 'Deselect All' : 'Select All'}
+            </button>
           </div>
-        ))}
-        {families.length === 0 && <p style={{ color: 'var(--text-subdued)', fontSize: '0.875rem' }}>No users found</p>}
-      </div>
+
+          <div className="email-recipients-list">
+            {families.map(f => {
+              const familyUserIds = f.users.map(u => u.id);
+              const allFamilySelected = familyUserIds.length > 0 && familyUserIds.every(id => selectedUsers.has(id));
+              const someFamilySelected = familyUserIds.some(id => selectedUsers.has(id));
+              const expanded = expandedFamilies.has(f.id);
+
+              return (
+                <div key={f.id} className="email-family-group">
+                  <div className="email-family-header">
+                    <label className="email-family-check" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={allFamilySelected}
+                        ref={el => { if (el) el.indeterminate = someFamilySelected && !allFamilySelected; }}
+                        onChange={() => toggleFamily(f)}
+                      />
+                    </label>
+                    <div className="email-family-label" onClick={() => toggleExpandFamily(f.id)}>
+                      <strong>{f.name}</strong>
+                      <span className="email-family-count">{f.users.length}</span>
+                      <span className={`email-expand-arrow ${expanded ? 'open' : ''}`}>&#9654;</span>
+                    </div>
+                  </div>
+                  {expanded && f.users.map(u => (
+                    <label key={u.id} className="email-user-row">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.has(u.id)}
+                        onChange={() => toggleUser(u.id)}
+                      />
+                      <span className="email-user-name">{u.name}</span>
+                      <span className="email-user-email">{u.email}</span>
+                      <span className="email-user-role">{u.role}</span>
+                      {u.optedOut && <span className="email-opted-out-badge">Opted out</span>}
+                    </label>
+                  ))}
+                </div>
+              );
+            })}
+            {families.length === 0 && <p style={{ color: 'var(--text-subdued)', fontSize: '0.875rem' }}>No users found</p>}
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSend} className="email-compose-form">
         <div className="form-field">

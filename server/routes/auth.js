@@ -568,4 +568,38 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
   }
 });
 
+// Email preferences (public, token-based)
+const { verifyEmailPrefToken } = require('../email');
+
+router.get('/email-preferences/:token', async (req, res) => {
+  try {
+    const userId = verifyEmailPrefToken(req.params.token);
+    if (!userId) return res.status(400).json({ error: 'Invalid or expired link' });
+
+    const user = await db('users').where({ id: userId }).select('name', 'email', 'email_opt_out').first();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.json({ name: user.name, email: user.email, optedOut: !!user.email_opt_out });
+  } catch (err) {
+    logger.error({ msg: 'Email preferences error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/email-preferences/:token', async (req, res) => {
+  try {
+    const userId = verifyEmailPrefToken(req.params.token);
+    if (!userId) return res.status(400).json({ error: 'Invalid or expired link' });
+
+    const { optOut } = req.body;
+    if (typeof optOut !== 'boolean') return res.status(400).json({ error: 'optOut must be a boolean' });
+
+    await db('users').where({ id: userId }).update({ email_opt_out: optOut });
+    res.json({ optedOut: optOut });
+  } catch (err) {
+    logger.error({ msg: 'Email preferences error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
