@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const db = require('../db');
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -8,7 +9,7 @@ function getJwtSecret() {
   return secret;
 }
 
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
@@ -17,6 +18,15 @@ function authenticate(req, res, next) {
   try {
     const token = header.split(' ')[1];
     const decoded = jwt.verify(token, getJwtSecret());
+
+    // Verify token hasn't been invalidated by password change
+    if (decoded.tv !== undefined) {
+      const user = await db('users').where({ id: decoded.id }).select('token_version').first();
+      if (user && user.token_version !== decoded.tv) {
+        return res.status(401).json({ error: 'Token expired — please log in again' });
+      }
+    }
+
     req.user = decoded;
     next();
   } catch (err) {

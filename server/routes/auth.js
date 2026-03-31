@@ -38,7 +38,7 @@ function toBool(val) {
 
 function makeToken(user, familyId) {
   return jwt.sign(
-    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin), familyId },
+    { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin), familyId, tv: user.token_version || 0 },
     getJwtSecret(),
     { expiresIn: '7d' }
   );
@@ -345,9 +345,16 @@ router.patch('/me/password', authenticate, validate(schemas.updatePassword), asy
     }
 
     const passwordHash = bcrypt.hashSync(newPassword, 10);
-    await db('users').where({ id: req.user.id }).update({ password_hash: passwordHash });
+    await db('users').where({ id: req.user.id }).update({
+      password_hash: passwordHash,
+      token_version: db.raw('token_version + 1'),
+    });
 
-    res.json({ message: 'Password updated' });
+    // Issue a fresh token so the current session stays valid
+    const updated = await db('users').where({ id: req.user.id }).first();
+    const token = makeToken(updated, updated.family_id);
+
+    res.json({ message: 'Password updated', token });
   } catch (err) {
     console.error('Route error:', err);
     res.status(500).json({ error: 'Server error' });

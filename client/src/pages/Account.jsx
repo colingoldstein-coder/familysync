@@ -79,7 +79,8 @@ export default function Account() {
     }
     setPwSaving(true);
     try {
-      await api.updatePassword({ currentPassword, newPassword });
+      const data = await api.updatePassword({ currentPassword, newPassword });
+      if (data.token) updateToken(data.token);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');

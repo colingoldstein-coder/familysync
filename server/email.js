@@ -3,6 +3,15 @@ const logger = require('./logger');
 const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0];
 const fromAddress = process.env.EMAIL_FROM || '"FamilySync" <noreply@familysync.app>';
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
   const joinUrl = `${CLIENT_URL}/join/${token}`;
 
@@ -10,7 +19,7 @@ async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
       <h2 style="color: #1DB954;">FamilySync</h2>
       <p>Hi there!</p>
-      <p><strong>${inviterName}</strong> has invited you to join the <strong>${familyName}</strong> family on FamilySync as a <strong>${role}</strong>.</p>
+      <p><strong>${escapeHtml(inviterName)}</strong> has invited you to join the <strong>${escapeHtml(familyName)}</strong> family on FamilySync as a <strong>${escapeHtml(role)}</strong>.</p>
       <p>
         <a href="${joinUrl}" style="display: inline-block; background: #1DB954; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
           Join Family
@@ -53,9 +62,9 @@ async function sendContactEmail({ name, email, message }) {
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
       <h2 style="color: #1DB954;">FamilySync — New Contact Message</h2>
-      <p><strong>From:</strong> ${name} (${email})</p>
+      <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(email)})</p>
       <hr style="border: none; border-top: 1px solid #333; margin: 16px 0;" />
-      <p style="white-space: pre-wrap;">${message}</p>
+      <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
     </div>
   `;
 

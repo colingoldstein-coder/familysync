@@ -24,8 +24,33 @@ const app = express();
 app.set('trust proxy', 1);
 const isProduction = process.env.NODE_ENV === 'production';
 
+// HTTPS redirect in production
+if (isProduction) {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(301, `https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
+
 // Security headers
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: isProduction ? [] : null,
+    },
+  },
+  hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+}));
 
 // Request logging (skip in test)
 if (process.env.NODE_ENV !== 'test') {
@@ -68,8 +93,19 @@ if (process.env.NODE_ENV !== 'test') {
     legacyHeaders: false,
   });
 
+  const tokenLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: { error: 'Too many attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register-family', authLimiter);
+  app.use('/api/auth/accept-invite', authLimiter);
+  app.use('/api/auth/invite', tokenLimiter);
+  app.use('/api/calendar/feed', tokenLimiter);
   app.use('/api/contact', contactLimiter);
   app.use('/api', apiLimiter);
 }
