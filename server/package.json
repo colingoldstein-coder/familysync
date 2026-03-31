@@ -4,7 +4,7 @@
   "description": "FamilySync backend API",
   "main": "server.js",
   "scripts": {
-    "start": "knex migrate:latest && node server.js",
+    "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "vitest run",
     "test:watch": "vitest",

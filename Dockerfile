@@ -21,4 +21,4 @@ ENV PORT=3001
 
 EXPOSE 3001
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "npx knex migrate:latest --env production && node server.js"]
