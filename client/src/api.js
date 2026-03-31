@@ -94,6 +94,8 @@ export const api = {
   getAdminActiveUsers: (period = '30d') => request(`/admin/stats/active-users?period=${period}`),
   getAdminUserRecords: (page = 1, search = '') => request(`/admin/records/users?page=${page}&search=${encodeURIComponent(search)}`),
   getAdminFamilyRecords: (page = 1, search = '') => request(`/admin/records/families?page=${page}&search=${encodeURIComponent(search)}`),
+  getAdminPushStats: () => request('/admin/push-stats'),
+  adminBroadcastPush: (data) => request('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(data) }),
 
   // WebAuthn (biometric login)
   webauthnRegisterOptions: () => request('/webauthn/register-options', { method: 'POST' }),

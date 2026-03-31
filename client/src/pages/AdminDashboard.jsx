@@ -122,7 +122,104 @@ function ChartSection({ title, children, tableColumns, tableRows, defaultSort })
   );
 }
 
+function SystemTab() {
+  const [pushStats, setPushStats] = useState(null);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [url, setUrl] = useState('/');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.getAdminPushStats().then(setPushStats).catch(() => {});
+  }, []);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!title.trim() || !body.trim()) return;
+    setSending(true);
+    setResult(null);
+    setError('');
+    try {
+      const res = await api.adminBroadcastPush({ title: title.trim(), body: body.trim(), url: url.trim() || '/' });
+      setResult(res);
+      setTitle('');
+      setBody('');
+      setUrl('/');
+      api.getAdminPushStats().then(setPushStats).catch(() => {});
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="system-section">
+      <div className="system-card">
+        <h3>Broadcast Push Notification</h3>
+        <p className="system-description">Send a push notification to all users with notifications enabled.</p>
+
+        {pushStats && (
+          <div className="push-stats">
+            <span className="push-stat"><strong>{pushStats.users}</strong> users subscribed</span>
+            <span className="push-stat"><strong>{pushStats.subscriptions}</strong> devices registered</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSend} className="broadcast-form">
+          <div className="form-field">
+            <label>Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. FamilySync just got a fresh new look!"
+              maxLength={100}
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Message</label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="e.g. Open the app to get the latest update."
+              maxLength={300}
+              rows={3}
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Link (optional)</label>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="/"
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={sending || !title.trim() || !body.trim()}>
+            {sending ? 'Sending...' : 'Send Broadcast'}
+          </button>
+        </form>
+
+        {result && (
+          <div className="broadcast-result success">
+            Sent to {result.sent} device{result.sent !== 1 ? 's' : ''}.
+            {result.failed > 0 && ` ${result.failed} failed.`}
+            {result.cleaned > 0 && ` ${result.cleaned} stale subscriptions removed.`}
+          </div>
+        )}
+        {error && <div className="broadcast-result error">{error}</div>}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
+  const [mainTab, setMainTab] = useState('analytics');
   const [period, setPeriod] = useState('30d');
   const [overview, setOverview] = useState(null);
   const [registrations, setRegistrations] = useState(null);
@@ -253,8 +350,104 @@ export default function AdminDashboard() {
         {overview && <span className="uptime-badge">Uptime: {formatUptime(overview.uptime)}</span>}
       </div>
 
+      <div className="main-tabs">
+        <button className={`main-tab ${mainTab === 'analytics' ? 'active' : ''}`} onClick={() => setMainTab('analytics')}>Analytics</button>
+        <button className={`main-tab ${mainTab === 'records' ? 'active' : ''}`} onClick={() => setMainTab('records')}>Records</button>
+        <button className={`main-tab ${mainTab === 'system' ? 'active' : ''}`} onClick={() => setMainTab('system')}>System</button>
+      </div>
+
       {error && <div className="error-msg">{error}</div>}
 
+      {mainTab === 'system' && <SystemTab />}
+
+      {mainTab === 'records' && (
+        <div className="records-section" id="records">
+        <div className="records-tabs">
+          <button className={`records-tab ${recordsTab === 'users' ? 'active' : ''}`} onClick={() => { setRecordsTab('users'); setRecordsSearch(''); setSearchInput(''); loadUserRecords(1, ''); setUserRecordsPage(1); }}>
+            Users {userRecords ? `(${userRecords.total})` : ''}
+          </button>
+          <button className={`records-tab ${recordsTab === 'families' ? 'active' : ''}`} onClick={() => { setRecordsTab('families'); setRecordsSearch(''); setSearchInput(''); loadFamilyRecords(1, ''); setFamilyRecordsPage(1); }}>
+            Families {familyRecords ? `(${familyRecords.total})` : ''}
+          </button>
+        </div>
+
+        <form className="records-search" onSubmit={(e) => {
+          e.preventDefault();
+          setRecordsSearch(searchInput);
+          if (recordsTab === 'users') { setUserRecordsPage(1); loadUserRecords(1, searchInput); }
+          else { setFamilyRecordsPage(1); loadFamilyRecords(1, searchInput); }
+        }}>
+          <input
+            type="text"
+            placeholder={recordsTab === 'users' ? 'Search by name, email, or ref...' : 'Search by name or ref...'}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="records-search-input"
+          />
+          <button type="submit" className="btn btn-secondary btn-small">Search</button>
+          {recordsSearch && (
+            <button type="button" className="btn btn-secondary btn-small" onClick={() => {
+              setSearchInput(''); setRecordsSearch('');
+              if (recordsTab === 'users') { setUserRecordsPage(1); loadUserRecords(1, ''); }
+              else { setFamilyRecordsPage(1); loadFamilyRecords(1, ''); }
+            }}>Clear</button>
+          )}
+        </form>
+
+        {recordsTab === 'users' && userRecords && (
+          <>
+            <DataTable
+              columns={[
+                { key: 'ref', label: 'Ref' },
+                { key: 'name', label: 'Name' },
+                { key: 'email', label: 'Email' },
+                { key: 'role', label: 'Role', render: (v) => v ? v.charAt(0).toUpperCase() + v.slice(1) : '' },
+                { key: 'familyRef', label: 'Family Ref' },
+                { key: 'familyName', label: 'Family' },
+                { key: 'createdAt', label: 'Joined', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
+              ]}
+              rows={userRecords.users}
+              defaultSort={0}
+            />
+            {userRecords.totalPages > 1 && (
+              <div className="pagination">
+                <button className="btn btn-secondary btn-small" disabled={userRecordsPage <= 1} onClick={() => { const p = userRecordsPage - 1; setUserRecordsPage(p); loadUserRecords(p, recordsSearch); }}>Prev</button>
+                <span>Page {userRecordsPage} of {userRecords.totalPages}</span>
+                <button className="btn btn-secondary btn-small" disabled={userRecordsPage >= userRecords.totalPages} onClick={() => { const p = userRecordsPage + 1; setUserRecordsPage(p); loadUserRecords(p, recordsSearch); }}>Next</button>
+              </div>
+            )}
+          </>
+        )}
+
+        {recordsTab === 'families' && familyRecords && (
+          <>
+            <DataTable
+              columns={[
+                { key: 'ref', label: 'Ref' },
+                { key: 'name', label: 'Family Name' },
+                { key: 'members', label: 'Members' },
+                { key: 'memberList', label: 'Member Details', render: (list) => list && list.length > 0
+                  ? list.map(m => `${m.name} (${m.role}${m.isAdmin ? ', admin' : ''})`).join(', ')
+                  : 'None'
+                },
+                { key: 'createdAt', label: 'Created', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
+              ]}
+              rows={familyRecords.families}
+              defaultSort={0}
+            />
+            {familyRecords.totalPages > 1 && (
+              <div className="pagination">
+                <button className="btn btn-secondary btn-small" disabled={familyRecordsPage <= 1} onClick={() => { const p = familyRecordsPage - 1; setFamilyRecordsPage(p); loadFamilyRecords(p, recordsSearch); }}>Prev</button>
+                <span>Page {familyRecordsPage} of {familyRecords.totalPages}</span>
+                <button className="btn btn-secondary btn-small" disabled={familyRecordsPage >= familyRecords.totalPages} onClick={() => { const p = familyRecordsPage + 1; setFamilyRecordsPage(p); loadFamilyRecords(p, recordsSearch); }}>Next</button>
+              </div>
+            )}
+          </>
+        )}
+        </div>
+      )}
+
+      {mainTab === 'analytics' && <>
       {/* Overview Cards */}
       {overview && (
         <div className="overview-grid">
@@ -487,92 +680,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Records Section */}
-      <div className="records-section" id="records">
-        <h3>Records</h3>
-        <div className="records-tabs">
-          <button className={`records-tab ${recordsTab === 'users' ? 'active' : ''}`} onClick={() => { setRecordsTab('users'); setRecordsSearch(''); setSearchInput(''); loadUserRecords(1, ''); setUserRecordsPage(1); }}>
-            Users {userRecords ? `(${userRecords.total})` : ''}
-          </button>
-          <button className={`records-tab ${recordsTab === 'families' ? 'active' : ''}`} onClick={() => { setRecordsTab('families'); setRecordsSearch(''); setSearchInput(''); loadFamilyRecords(1, ''); setFamilyRecordsPage(1); }}>
-            Families {familyRecords ? `(${familyRecords.total})` : ''}
-          </button>
-        </div>
-
-        <form className="records-search" onSubmit={(e) => {
-          e.preventDefault();
-          setRecordsSearch(searchInput);
-          if (recordsTab === 'users') { setUserRecordsPage(1); loadUserRecords(1, searchInput); }
-          else { setFamilyRecordsPage(1); loadFamilyRecords(1, searchInput); }
-        }}>
-          <input
-            type="text"
-            placeholder={recordsTab === 'users' ? 'Search by name, email, or ref...' : 'Search by name or ref...'}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="records-search-input"
-          />
-          <button type="submit" className="btn btn-secondary btn-small">Search</button>
-          {recordsSearch && (
-            <button type="button" className="btn btn-secondary btn-small" onClick={() => {
-              setSearchInput(''); setRecordsSearch('');
-              if (recordsTab === 'users') { setUserRecordsPage(1); loadUserRecords(1, ''); }
-              else { setFamilyRecordsPage(1); loadFamilyRecords(1, ''); }
-            }}>Clear</button>
-          )}
-        </form>
-
-        {recordsTab === 'users' && userRecords && (
-          <>
-            <DataTable
-              columns={[
-                { key: 'ref', label: 'Ref' },
-                { key: 'name', label: 'Name' },
-                { key: 'email', label: 'Email' },
-                { key: 'role', label: 'Role', render: (v) => v ? v.charAt(0).toUpperCase() + v.slice(1) : '' },
-                { key: 'familyRef', label: 'Family Ref' },
-                { key: 'familyName', label: 'Family' },
-                { key: 'createdAt', label: 'Joined', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
-              ]}
-              rows={userRecords.users}
-              defaultSort={0}
-            />
-            {userRecords.totalPages > 1 && (
-              <div className="pagination">
-                <button className="btn btn-secondary btn-small" disabled={userRecordsPage <= 1} onClick={() => { const p = userRecordsPage - 1; setUserRecordsPage(p); loadUserRecords(p, recordsSearch); }}>Prev</button>
-                <span>Page {userRecordsPage} of {userRecords.totalPages}</span>
-                <button className="btn btn-secondary btn-small" disabled={userRecordsPage >= userRecords.totalPages} onClick={() => { const p = userRecordsPage + 1; setUserRecordsPage(p); loadUserRecords(p, recordsSearch); }}>Next</button>
-              </div>
-            )}
-          </>
-        )}
-
-        {recordsTab === 'families' && familyRecords && (
-          <>
-            <DataTable
-              columns={[
-                { key: 'ref', label: 'Ref' },
-                { key: 'name', label: 'Family Name' },
-                { key: 'members', label: 'Members' },
-                { key: 'memberList', label: 'Member Details', render: (list) => list && list.length > 0
-                  ? list.map(m => `${m.name} (${m.role}${m.isAdmin ? ', admin' : ''})`).join(', ')
-                  : 'None'
-                },
-                { key: 'createdAt', label: 'Created', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
-              ]}
-              rows={familyRecords.families}
-              defaultSort={0}
-            />
-            {familyRecords.totalPages > 1 && (
-              <div className="pagination">
-                <button className="btn btn-secondary btn-small" disabled={familyRecordsPage <= 1} onClick={() => { const p = familyRecordsPage - 1; setFamilyRecordsPage(p); loadFamilyRecords(p, recordsSearch); }}>Prev</button>
-                <span>Page {familyRecordsPage} of {familyRecords.totalPages}</span>
-                <button className="btn btn-secondary btn-small" disabled={familyRecordsPage >= familyRecords.totalPages} onClick={() => { const p = familyRecordsPage + 1; setFamilyRecordsPage(p); loadFamilyRecords(p, recordsSearch); }}>Next</button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      </>}
     </div>
   );
 }

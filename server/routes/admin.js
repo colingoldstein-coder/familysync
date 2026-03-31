@@ -377,4 +377,62 @@ router.get('/stats/active-users', async (req, res) => {
   }
 });
 
+// Broadcast push notification to all subscribers
+router.post('/broadcast-push', async (req, res) => {
+  try {
+    const { title, body, url } = req.body;
+    if (!title || !body) {
+      return res.status(400).json({ error: 'Title and body are required' });
+    }
+
+    const { isConfigured } = require('../notifications');
+    if (!isConfigured()) {
+      return res.status(400).json({ error: 'Push notifications not configured (VAPID keys missing)' });
+    }
+
+    const webpush = require('web-push');
+    const subscriptions = await db('push_subscriptions').select('*');
+    const payload = JSON.stringify({ title, body, url: url || '/', tag: 'admin-broadcast' });
+
+    let sent = 0;
+    let failed = 0;
+    let cleaned = 0;
+
+    for (const sub of subscriptions) {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
+          payload
+        );
+        sent++;
+      } catch (err) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await db('push_subscriptions').where({ id: sub.id }).del();
+          cleaned++;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    logger.info({ msg: 'Broadcast push sent', sent, failed, cleaned });
+    res.json({ sent, failed, cleaned, total: subscriptions.length });
+  } catch (err) {
+    logger.error({ msg: 'Broadcast push error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get push subscription count
+router.get('/push-stats', async (req, res) => {
+  try {
+    const [total] = await db('push_subscriptions').count('id as count');
+    const [users] = await db('push_subscriptions').countDistinct('user_id as count');
+    res.json({ subscriptions: Number(total.count), users: Number(users.count) });
+  } catch (err) {
+    logger.error({ msg: 'Push stats error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
