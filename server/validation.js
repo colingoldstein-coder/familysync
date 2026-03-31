@@ -1,10 +1,15 @@
 const { z } = require('zod');
 
+const strongPassword = z.string().min(10).max(128)
+  .regex(/[a-z]/, 'Password must contain a lowercase letter')
+  .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+  .regex(/[0-9]/, 'Password must contain a number');
+
 const registerFamily = z.object({
   familyName: z.string().min(1).max(100),
   name: z.string().min(1).max(100),
   email: z.string().email().max(255),
-  password: z.string().min(8).max(128),
+  password: strongPassword,
 });
 
 const login = z.object({
@@ -20,7 +25,7 @@ const invite = z.object({
 const acceptInvite = z.object({
   token: z.string().min(1),
   name: z.string().min(1).max(100),
-  password: z.string().min(8).max(128),
+  password: strongPassword,
 });
 
 const datePattern = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format');
@@ -84,7 +89,7 @@ const respondToEvent = z.object({
 
 const updatePassword = z.object({
   currentPassword: z.string().min(1).max(128),
-  newPassword: z.string().min(8).max(128),
+  newPassword: strongPassword,
 });
 
 const updateEmail = z.object({

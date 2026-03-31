@@ -116,9 +116,9 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/health', async (req, res) => {
   try {
     await db.raw('SELECT 1');
-    res.json({ status: 'ok', uptime: process.uptime() });
+    res.json({ status: 'ok' });
   } catch (err) {
-    res.status(503).json({ status: 'error', message: 'Database unavailable' });
+    res.status(503).json({ status: 'error' });
   }
 });
 

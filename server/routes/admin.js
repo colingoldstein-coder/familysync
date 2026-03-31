@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { authenticate, requireSuperAdmin } = require('../middleware/auth');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ router.get('/stats/overview', async (req, res) => {
       uptime: Math.round(process.uptime()),
     });
   } catch (err) {
-    console.error('Admin stats error:', err);
+    logger.error({ msg: 'Admin stats error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -86,7 +87,7 @@ router.get('/stats/registrations', async (req, res) => {
       families: familiesByDay.map(r => ({ date: r.date, count: Number(r.count) })),
     });
   } catch (err) {
-    console.error('Admin stats error:', err);
+    logger.error({ msg: 'Admin stats error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -123,7 +124,7 @@ router.get('/stats/tasks', async (req, res) => {
       statusDistribution: statusDist.map(r => ({ status: r.status, count: Number(r.count) })),
     });
   } catch (err) {
-    console.error('Admin stats error:', err);
+    logger.error({ msg: 'Admin stats error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -157,7 +158,7 @@ router.get('/stats/events', async (req, res) => {
       statusDistribution: statusDist.map(r => ({ status: r.status, count: Number(r.count) })),
     });
   } catch (err) {
-    console.error('Admin stats error:', err);
+    logger.error({ msg: 'Admin stats error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -201,7 +202,7 @@ router.get('/stats/families', async (req, res) => {
       totalPages: Math.ceil(Number(total.count) / limit),
     });
   } catch (err) {
-    console.error('Admin stats error:', err);
+    logger.error({ msg: 'Admin stats error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -259,7 +260,7 @@ router.get('/records/users', async (req, res) => {
       totalPages: Math.ceil(Number(total.count) / limit),
     });
   } catch (err) {
-    console.error('Admin records error:', err);
+    logger.error({ msg: 'Admin records error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -321,7 +322,7 @@ router.get('/records/families', async (req, res) => {
       totalPages: Math.ceil(Number(total.count) / limit),
     });
   } catch (err) {
-    console.error('Admin records error:', err);
+    logger.error({ msg: 'Admin records error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -363,7 +364,7 @@ router.get('/stats/active-users', async (req, res) => {
 
     res.json({ activeUsers });
   } catch (err) {
-    console.error('Admin stats error:', err);
+    logger.error({ msg: 'Admin stats error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

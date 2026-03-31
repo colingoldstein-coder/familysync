@@ -6,6 +6,7 @@ const db = require('../db');
 const { getJwtSecret, authenticate, requireAdmin } = require('../middleware/auth');
 const { sendInviteEmail } = require('../email');
 const { validate, schemas } = require('../validation');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
 
     const existing = await db('users').where({ email }).first();
     if (existing) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(400).json({ error: 'Unable to register with this email' });
     }
 
     const joinCode = generateJoinCode();
@@ -77,7 +78,7 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
       user: { id: result.userId, name, email, role: 'parent', isAdmin: true, familyId: result.familyId },
     });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -89,7 +90,7 @@ router.post('/invite', authenticate, requireAdmin, validate(schemas.invite), asy
 
     const existingUser = await db('users').where({ email }).first();
     if (existingUser) {
-      return res.status(400).json({ error: 'This email is already registered' });
+      return res.status(400).json({ error: 'Unable to register with this email' });
     }
 
     const existingInvite = await db('invitations')
@@ -115,12 +116,12 @@ router.post('/invite', authenticate, requireAdmin, validate(schemas.invite), asy
         inviterName: req.user.name,
       });
     } catch (emailErr) {
-      console.error('Email send error:', emailErr);
+      logger.error({ msg: 'Email send error', error: emailErr.message });
     }
 
     res.json({ message: 'Invitation sent', inviteToken });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -148,7 +149,7 @@ router.get('/invite/:token', async (req, res) => {
       familyName: invite.family_name,
     });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -165,7 +166,7 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
 
     const existingUser = await db('users').where({ email: invite.email }).first();
     if (existingUser) {
-      return res.status(400).json({ error: 'This email is already registered' });
+      return res.status(400).json({ error: 'Unable to register with this email' });
     }
 
     const passwordHash = bcrypt.hashSync(password, 10);
@@ -190,7 +191,7 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
       user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id },
     });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -216,12 +217,12 @@ router.post('/invitations/:id/resend', authenticate, requireAdmin, async (req, r
         inviterName: req.user.name,
       });
     } catch (emailErr) {
-      console.error('Email send error:', emailErr);
+      logger.error({ msg: 'Email send error', error: emailErr.message });
     }
 
     res.json({ message: `Invitation resent to ${invite.email}` });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -235,7 +236,7 @@ router.get('/invitations', authenticate, requireAdmin, async (req, res) => {
       .orderBy('created_at', 'desc');
     res.json({ invitations });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -262,7 +263,7 @@ router.post('/login', validate(schemas.login), async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -286,7 +287,7 @@ router.get('/me', authenticate, async (req, res) => {
       family,
     });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -299,7 +300,7 @@ router.get('/family-members', authenticate, async (req, res) => {
       .select('id', 'name', 'email', 'role', 'is_admin', 'avatar_color');
     res.json({ members });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -329,7 +330,7 @@ router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res
 
     res.json({ message: 'Member removed' });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -356,7 +357,7 @@ router.patch('/me/password', authenticate, validate(schemas.updatePassword), asy
 
     res.json({ message: 'Password updated', token });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -384,7 +385,7 @@ router.patch('/me/email', authenticate, validate(schemas.updateEmail), async (re
 
     res.json({ message: 'Email updated', token, email: newEmail });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -400,7 +401,7 @@ router.patch('/me/name', authenticate, validate(schemas.updateName), async (req,
 
     res.json({ message: 'Name updated', token, name });
   } catch (err) {
-    console.error('Route error:', err);
+    logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

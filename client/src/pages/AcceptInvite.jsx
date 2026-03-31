@@ -102,7 +102,7 @@ export default function AcceptInvite() {
           <div className="form-group">
             <label>Password</label>
             <PasswordInput
-              placeholder="Create a password"
+              placeholder="Min 10 chars, upper + lower + number"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />

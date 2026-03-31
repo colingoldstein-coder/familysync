@@ -168,7 +168,7 @@ export default function Account() {
           <div className="form-group">
             <label>New Password</label>
             <PasswordInput
-              placeholder="At least 8 characters"
+              placeholder="Min 10 chars, upper + lower + number"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
