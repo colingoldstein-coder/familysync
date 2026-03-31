@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "concurrently": "^9.2.1",
-    "google-auth-library": "^10.6.2",
     "sharp": "^0.34.5"
   }
 }
