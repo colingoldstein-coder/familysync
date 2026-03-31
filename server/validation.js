@@ -101,6 +101,22 @@ const updateName = z.object({
   name: z.string().min(1).max(100),
 });
 
+const googleLogin = z.object({
+  idToken: z.string().min(1),
+});
+
+const googleRegisterFamily = z.object({
+  idToken: z.string().min(1),
+  familyName: z.string().min(1).max(100),
+  name: z.string().min(1).max(100),
+});
+
+const googleAcceptInvite = z.object({
+  idToken: z.string().min(1),
+  inviteToken: z.string().min(1),
+  name: z.string().min(1).max(100),
+});
+
 const contact = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email().max(255),
@@ -136,5 +152,8 @@ module.exports = {
     updatePassword,
     updateEmail,
     updateName,
+    googleLogin,
+    googleRegisterFamily,
+    googleAcceptInvite,
   },
 };

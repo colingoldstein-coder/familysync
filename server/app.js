@@ -41,11 +41,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],
       imgSrc: ["'self'", 'data:', 'blob:'],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", 'https://accounts.google.com'],
       fontSrc: ["'self'"],
+      frameSrc: ['https://accounts.google.com'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
       upgradeInsecureRequests: isProduction ? [] : null,
@@ -106,6 +107,9 @@ if (process.env.NODE_ENV !== 'test') {
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register-family', authLimiter);
   app.use('/api/auth/accept-invite', authLimiter);
+  app.use('/api/auth/google-login', authLimiter);
+  app.use('/api/auth/google-register-family', authLimiter);
+  app.use('/api/auth/google-accept-invite', authLimiter);
   app.use('/api/webauthn/login-options', authLimiter);
   app.use('/api/webauthn/login', authLimiter);
   app.use('/api/auth/invite', tokenLimiter);

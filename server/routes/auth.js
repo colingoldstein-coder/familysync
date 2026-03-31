@@ -7,6 +7,7 @@ const { getJwtSecret, authenticate, requireAdmin } = require('../middleware/auth
 const { sendInviteEmail } = require('../email');
 const { validate, schemas } = require('../validation');
 const logger = require('../logger');
+const { verifyGoogleToken } = require('../oauth');
 
 const router = express.Router();
 
@@ -247,7 +248,13 @@ router.post('/login', validate(schemas.login), async (req, res) => {
     const { email, password } = req.body;
 
     const user = await db('users').where({ email }).first();
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (!user.password_hash) {
+      return res.status(401).json({ error: 'This account uses Google Sign-In. Please log in with Google.' });
+    }
+    if (!bcrypt.compareSync(password, user.password_hash)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -341,6 +348,9 @@ router.patch('/me/password', authenticate, validate(schemas.updatePassword), asy
     const { currentPassword, newPassword } = req.body;
 
     const user = await db('users').where({ id: req.user.id }).first();
+    if (!user.password_hash) {
+      return res.status(400).json({ error: 'Cannot change password for Google Sign-In accounts' });
+    }
     if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
@@ -368,6 +378,9 @@ router.patch('/me/email', authenticate, validate(schemas.updateEmail), async (re
     const { newEmail, password } = req.body;
 
     const user = await db('users').where({ id: req.user.id }).first();
+    if (!user.password_hash) {
+      return res.status(400).json({ error: 'Cannot change email for Google Sign-In accounts' });
+    }
     if (!bcrypt.compareSync(password, user.password_hash)) {
       return res.status(400).json({ error: 'Password is incorrect' });
     }
@@ -402,6 +415,143 @@ router.patch('/me/name', authenticate, validate(schemas.updateName), async (req,
     res.json({ message: 'Name updated', token, name });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Google Sign-In: login existing user
+router.post('/google-login', validate(schemas.googleLogin), async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    let googleUser;
+    try {
+      googleUser = await verifyGoogleToken(idToken);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid Google token' });
+    }
+
+    const user = await db('users').where({ email: googleUser.email }).first();
+    if (!user) {
+      return res.status(404).json({ error: 'no_account', email: googleUser.email, name: googleUser.name });
+    }
+
+    // Auto-link Google account if not already linked
+    if (!user.oauth_provider) {
+      await db('users').where({ id: user.id }).update({
+        oauth_provider: 'google',
+        oauth_provider_id: googleUser.providerId,
+      });
+    }
+
+    const token = makeToken(user, user.family_id);
+    res.json({
+      token,
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role,
+        isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin),
+        familyId: user.family_id,
+      },
+    });
+  } catch (err) {
+    logger.error({ msg: 'Google login error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Google Sign-In: register new family
+router.post('/google-register-family', validate(schemas.googleRegisterFamily), async (req, res) => {
+  try {
+    const { idToken, familyName, name } = req.body;
+
+    let googleUser;
+    try {
+      googleUser = await verifyGoogleToken(idToken);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid Google token' });
+    }
+
+    const existing = await db('users').where({ email: googleUser.email }).first();
+    if (existing) {
+      return res.status(400).json({ error: 'Unable to register with this email' });
+    }
+
+    const joinCode = generateJoinCode();
+
+    const result = await db.transaction(async (trx) => {
+      const familyRef = await nextRefNumber(trx, 'families', 'FS-F-');
+      const [family] = await trx('families').insert({ name: familyName, join_code: joinCode, ref_number: familyRef }).returning('id');
+      const familyId = family.id || family;
+      const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
+      const [user] = await trx('users').insert({
+        name, email: googleUser.email, password_hash: null, role: 'parent',
+        is_admin: true, family_id: familyId, ref_number: userRef,
+        oauth_provider: 'google', oauth_provider_id: googleUser.providerId,
+      }).returning('id');
+      const userId = user.id || user;
+      return { familyId, userId };
+    });
+
+    const user = { id: result.userId, name, email: googleUser.email, role: 'parent', is_admin: true };
+    const token = makeToken(user, result.familyId);
+
+    res.json({
+      token,
+      user: { id: result.userId, name, email: googleUser.email, role: 'parent', isAdmin: true, familyId: result.familyId },
+    });
+  } catch (err) {
+    logger.error({ msg: 'Google register error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Google Sign-In: accept invitation
+router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async (req, res) => {
+  try {
+    const { idToken, inviteToken, name } = req.body;
+
+    let googleUser;
+    try {
+      googleUser = await verifyGoogleToken(idToken);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid Google token' });
+    }
+
+    const invite = await db('invitations').where({ token: inviteToken, status: 'pending' }).first();
+    if (!invite) {
+      return res.status(400).json({ error: 'Invalid or expired invitation' });
+    }
+
+    if (googleUser.email.toLowerCase() !== invite.email.toLowerCase()) {
+      return res.status(400).json({ error: 'Your Google account email does not match the invitation email' });
+    }
+
+    const existingUser = await db('users').where({ email: googleUser.email }).first();
+    if (existingUser) {
+      return res.status(400).json({ error: 'Unable to register with this email' });
+    }
+
+    const result = await db.transaction(async (trx) => {
+      const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
+      const [user] = await trx('users').insert({
+        name, email: invite.email, password_hash: null, role: invite.role,
+        family_id: invite.family_id, ref_number: userRef,
+        oauth_provider: 'google', oauth_provider_id: googleUser.providerId,
+      }).returning('id');
+      const userId = user.id || user;
+      await trx('invitations').where({ id: invite.id }).update({ status: 'accepted' });
+      return { userId };
+    });
+
+    const user = { id: result.userId, name, email: invite.email, role: invite.role, is_admin: false };
+    const jwtToken = makeToken(user, invite.family_id);
+
+    res.json({
+      token: jwtToken,
+      user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id },
+    });
+  } catch (err) {
+    logger.error({ msg: 'Google accept-invite error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

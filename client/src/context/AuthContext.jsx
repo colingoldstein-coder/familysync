@@ -56,6 +56,27 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const googleLogin = async (idToken) => {
+    const data = await api.googleLogin({ idToken });
+    localStorage.setItem('familysync_token', data.token);
+    setUser(data.user);
+    return data;
+  };
+
+  const googleRegisterFamily = async (idToken, familyName, name) => {
+    const data = await api.googleRegisterFamily({ idToken, familyName, name });
+    localStorage.setItem('familysync_token', data.token);
+    setUser(data.user);
+    return data;
+  };
+
+  const googleAcceptInvite = async (idToken, inviteToken, name) => {
+    const data = await api.googleAcceptInvite({ idToken, inviteToken, name });
+    localStorage.setItem('familysync_token', data.token);
+    setUser(data.user);
+    return data;
+  };
+
   const biometricLogin = async (email, response) => {
     const data = await api.webauthnLogin({ email, response });
     localStorage.setItem('familysync_token', data.token);
@@ -80,7 +101,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, family, loading, login, biometricLogin, registerFamily, acceptInvite, logout, updateToken, refreshUser }}>
+    <AuthContext.Provider value={{ user, family, loading, login, biometricLogin, googleLogin, googleRegisterFamily, googleAcceptInvite, registerFamily, acceptInvite, logout, updateToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

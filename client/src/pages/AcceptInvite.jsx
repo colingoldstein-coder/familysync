@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import PasswordInput from '../components/PasswordInput';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import '../styles/shared.css';
 import './Auth.css';
 
@@ -13,7 +14,8 @@ export default function AcceptInvite() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loadingInvite, setLoadingInvite] = useState(true);
-  const { acceptInvite } = useAuth();
+  const [googleIdToken, setGoogleIdToken] = useState(null);
+  const { acceptInvite, googleAcceptInvite } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,11 +25,30 @@ export default function AcceptInvite() {
       .finally(() => setLoadingInvite(false));
   }, [token]);
 
+  const handleGoogleSuccess = useCallback((idToken) => {
+    setError('');
+    try {
+      const payload = JSON.parse(atob(idToken.split('.')[1]));
+      setGoogleIdToken(idToken);
+      setName(payload.name || '');
+    } catch {
+      setError('Failed to read Google account info');
+    }
+  }, []);
+
+  const handleGoogleError = useCallback((err) => {
+    setError(err.message || 'Google sign-in failed');
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      await acceptInvite(token, name, password);
+      if (googleIdToken) {
+        await googleAcceptInvite(googleIdToken, token, name);
+      } else {
+        await acceptInvite(token, name, password);
+      }
       navigate('/welcome');
     } catch (err) {
       setError(err.message);
@@ -39,7 +60,7 @@ export default function AcceptInvite() {
       <div className="auth-page">
         <div className="auth-card">
           <div className="auth-logo">
-            <span className="brand-icon-large">⟐</span>
+            <span className="brand-icon-large">&#x27D0;</span>
             <p>Loading invitation...</p>
           </div>
         </div>
@@ -52,7 +73,7 @@ export default function AcceptInvite() {
       <div className="auth-page">
         <div className="auth-card">
           <div className="auth-logo">
-            <span className="brand-icon-large">⟐</span>
+            <span className="brand-icon-large">&#x27D0;</span>
             <h1>Invalid Invitation</h1>
             <p>{error || 'This invitation link is invalid or has expired.'}</p>
           </div>
@@ -69,7 +90,7 @@ export default function AcceptInvite() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <span className="brand-icon-large">⟐</span>
+          <span className="brand-icon-large">&#x27D0;</span>
           <h1>FamilySync</h1>
           <p>You've been invited to join <strong>{invite.familyName}</strong></p>
         </div>
@@ -87,6 +108,32 @@ export default function AcceptInvite() {
 
         {error && <div className="error-msg">{error}</div>}
 
+        {!googleIdToken && (
+          <>
+            <GoogleSignInButton onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+            <div className="social-divider">
+              <span>or use password</span>
+            </div>
+          </>
+        )}
+
+        {googleIdToken && (
+          <div className="invite-details" style={{ marginBottom: 16 }}>
+            <div className="invite-detail-row">
+              <span>Signing in with Google</span>
+              <strong>{invite.email}</strong>
+            </div>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ width: '100%', marginTop: 8, padding: '8px', fontSize: '0.8125rem' }}
+              onClick={() => { setGoogleIdToken(null); setName(''); }}
+            >
+              Use password instead
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Your Name</label>
@@ -99,14 +146,16 @@ export default function AcceptInvite() {
             />
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
-            <PasswordInput
-              placeholder="Min 10 chars, upper + lower + number"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          {!googleIdToken && (
+            <div className="form-group">
+              <label>Password</label>
+              <PasswordInput
+                placeholder="Min 10 chars, upper + lower + number"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          )}
 
           <button type="submit" className="btn btn-primary auth-btn">
             Join Family

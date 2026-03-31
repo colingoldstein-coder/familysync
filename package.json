@@ -8,6 +8,8 @@
     "dev": "concurrently -n server,client -c green,blue \"npm run server\" \"npm run client\""
   },
   "dependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "google-auth-library": "^10.6.2",
+    "sharp": "^0.34.5"
   }
 }

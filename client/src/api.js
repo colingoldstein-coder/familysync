@@ -44,6 +44,11 @@ export const api = {
   getFamilyMembers: () => request('/auth/family-members'),
   removeFamilyMember: (id) => request(`/auth/family-members/${id}`, { method: 'DELETE' }),
 
+  // Google Auth
+  googleLogin: (data) => request('/auth/google-login', { method: 'POST', body: JSON.stringify(data) }),
+  googleRegisterFamily: (data) => request('/auth/google-register-family', { method: 'POST', body: JSON.stringify(data) }),
+  googleAcceptInvite: (data) => request('/auth/google-accept-invite', { method: 'POST', body: JSON.stringify(data) }),
+
   // Account
   updatePassword: (data) => request('/auth/me/password', { method: 'PATCH', body: JSON.stringify(data) }),
   updateEmail: (data) => request('/auth/me/email', { method: 'PATCH', body: JSON.stringify(data) }),

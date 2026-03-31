@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import PasswordInput from '../components/PasswordInput';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import '../styles/shared.css';
 import './Auth.css';
 
@@ -13,11 +14,10 @@ export default function Login() {
   const [error, setError] = useState('');
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
-  const { login, biometricLogin } = useAuth();
+  const { login, biometricLogin, googleLogin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if this device supports biometrics and user previously logged in
     const savedEmail = localStorage.getItem('familysync_biometric_email');
     if (savedEmail && browserSupportsWebAuthn()) {
       setEmail(savedEmail);
@@ -55,6 +55,24 @@ export default function Login() {
     }
   };
 
+  const handleGoogleSuccess = useCallback(async (idToken) => {
+    setError('');
+    try {
+      await googleLogin(idToken);
+      navigate('/dashboard');
+    } catch (err) {
+      if (err.message === 'no_account') {
+        setError('No account found with this Google email. Please register first.');
+      } else {
+        setError(err.message);
+      }
+    }
+  }, [googleLogin, navigate]);
+
+  const handleGoogleError = useCallback((err) => {
+    setError(err.message || 'Google sign-in failed');
+  }, []);
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -65,6 +83,8 @@ export default function Login() {
         </div>
 
         {error && <div className="error-msg">{error}</div>}
+
+        <GoogleSignInButton onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
 
         {biometricAvailable && (
           <div className="biometric-section">
@@ -85,11 +105,12 @@ export default function Login() {
               </svg>
               {biometricLoading ? 'Verifying...' : 'Sign in with Biometrics'}
             </button>
-            <div className="biometric-divider">
-              <span>or use password</span>
-            </div>
           </div>
         )}
+
+        <div className="social-divider">
+          <span>or use password</span>
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
