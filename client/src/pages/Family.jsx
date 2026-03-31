@@ -129,7 +129,7 @@ export default function Family() {
                 </div>
                 <div className="member-info">
                   <h3>{invite.email}</h3>
-                  <p>Invited {new Date(invite.created_at).toLocaleDateString()}</p>
+                  <p>Invited {(() => { const s = String(invite.created_at).slice(0, 10); return new Date(s + 'T00:00:00').toLocaleDateString(); })()}</p>
                 </div>
                 <span className="badge badge-pending" style={{ textTransform: 'capitalize' }}>{invite.role}</span>
                 <button className="btn btn-primary btn-sm" onClick={() => handleResendInvite(invite)}>Resend</button>

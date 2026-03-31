@@ -312,7 +312,7 @@ function BiometricSettings() {
             <div key={c.id} className="biometric-credential">
               <div>
                 <strong>{c.device_name || 'Device'}</strong>
-                <span className="biometric-date">Added {new Date(c.created_at).toLocaleDateString()}</span>
+                <span className="biometric-date">Added {(() => { const s = String(c.created_at).slice(0, 10); return new Date(s + 'T00:00:00').toLocaleDateString(); })()}</span>
               </div>
               <button className="btn btn-secondary btn-small" onClick={() => handleRemove(c.id)}>Remove</button>
             </div>

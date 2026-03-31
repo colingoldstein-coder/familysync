@@ -61,7 +61,9 @@ function getSortDate(item) {
 
 function getDateLabel(dateStr) {
   if (!dateStr) return null;
-  const d = new Date(dateStr + 'T00:00:00');
+  const str = String(dateStr);
+  const plain = str.includes('T') ? str.split('T')[0] : str.slice(0, 10);
+  const d = new Date(plain + 'T00:00:00');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
@@ -474,7 +476,7 @@ function TimelineItem({ item, userRole, onRespondRequest, onRespondEvent, onDele
           {item.description && <span>{item.description}</span>}
           <span>Assigned to: <strong>{item.assigned_to_name}</strong></span>
           {item.rejectable ? <span className="meta-tag">Rejectable</span> : null}
-          {item.deadline && <span>Due: <strong>{new Date(item.deadline + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</strong></span>}
+          {item.deadline && <span>Due: <strong>{(() => { const s = String(item.deadline); const p = s.includes('T') ? s.split('T')[0] : s.slice(0, 10); return new Date(p + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); })()}</strong></span>}
           {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
         </div>
         <div className="timeline-actions">
