@@ -40,6 +40,14 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+function formatDateTime(dateStr) {
+  if (!dateStr) return '';
+  const str = String(dateStr);
+  const d = new Date(str);
+  if (isNaN(d)) return str;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
 function formatUptime(seconds) {
   const d = Math.floor(seconds / 86400);
   const h = Math.floor((seconds % 86400) / 3600);
@@ -122,6 +130,372 @@ function ChartSection({ title, children, tableColumns, tableRows, defaultSort })
   );
 }
 
+function EmailComposerCard() {
+  const [families, setFamilies] = useState([]);
+  const [selectedFamily, setSelectedFamily] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
+  const [subject, setSubject] = useState('');
+  const [bodyContent, setBodyContent] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState('');
+  const [error, setError] = useState('');
+
+  const loadRecipients = useCallback(async (familyId) => {
+    try {
+      const data = await api.getAdminEmailRecipients(familyId || '');
+      setFamilies(data.families);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, []);
+
+  useEffect(() => { loadRecipients(''); }, [loadRecipients]);
+
+  const handleFamilyFilter = (familyId) => {
+    setSelectedFamily(familyId);
+    setSelectedUsers(new Set());
+    loadRecipients(familyId);
+  };
+
+  const allUsers = families.flatMap(f => f.users);
+
+  const toggleUser = (id) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleFamily = (familyUsers) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev);
+      const ids = familyUsers.map(u => u.id);
+      const allSelected = ids.every(id => next.has(id));
+      ids.forEach(id => allSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedUsers.size === allUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(allUsers.map(u => u.id)));
+    }
+  };
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (selectedUsers.size === 0 || !subject.trim() || !bodyContent.trim()) return;
+    setSending(true);
+    setResult('');
+    setError('');
+    try {
+      const res = await api.adminSendEmail({
+        subject: subject.trim(),
+        bodyContent: bodyContent.trim(),
+        userIds: [...selectedUsers],
+      });
+      setResult(`Email sent to ${res.sent} recipient${res.sent !== 1 ? 's' : ''}`);
+      setSubject('');
+      setBodyContent('');
+      setSelectedUsers(new Set());
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="system-card">
+      <h3>Send Email</h3>
+      <p className="system-description">Send a branded email to selected users. Filter by family or select individuals.</p>
+
+      <div className="email-filter-row">
+        <select
+          value={selectedFamily}
+          onChange={(e) => handleFamilyFilter(e.target.value)}
+          className="email-family-select"
+        >
+          <option value="">All Families</option>
+          {families.map(f => (
+            <option key={f.id} value={f.id}>{f.name}</option>
+          ))}
+        </select>
+        <button className="btn btn-secondary btn-small" onClick={selectAll}>
+          {selectedUsers.size === allUsers.length && allUsers.length > 0 ? 'Deselect All' : 'Select All'}
+        </button>
+        <span className="email-selected-count">{selectedUsers.size} selected</span>
+      </div>
+
+      <div className="email-recipients-list">
+        {families.map(f => (
+          <div key={f.id} className="email-family-group">
+            <div className="email-family-header" onClick={() => toggleFamily(f.users)}>
+              <strong>{f.name}</strong>
+              <span className="email-family-count">{f.users.length} member{f.users.length !== 1 ? 's' : ''}</span>
+            </div>
+            {f.users.map(u => (
+              <label key={u.id} className="email-user-row">
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.has(u.id)}
+                  onChange={() => toggleUser(u.id)}
+                />
+                <span className="email-user-name">{u.name}</span>
+                <span className="email-user-email">{u.email}</span>
+                <span className="email-user-role">{u.role}</span>
+              </label>
+            ))}
+          </div>
+        ))}
+        {families.length === 0 && <p style={{ color: 'var(--text-subdued)', fontSize: '0.875rem' }}>No users found</p>}
+      </div>
+
+      <form onSubmit={handleSend} className="email-compose-form">
+        <div className="form-field">
+          <label>Subject</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="e.g. Important update from FamilySync"
+            maxLength={255}
+            required
+          />
+        </div>
+        <div className="form-field">
+          <label>Message</label>
+          <textarea
+            value={bodyContent}
+            onChange={(e) => setBodyContent(e.target.value)}
+            placeholder="Write your email content here. Each line becomes a paragraph."
+            rows={6}
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={sending || selectedUsers.size === 0 || !subject.trim() || !bodyContent.trim()}
+        >
+          {sending ? 'Sending...' : `Send to ${selectedUsers.size} Recipient${selectedUsers.size !== 1 ? 's' : ''}`}
+        </button>
+      </form>
+
+      {result && <div className="broadcast-result success">{result}</div>}
+      {error && <div className="broadcast-result error">{error}</div>}
+    </div>
+  );
+}
+
+function EmailLogCard() {
+  const [logs, setLogs] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(null);
+
+  const load = useCallback(async (p) => {
+    try {
+      const data = await api.getAdminEmailLog(p);
+      setLogs(data.logs);
+      setTotalPages(data.totalPages);
+      setTotal(data.total);
+    } catch {} finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(1); }, [load]);
+
+  const handlePage = (p) => {
+    setPage(p);
+    load(p);
+  };
+
+  return (
+    <div className="system-card">
+      <h3>Email Log ({total})</h3>
+      <p className="system-description">History of all emails sent from the admin panel.</p>
+
+      {loading && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading...</p>}
+
+      {!loading && logs.length === 0 && (
+        <p style={{ color: 'var(--text-subdued)', fontSize: '0.875rem', padding: '12px 0' }}>No emails sent yet</p>
+      )}
+
+      {logs.map(log => (
+        <div key={log.id} className={`email-log-entry ${log.status === 'failed' ? 'failed' : ''}`}>
+          <div className="email-log-header" onClick={() => setExpanded(expanded === log.id ? null : log.id)}>
+            <div className="email-log-subject">
+              {log.subject}
+              {log.status === 'failed' && <span className="email-log-badge failed">Failed</span>}
+            </div>
+            <div className="email-log-meta">
+              <span>{log.recipientCount} recipient{log.recipientCount !== 1 ? 's' : ''}</span>
+              <span className="email-log-dot">&bull;</span>
+              <span>{log.sentByName}</span>
+              <span className="email-log-dot">&bull;</span>
+              <span>{formatDateTime(log.createdAt)}</span>
+            </div>
+          </div>
+          {expanded === log.id && (
+            <div className="email-log-details">
+              <div className="email-log-recipients">
+                <strong>Recipients:</strong>{' '}
+                {log.recipients.map(r => `${r.name} (${r.email})`).join(', ')}
+              </div>
+              <div className="email-log-body" dangerouslySetInnerHTML={{ __html: log.bodyHtml }} />
+              {log.errorMessage && (
+                <div className="email-log-error">Error: {log.errorMessage}</div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button className="btn btn-secondary btn-small" disabled={page <= 1} onClick={() => handlePage(page - 1)}>Prev</button>
+          <span>Page {page} of {totalPages}</span>
+          <button className="btn btn-secondary btn-small" disabled={page >= totalPages} onClick={() => handlePage(page + 1)}>Next</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InactiveUsersCard() {
+  const [users, setUsers] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [reactivating, setReactivating] = useState(false);
+  const [result, setResult] = useState('');
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api.getAdminInactiveUsers();
+      setUsers(data.users);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectByFamily = (familyId) => {
+    const familyUserIds = users.filter(u => u.familyId === familyId).map(u => u.id);
+    setSelected(prev => {
+      const next = new Set(prev);
+      const allSelected = familyUserIds.every(id => next.has(id));
+      familyUserIds.forEach(id => allSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selected.size === users.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(users.map(u => u.id)));
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (selected.size === 0) return;
+    setReactivating(true);
+    setResult('');
+    setError('');
+    try {
+      const res = await api.adminReactivateUsers([...selected]);
+      setResult(`${res.reactivated} account${res.reactivated !== 1 ? 's' : ''} reactivated`);
+      setSelected(new Set());
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setReactivating(false);
+    }
+  };
+
+  // Group by family
+  const families = {};
+  users.forEach(u => {
+    const key = u.familyId || 'none';
+    if (!families[key]) families[key] = { name: u.familyName || 'No Family', ref: u.familyRef || '', users: [] };
+    families[key].users.push(u);
+  });
+
+  return (
+    <div className="system-card">
+      <h3>Inactive Accounts</h3>
+      <p className="system-description">Child accounts that have been removed by parents. Select accounts to reactivate.</p>
+
+      {loading && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading...</p>}
+
+      {!loading && users.length === 0 && (
+        <p style={{ color: 'var(--text-subdued)', fontSize: '0.875rem', padding: '12px 0' }}>No inactive accounts</p>
+      )}
+
+      {!loading && users.length > 0 && (
+        <>
+          <div className="inactive-actions">
+            <button className="btn btn-secondary btn-small" onClick={selectAll}>
+              {selected.size === users.length ? 'Deselect All' : 'Select All'}
+            </button>
+            <button
+              className="btn btn-primary btn-small"
+              disabled={selected.size === 0 || reactivating}
+              onClick={handleReactivate}
+            >
+              {reactivating ? 'Reactivating...' : `Reactivate (${selected.size})`}
+            </button>
+          </div>
+
+          {Object.entries(families).map(([familyId, family]) => (
+            <div key={familyId} className="inactive-family-group">
+              <div className="inactive-family-header" onClick={() => selectByFamily(Number(familyId))}>
+                <strong>{family.name}</strong>
+                {family.ref && <span className="inactive-family-ref">{family.ref}</span>}
+              </div>
+              {family.users.map(u => (
+                <label key={u.id} className="inactive-user-row">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(u.id)}
+                    onChange={() => toggle(u.id)}
+                  />
+                  <span className="inactive-user-name">{u.name}</span>
+                  <span className="inactive-user-email">{u.email}</span>
+                  <span className="inactive-user-role">{u.role}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </>
+      )}
+
+      {result && <div className="broadcast-result success">{result}</div>}
+      {error && <div className="broadcast-result error">{error}</div>}
+    </div>
+  );
+}
+
 function SystemTab() {
   const [pushStats, setPushStats] = useState(null);
   const [title, setTitle] = useState('');
@@ -157,6 +531,10 @@ function SystemTab() {
 
   return (
     <div className="system-section">
+      <EmailComposerCard />
+      <EmailLogCard />
+      <InactiveUsersCard />
+
       <div className="system-card">
         <h3>Broadcast Push Notification</h3>
         <p className="system-description">Send a push notification to all users with notifications enabled.</p>
@@ -404,7 +782,7 @@ export default function AdminDashboard() {
                 { key: 'role', label: 'Role', render: (v) => v ? v.charAt(0).toUpperCase() + v.slice(1) : '' },
                 { key: 'familyRef', label: 'Family Ref' },
                 { key: 'familyName', label: 'Family' },
-                { key: 'createdAt', label: 'Joined', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
+                { key: 'createdAt', label: 'Joined', render: (v) => v ? formatDateTime(v) : '' },
               ]}
               rows={userRecords.users}
               defaultSort={0}
@@ -430,7 +808,7 @@ export default function AdminDashboard() {
                   ? list.map(m => `${m.name} (${m.role}${m.isAdmin ? ', admin' : ''})`).join(', ')
                   : 'None'
                 },
-                { key: 'createdAt', label: 'Created', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
+                { key: 'createdAt', label: 'Created', render: (v) => v ? formatDateTime(v) : '' },
               ]}
               rows={familyRecords.families}
               defaultSort={0}
@@ -653,7 +1031,7 @@ export default function AdminDashboard() {
               { key: 'completedTasks', label: 'Completed' },
               { key: 'events', label: 'Events' },
               { key: 'requests', label: 'Requests' },
-              { key: 'createdAt', label: 'Created', render: (v) => v ? formatDate(v.split('T')[0]) : '' },
+              { key: 'createdAt', label: 'Created', render: (v) => v ? formatDateTime(v) : '' },
             ]}
             rows={families.families}
             defaultSort={2}

@@ -96,4 +96,52 @@ async function sendContactEmail({ name, email, message }) {
   }
 }
 
-module.exports = { sendInviteEmail, sendContactEmail };
+async function sendBrandedEmail({ to, subject, bodyHtml }) {
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; overflow: hidden;">
+      <div style="background: #1DB954; padding: 20px 32px;">
+        <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">FamilySync</h1>
+      </div>
+      <div style="padding: 32px; color: #e0e0e0; font-size: 15px; line-height: 1.7;">
+        <h2 style="color: #fff; font-size: 18px; margin: 0 0 16px;">${escapeHtml(subject)}</h2>
+        ${bodyHtml}
+      </div>
+      <div style="padding: 16px 32px; border-top: 1px solid #333; color: #888; font-size: 12px; text-align: center;">
+        Sent by FamilySync &bull; <a href="${CLIENT_URL}" style="color: #1DB954; text-decoration: none;">Open App</a>
+      </div>
+    </div>
+  `;
+
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn({ to: Array.isArray(to) ? to.length + ' recipients' : to }, 'No email provider configured — skipping branded email');
+    return;
+  }
+
+  const recipients = Array.isArray(to) ? to : [to];
+
+  for (const recipient of recipients) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: recipient,
+        subject,
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      logger.error({ to: recipient, status: res.status, body }, 'Resend API error (branded)');
+      throw new Error(`Resend API error for ${recipient}: ${res.status} ${body}`);
+    }
+  }
+
+  logger.info({ recipientCount: recipients.length }, 'Branded email sent');
+}
+
+module.exports = { sendInviteEmail, sendContactEmail, sendBrandedEmail, escapeHtml };

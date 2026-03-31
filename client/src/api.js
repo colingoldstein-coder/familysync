@@ -101,6 +101,11 @@ export const api = {
   getAdminFamilyRecords: (page = 1, search = '') => request(`/admin/records/families?page=${page}&search=${encodeURIComponent(search)}`),
   getAdminPushStats: () => request('/admin/push-stats'),
   adminBroadcastPush: (data) => request('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(data) }),
+  getAdminInactiveUsers: () => request('/admin/inactive-users'),
+  adminReactivateUsers: (userIds) => request('/admin/reactivate', { method: 'POST', body: JSON.stringify({ userIds }) }),
+  getAdminEmailRecipients: (familyId) => request(`/admin/email-recipients${familyId ? `?familyId=${familyId}` : ''}`),
+  adminSendEmail: (data) => request('/admin/send-email', { method: 'POST', body: JSON.stringify(data) }),
+  getAdminEmailLog: (page = 1) => request(`/admin/email-log?page=${page}`),
 
   // WebAuthn (biometric login)
   webauthnRegisterOptions: () => request('/webauthn/register-options', { method: 'POST' }),

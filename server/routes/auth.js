@@ -251,6 +251,9 @@ router.post('/login', validate(schemas.login), async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'This account has been deactivated. Please contact your family admin.' });
+    }
     if (!user.password_hash) {
       return res.status(401).json({ error: 'This account uses Google Sign-In. Please log in with Google.' });
     }
@@ -303,7 +306,7 @@ router.get('/me', authenticate, async (req, res) => {
 router.get('/family-members', authenticate, async (req, res) => {
   try {
     const members = await db('users')
-      .where({ family_id: req.user.familyId })
+      .where({ family_id: req.user.familyId, is_active: true })
       .select('id', 'name', 'email', 'role', 'is_admin', 'avatar_color');
     res.json({ members });
   } catch (err) {
@@ -328,14 +331,20 @@ router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res
       return res.status(404).json({ error: 'Member not found' });
     }
 
-    await db.transaction(async (trx) => {
-      await trx('help_requests').where({ requested_by: memberId }).orWhere({ accepted_by: memberId }).del();
-      await trx('tasks').where({ assigned_to: memberId }).orWhere({ assigned_by: memberId }).del();
-      await trx('invitations').where({ invited_by: memberId }).del();
-      await trx('users').where({ id: memberId }).del();
-    });
-
-    res.json({ message: 'Member removed' });
+    if (member.role === 'child') {
+      // Soft-delete: deactivate child accounts instead of deleting
+      await db('users').where({ id: memberId }).update({ is_active: false });
+      res.json({ message: 'Member deactivated' });
+    } else {
+      // Hard-delete for parent accounts
+      await db.transaction(async (trx) => {
+        await trx('help_requests').where({ requested_by: memberId }).orWhere({ accepted_by: memberId }).del();
+        await trx('tasks').where({ assigned_to: memberId }).orWhere({ assigned_by: memberId }).del();
+        await trx('invitations').where({ invited_by: memberId }).del();
+        await trx('users').where({ id: memberId }).del();
+      });
+      res.json({ message: 'Member removed' });
+    }
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
@@ -434,6 +443,9 @@ router.post('/google-login', validate(schemas.googleLogin), async (req, res) => 
     const user = await db('users').where({ email: googleUser.email }).first();
     if (!user) {
       return res.status(404).json({ error: 'no_account', email: googleUser.email, name: googleUser.name });
+    }
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'This account has been deactivated. Please contact your family admin.' });
     }
 
     // Auto-link Google account if not already linked

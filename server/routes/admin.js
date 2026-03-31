@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { authenticate, requireSuperAdmin } = require('../middleware/auth');
 const logger = require('../logger');
+const { sendBrandedEmail, escapeHtml } = require('../email');
 
 const router = express.Router();
 
@@ -377,6 +378,59 @@ router.get('/stats/active-users', async (req, res) => {
   }
 });
 
+// List inactive users
+router.get('/inactive-users', async (req, res) => {
+  try {
+    const users = await db('users as u')
+      .leftJoin('families as f', 'f.id', 'u.family_id')
+      .where({ 'u.is_active': false })
+      .select(
+        'u.id', 'u.ref_number', 'u.name', 'u.email', 'u.role',
+        'u.family_id', 'f.name as family_name', 'f.ref_number as family_ref',
+        'u.created_at'
+      )
+      .orderBy('f.name')
+      .orderBy('u.name');
+
+    res.json({
+      users: users.map(u => ({
+        id: u.id,
+        ref: u.ref_number,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        familyId: u.family_id,
+        familyName: u.family_name,
+        familyRef: u.family_ref,
+        createdAt: u.created_at,
+      })),
+    });
+  } catch (err) {
+    logger.error({ msg: 'Admin inactive users error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Reactivate inactive users
+router.post('/reactivate', async (req, res) => {
+  try {
+    const { userIds } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'userIds array is required' });
+    }
+
+    const updated = await db('users')
+      .whereIn('id', userIds)
+      .where({ is_active: false })
+      .update({ is_active: true });
+
+    res.json({ reactivated: updated });
+  } catch (err) {
+    logger.error({ msg: 'Admin reactivate error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Broadcast push notification to all subscribers
 router.post('/broadcast-push', async (req, res) => {
   try {
@@ -431,6 +485,143 @@ router.get('/push-stats', async (req, res) => {
     res.json({ subscriptions: Number(total.count), users: Number(users.count) });
   } catch (err) {
     logger.error({ msg: 'Push stats error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get users for email recipient picker (lightweight list)
+router.get('/email-recipients', async (req, res) => {
+  try {
+    const { familyId } = req.query;
+
+    let query = db('users as u')
+      .leftJoin('families as f', 'f.id', 'u.family_id')
+      .where({ 'u.is_active': true })
+      .select('u.id', 'u.name', 'u.email', 'u.role', 'u.family_id', 'f.name as family_name');
+
+    if (familyId) {
+      query = query.where({ 'u.family_id': parseInt(familyId) });
+    }
+
+    const users = await query.orderBy('f.name').orderBy('u.name');
+
+    // Build family groups
+    const families = {};
+    users.forEach(u => {
+      const key = u.family_id || 0;
+      if (!families[key]) families[key] = { id: u.family_id, name: u.family_name || 'No Family', users: [] };
+      families[key].users.push({ id: u.id, name: u.name, email: u.email, role: u.role });
+    });
+
+    res.json({ families: Object.values(families) });
+  } catch (err) {
+    logger.error({ msg: 'Admin email recipients error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Send branded email to selected users
+router.post('/send-email', async (req, res) => {
+  try {
+    const { subject, bodyContent, userIds } = req.body;
+
+    if (!subject || !subject.trim()) {
+      return res.status(400).json({ error: 'Subject is required' });
+    }
+    if (!bodyContent || !bodyContent.trim()) {
+      return res.status(400).json({ error: 'Email content is required' });
+    }
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'At least one recipient is required' });
+    }
+
+    const users = await db('users')
+      .whereIn('id', userIds)
+      .where({ is_active: true })
+      .select('id', 'name', 'email');
+
+    if (users.length === 0) {
+      return res.status(400).json({ error: 'No valid recipients found' });
+    }
+
+    // Convert plain text body to HTML paragraphs
+    const bodyHtml = bodyContent.trim().split('\n').map(line =>
+      line.trim() ? `<p style="margin: 0 0 12px;">${escapeHtml(line)}</p>` : '<br/>'
+    ).join('\n');
+
+    const recipients = users.map(u => ({ userId: u.id, name: u.name, email: u.email }));
+    const emails = users.map(u => u.email);
+
+    let status = 'sent';
+    let errorMessage = null;
+
+    try {
+      await sendBrandedEmail({ to: emails, subject: subject.trim(), bodyHtml });
+    } catch (err) {
+      status = 'failed';
+      errorMessage = err.message;
+    }
+
+    // Log the email
+    await db('email_log').insert({
+      sent_by: req.user.id,
+      subject: subject.trim(),
+      body_html: bodyHtml,
+      recipients: JSON.stringify(recipients),
+      recipient_count: recipients.length,
+      status,
+      error_message: errorMessage,
+    });
+
+    if (status === 'failed') {
+      return res.status(500).json({ error: `Email send failed: ${errorMessage}` });
+    }
+
+    res.json({ sent: recipients.length });
+  } catch (err) {
+    logger.error({ msg: 'Admin send email error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get email log
+router.get('/email-log', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = 20;
+    const offset = (page - 1) * limit;
+
+    const logs = await db('email_log as e')
+      .leftJoin('users as u', 'u.id', 'e.sent_by')
+      .select(
+        'e.id', 'e.subject', 'e.body_html', 'e.recipients',
+        'e.recipient_count', 'e.status', 'e.error_message',
+        'e.created_at', 'u.name as sent_by_name'
+      )
+      .orderBy('e.created_at', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    const [total] = await db('email_log').count('id as count');
+
+    res.json({
+      logs: logs.map(l => ({
+        id: l.id,
+        subject: l.subject,
+        bodyHtml: l.body_html,
+        recipients: JSON.parse(l.recipients),
+        recipientCount: l.recipient_count,
+        status: l.status,
+        errorMessage: l.error_message,
+        sentByName: l.sent_by_name,
+        createdAt: l.created_at,
+      })),
+      total: Number(total.count),
+      page,
+      totalPages: Math.ceil(Number(total.count) / limit),
+    });
+  } catch (err) {
+    logger.error({ msg: 'Admin email log error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

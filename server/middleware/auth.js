@@ -21,9 +21,12 @@ async function authenticate(req, res, next) {
 
     // Verify token hasn't been invalidated by password change
     if (decoded.tv !== undefined) {
-      const user = await db('users').where({ id: decoded.id }).select('token_version').first();
+      const user = await db('users').where({ id: decoded.id }).select('token_version', 'is_active').first();
       if (user && user.token_version !== decoded.tv) {
         return res.status(401).json({ error: 'Token expired — please log in again' });
+      }
+      if (user && !user.is_active) {
+        return res.status(403).json({ error: 'This account has been deactivated' });
       }
     }
 
