@@ -41,7 +41,9 @@ function formatTime(timeStr) {
 }
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
+  const str = String(dateStr);
+  const plain = str.includes('T') ? str.split('T')[0] : str.slice(0, 10);
+  const d = new Date(plain + 'T00:00:00');
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
