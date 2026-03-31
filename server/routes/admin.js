@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(authenticate, requireSuperAdmin);
 
 const isSQLite = !process.env.DATABASE_URL;
-const likeOp = isSQLite ? 'like' : likeOp;
+const likeOp = isSQLite ? 'like' : 'ilike';
 
 function parsePeriod(period) {
   const match = (period || '30d').match(/^(\d+)(d|w|m)$/);
