@@ -200,8 +200,8 @@ export default function About() {
                 <path d="M30 27C31 25.5 32.5 25 34 25" className="step-icon-recurring-arrow" />
               </svg>
             </div>
-            <h3>Create &amp; Assign Tasks</h3>
-            <p>Add tasks and events, set deadlines, assign them to family members, and schedule recurring ones.</p>
+            <h3>Send Requests</h3>
+            <p>Need something done? Send a request to a family member or everyone at once. Add deadlines and set up recurring schedules.</p>
           </div>
           <div className="step-connector"><div className="connector-line" /><div className="connector-arrow" /></div>
           <div className="step">
@@ -217,8 +217,8 @@ export default function About() {
                 <path d="M13 24L22 18L31 12L40 6" className="step-icon-trend" />
               </svg>
             </div>
-            <h3>Track Progress</h3>
-            <p>See what's done, what's overdue, and what's coming up. Keep everyone accountable and on track.</p>
+            <h3>Requests Become Tasks</h3>
+            <p>When someone accepts a request, it becomes their task to complete. Track progress, mark things done, and keep everyone accountable.</p>
           </div>
         </div>
       </section>

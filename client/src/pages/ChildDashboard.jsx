@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
-import RecurrencePicker from '../components/RecurrencePicker';
 import EventForm from '../components/EventForm';
 import '../styles/shared.css';
 import './Dashboard.css';
@@ -14,7 +13,7 @@ function loadFilters() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) return JSON.parse(saved);
   } catch {}
-  return { tasks: true, requests: true, events: true, completed: false };
+  return { tasks: true, events: true, completed: false };
 }
 
 function saveFilters(filters) {
@@ -75,7 +74,6 @@ function getDateLabel(dateStr) {
 
 function isCompleted(item) {
   if (item._type === 'task') return item.status === 'completed' || item.status === 'rejected';
-  if (item._type === 'request') return item.status === 'accepted' || item.status === 'rejected';
   if (item._type === 'event') return item.status === 'rejected';
   return false;
 }
@@ -83,32 +81,19 @@ function isCompleted(item) {
 export default function ChildDashboard() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
-  const [requests, setRequests] = useState([]);
   const [members, setMembers] = useState([]);
   const [events, setEvents] = useState([]);
   const [filters, setFilters] = useState(loadFilters);
-  const [showRequestModal, setShowRequestModal] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Request form
-  const [reqTitle, setReqTitle] = useState('');
-  const [reqDesc, setReqDesc] = useState('');
-  const [reqTo, setReqTo] = useState('');
-  const [reqToAll, setReqToAll] = useState(false);
-  const [reqRecurrence, setReqRecurrence] = useState({
-    recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week',
-    recurrenceDays: null, recurrenceEnd: null,
-  });
-
   const loadData = async () => {
     try {
-      const [tasksData, requestsData, membersData, eventsData] = await Promise.all([
-        api.getTasks(), api.getRequests(), api.getFamilyMembers(), api.getEvents(),
+      const [tasksData, membersData, eventsData] = await Promise.all([
+        api.getTasks(), api.getFamilyMembers(), api.getEvents(),
       ]);
       setTasks(tasksData.tasks);
-      setRequests(requestsData.requests);
       setMembers(membersData.members);
       setEvents(eventsData.events);
     } catch (err) {
@@ -126,31 +111,11 @@ export default function ChildDashboard() {
     });
   };
 
-  const parents = members.filter(m => m.role === 'parent');
-
   const handleUpdateTask = async (id, status) => {
     try {
       await api.updateTaskStatus(id, status);
       const displayStatus = status === 'rejected' ? 'declined' : status;
       setSuccess(`Task ${displayStatus}!`);
-      loadData();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) { setError(err.message); }
-  };
-
-  const handleCreateRequest = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await api.createRequest({
-        title: reqTitle, description: reqDesc,
-        requestedTo: reqToAll ? null : Number(reqTo),
-        requestToAll: reqToAll, ...reqRecurrence,
-      });
-      setSuccess('Request sent!');
-      setShowRequestModal(false);
-      setReqTitle(''); setReqDesc(''); setReqTo(''); setReqToAll(false);
-      setReqRecurrence({ recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week', recurrenceDays: null, recurrenceEnd: null });
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) { setError(err.message); }
@@ -182,13 +147,6 @@ export default function ChildDashboard() {
     });
   }
 
-  if (filters.requests) {
-    requests.forEach(r => {
-      if (!filters.completed && isCompleted({ ...r, _type: 'request' })) return;
-      allItems.push({ ...r, _type: 'request' });
-    });
-  }
-
   if (filters.events) {
     events.forEach(e => {
       if (!filters.completed && isCompleted({ ...e, _type: 'event' })) return;
@@ -215,7 +173,7 @@ export default function ChildDashboard() {
     groups[groups.length - 1].items.push(item);
   });
 
-  const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'accepted' || t.status === 'in_progress');
+  const pendingTasks = tasks.filter(t => t.status === 'accepted' || t.status === 'in_progress');
 
   return (
     <div className="page-container">
@@ -223,7 +181,6 @@ export default function ChildDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1>Hey, {user.name}!</h1>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary btn-small" onClick={() => setShowRequestModal(true)}>+ Ask for Help</button>
             <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>+ New Event</button>
           </div>
         </div>
@@ -234,12 +191,12 @@ export default function ChildDashboard() {
 
       <div className="stats-row">
         <div className="stat-card">
-          <div className="stat-number">{pendingTasks.length}</div>
-          <div className="stat-label">Active Tasks</div>
+          <div className="stat-number">{tasks.filter(t => t.status === 'pending').length}</div>
+          <div className="stat-label">Requests</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{requests.filter(r => r.status === 'pending').length}</div>
-          <div className="stat-label">Pending</div>
+          <div className="stat-number">{pendingTasks.length}</div>
+          <div className="stat-label">Active Tasks</div>
         </div>
         <div className="stat-card">
           <div className="stat-number">{events.filter(e => e.status !== 'rejected').length}</div>
@@ -252,11 +209,7 @@ export default function ChildDashboard() {
         <span className="filter-bar-label">Show:</span>
         <label className="filter-check">
           <input type="checkbox" checked={filters.tasks} onChange={() => updateFilters('tasks')} />
-          <span>Tasks <span className="filter-count">({tasks.length})</span></span>
-        </label>
-        <label className="filter-check">
-          <input type="checkbox" checked={filters.requests} onChange={() => updateFilters('requests')} />
-          <span>Requests <span className="filter-count">({requests.length})</span></span>
+          <span>Requests &amp; Tasks <span className="filter-count">({tasks.length})</span></span>
         </label>
         <label className="filter-check">
           <input type="checkbox" checked={filters.events} onChange={() => updateFilters('events')} />
@@ -305,47 +258,6 @@ export default function ChildDashboard() {
         />
       )}
 
-      {/* Create Request Modal */}
-      {showRequestModal && (
-        <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Ask for Help</h2>
-            <form onSubmit={handleCreateRequest}>
-              <div className="form-group">
-                <label>What do you need?</label>
-                <input type="text" placeholder="e.g. Lift to Sarah's party" value={reqTitle} onChange={(e) => setReqTitle(e.target.value)} required />
-              </div>
-              <div className="form-group">
-                <label>Details (optional)</label>
-                <textarea placeholder="When, where, any extra info..." value={reqDesc} onChange={(e) => setReqDesc(e.target.value)} rows={3} />
-              </div>
-              <div className="form-group">
-                <div className="checkbox-group">
-                  <input type="checkbox" id="reqAll" checked={reqToAll} onChange={(e) => setReqToAll(e.target.checked)} />
-                  <label htmlFor="reqAll">Ask both parents</label>
-                </div>
-              </div>
-              {!reqToAll && (
-                <div className="form-group">
-                  <label>Ask who?</label>
-                  <select value={reqTo} onChange={(e) => setReqTo(e.target.value)} required={!reqToAll}>
-                    <option value="">Select a parent...</option>
-                    {parents.map(parent => (
-                      <option key={parent.id} value={parent.id}>{parent.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <RecurrencePicker value={reqRecurrence} onChange={setReqRecurrence} />
-              <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowRequestModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Send Request</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
@@ -381,42 +293,16 @@ function ChildTimelineItem({ item, onUpdateTask, onDeleteEvent }) {
     );
   }
 
-  if (item._type === 'request') {
-    return (
-      <div className={`timeline-item ${completed ? 'completed' : ''}`}>
-        <div className="timeline-type-indicator type-request" />
-        <div className="timeline-content">
-          <div className="timeline-top-row">
-            <span className="timeline-title">{item.title}</span>
-            <div className="timeline-badges">
-              <span className="timeline-category cat-request">Request</span>
-              <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status}</span>
-            </div>
-          </div>
-          <div className="timeline-summary">
-            {item.description && <span>{item.description}</span>}
-            {item.request_to_all ? (
-              <span>Sent to: <strong>All Parents</strong></span>
-            ) : (
-              <span>Sent to: <strong>{item.requested_to_name}</strong></span>
-            )}
-            {item.accepted_by_name && <span>Accepted by: <strong>{item.accepted_by_name}</strong></span>}
-            {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Task
+  // Task (shown as "Request" when pending, "Task" when accepted+)
+  const isRequest = item.status === 'pending';
   return (
     <div className={`timeline-item ${completed ? 'completed' : ''}`}>
-      <div className="timeline-type-indicator type-task" />
+      <div className={`timeline-type-indicator ${isRequest ? 'type-request' : 'type-task'}`} />
       <div className="timeline-content">
         <div className="timeline-top-row">
           <span className="timeline-title">{item.title}</span>
           <div className="timeline-badges">
-            <span className="timeline-category cat-task">Task</span>
+            <span className={`timeline-category ${isRequest ? 'cat-request' : 'cat-task'}`}>{isRequest ? 'Request' : 'Task'}</span>
             <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status.replace('_', ' ')}</span>
           </div>
         </div>

@@ -76,7 +76,6 @@ function getDateLabel(dateStr) {
 
 function isCompleted(item) {
   if (item._type === 'task') return item.status === 'completed' || item.status === 'rejected';
-  if (item._type === 'request') return item.status === 'accepted' || item.status === 'rejected';
   if (item._type === 'event') return item.status === 'rejected';
   return false;
 }
@@ -84,7 +83,6 @@ function isCompleted(item) {
 export default function ParentDashboard() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
-  const [requests, setRequests] = useState([]);
   const [members, setMembers] = useState([]);
   const [events, setEvents] = useState([]);
   const [filters, setFilters] = useState(loadFilters);
@@ -105,24 +103,12 @@ export default function ParentDashboard() {
     recurrenceDays: null, recurrenceEnd: null,
   });
 
-  // Request form
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [reqTitle, setReqTitle] = useState('');
-  const [reqDesc, setReqDesc] = useState('');
-  const [reqTo, setReqTo] = useState('');
-  const [reqToAll, setReqToAll] = useState(false);
-  const [reqRecurrence, setReqRecurrence] = useState({
-    recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week',
-    recurrenceDays: null, recurrenceEnd: null,
-  });
-
   const loadData = async () => {
     try {
-      const [tasksData, requestsData, membersData, eventsData] = await Promise.all([
-        api.getTasks(), api.getRequests(), api.getFamilyMembers(), api.getEvents(),
+      const [tasksData, membersData, eventsData] = await Promise.all([
+        api.getTasks(), api.getFamilyMembers(), api.getEvents(),
       ]);
       setTasks(tasksData.tasks);
-      setRequests(requestsData.requests);
       setMembers(membersData.members);
       setEvents(eventsData.events);
     } catch (err) {
@@ -152,7 +138,7 @@ export default function ParentDashboard() {
         assignToAll: taskAssignAll, rejectable: taskRejectable,
         deadline: taskDeadline || null, ...taskRecurrence,
       });
-      setSuccess('Task created!');
+      setSuccess('Request sent!');
       setShowTaskModal(false);
       setTaskTitle(''); setTaskDesc(''); setTaskAssignTo('');
       setTaskAssignAll(false); setTaskRejectable(false); setTaskDeadline('');
@@ -167,34 +153,6 @@ export default function ParentDashboard() {
       await api.updateTaskStatus(id, status);
       const displayStatus = status === 'rejected' ? 'declined' : status;
       setSuccess(`Task ${displayStatus}!`);
-      loadData();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) { setError(err.message); }
-  };
-
-  const handleRespondRequest = async (id, status) => {
-    try {
-      await api.respondToRequest(id, status);
-      const displayStatus = status === 'rejected' ? 'declined' : status;
-      setSuccess(`Request ${displayStatus}!`);
-      loadData();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) { setError(err.message); }
-  };
-
-  const handleCreateRequest = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await api.createRequest({
-        title: reqTitle, description: reqDesc,
-        requestedTo: reqToAll ? null : Number(reqTo),
-        requestToAll: reqToAll, ...reqRecurrence,
-      });
-      setSuccess('Request sent!');
-      setShowRequestModal(false);
-      setReqTitle(''); setReqDesc(''); setReqTo(''); setReqToAll(false);
-      setReqRecurrence({ recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week', recurrenceDays: null, recurrenceEnd: null });
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) { setError(err.message); }
@@ -240,13 +198,6 @@ export default function ParentDashboard() {
     });
   }
 
-  if (filters.requests) {
-    requests.forEach(r => {
-      if (!filters.completed && isCompleted({ ...r, _type: 'request' })) return;
-      allItems.push({ ...r, _type: 'request' });
-    });
-  }
-
   if (filters.events) {
     events.forEach(e => {
       if (!filters.completed && isCompleted({ ...e, _type: 'event' })) return;
@@ -276,11 +227,9 @@ export default function ParentDashboard() {
   });
 
   const taskCount = tasks.length;
-  const requestCount = requests.length;
   const eventCount = events.length;
 
-  const activeTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'rejected');
-  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const activeTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'rejected' && t.status !== 'pending');
 
   return (
     <div className="page-container">
@@ -288,8 +237,7 @@ export default function ParentDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1>Welcome back, {user.name}</h1>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary btn-small" onClick={() => setShowTaskModal(true)}>+ New Task</button>
-            <button className="btn btn-primary btn-small" onClick={() => setShowRequestModal(true)}>+ New Request</button>
+            <button className="btn btn-primary btn-small" onClick={() => setShowTaskModal(true)}>+ New Request</button>
             <button className="btn btn-primary btn-small" onClick={() => setShowEventForm(true)}>+ New Event</button>
           </div>
         </div>
@@ -300,12 +248,12 @@ export default function ParentDashboard() {
 
       <div className="stats-row">
         <div className="stat-card">
-          <div className="stat-number">{activeTasks.length}</div>
-          <div className="stat-label">Active Tasks</div>
+          <div className="stat-number">{tasks.filter(t => t.status === 'pending').length}</div>
+          <div className="stat-label">Requests</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{pendingRequests.length}</div>
-          <div className="stat-label">Pending</div>
+          <div className="stat-number">{activeTasks.length}</div>
+          <div className="stat-label">Active Tasks</div>
         </div>
         <div className="stat-card">
           <div className="stat-number">{events.filter(e => e.status !== 'rejected').length}</div>
@@ -318,11 +266,7 @@ export default function ParentDashboard() {
         <span className="filter-bar-label">Show:</span>
         <label className="filter-check">
           <input type="checkbox" checked={filters.tasks} onChange={() => updateFilters('tasks')} />
-          <span>Tasks <span className="filter-count">({taskCount})</span></span>
-        </label>
-        <label className="filter-check">
-          <input type="checkbox" checked={filters.requests} onChange={() => updateFilters('requests')} />
-          <span>Requests <span className="filter-count">({requestCount})</span></span>
+          <span>Requests &amp; Tasks <span className="filter-count">({taskCount})</span></span>
         </label>
         <label className="filter-check">
           <input type="checkbox" checked={filters.events} onChange={() => updateFilters('events')} />
@@ -338,7 +282,7 @@ export default function ParentDashboard() {
       {allItems.length === 0 ? (
         <div className="empty-state">
           <h3>Nothing to show</h3>
-          <p>{!filters.tasks && !filters.requests && !filters.events ? 'Select a category above' : 'Create a task or event to get started'}</p>
+          <p>{!filters.tasks && !filters.events ? 'Select a category above' : 'Send a request or create an event to get started'}</p>
         </div>
       ) : (
         groups.map(group => {
@@ -355,7 +299,6 @@ export default function ParentDashboard() {
                   userRole="parent"
                   currentUserId={user.id}
                   onUpdateTask={handleUpdateTask}
-                  onRespondRequest={handleRespondRequest}
                   onRespondEvent={handleRespondEvent}
                   onDeleteTask={handleDeleteTask}
                   onDeleteEvent={handleDeleteEvent}
@@ -376,51 +319,10 @@ export default function ParentDashboard() {
         />
       )}
 
-      {/* Create Task Modal */}
-      {showRequestModal && (
-        <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Ask for Help</h2>
-            <form onSubmit={handleCreateRequest}>
-              <div className="form-group">
-                <label>What do you need?</label>
-                <input type="text" placeholder="e.g. Pick up groceries" value={reqTitle} onChange={(e) => setReqTitle(e.target.value)} required />
-              </div>
-              <div className="form-group">
-                <label>Details (optional)</label>
-                <textarea placeholder="When, where, any extra info..." value={reqDesc} onChange={(e) => setReqDesc(e.target.value)} rows={3} />
-              </div>
-              <div className="form-group">
-                <div className="checkbox-group">
-                  <input type="checkbox" id="reqAll" checked={reqToAll} onChange={(e) => setReqToAll(e.target.checked)} />
-                  <label htmlFor="reqAll">Ask everyone</label>
-                </div>
-              </div>
-              {!reqToAll && (
-                <div className="form-group">
-                  <label>Ask who?</label>
-                  <select value={reqTo} onChange={(e) => setReqTo(e.target.value)} required={!reqToAll}>
-                    <option value="">Select a person...</option>
-                    {assignableMembers.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <RecurrencePicker value={reqRecurrence} onChange={setReqRecurrence} />
-              <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowRequestModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Send Request</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {showTaskModal && (
         <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Create Task</h2>
+            <h2>New Request</h2>
             <form onSubmit={handleCreateTask}>
               <div className="form-group">
                 <label>Title</label>
@@ -460,7 +362,7 @@ export default function ParentDashboard() {
               <RecurrencePicker value={taskRecurrence} onChange={setTaskRecurrence} />
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowTaskModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create Task</button>
+                <button type="submit" className="btn btn-primary">Send Request</button>
               </div>
             </form>
           </div>
@@ -471,7 +373,7 @@ export default function ParentDashboard() {
   );
 }
 
-function TimelineItem({ item, userRole, currentUserId, onUpdateTask, onRespondRequest, onRespondEvent, onDeleteTask, onDeleteEvent }) {
+function TimelineItem({ item, userRole, currentUserId, onUpdateTask, onRespondEvent, onDeleteTask, onDeleteEvent }) {
   const completed = isCompleted(item);
 
   if (item._type === 'event') {
@@ -512,45 +414,16 @@ function TimelineItem({ item, userRole, currentUserId, onUpdateTask, onRespondRe
     );
   }
 
-  if (item._type === 'request') {
-    return (
-      <div className={`timeline-item ${completed ? 'completed' : ''}`}>
-        <div className="timeline-type-indicator type-request" />
-        <div className="timeline-content">
-          <div className="timeline-top-row">
-            <span className="timeline-title">{item.title}</span>
-            <div className="timeline-badges">
-              <span className="timeline-category cat-request">Request</span>
-              <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status}</span>
-            </div>
-          </div>
-          <div className="timeline-summary">
-            {item.description && <span>{item.description}</span>}
-            <span>From: <strong>{item.requested_by_name}</strong></span>
-            {item.request_to_all && <span>To: <strong>Everyone</strong></span>}
-            {item.accepted_by_name && <span>Accepted by: <strong>{item.accepted_by_name}</strong></span>}
-            {formatRecurrence(item) && <span className="meta-tag recurrence-tag">{formatRecurrence(item)}</span>}
-          </div>
-          {item.status === 'pending' && item.requested_by !== currentUserId && (
-            <div className="timeline-actions">
-              <button className="btn btn-primary btn-small" onClick={() => onRespondRequest(item.id, 'accepted')}>Accept</button>
-              <button className="btn btn-danger btn-small" onClick={() => onRespondRequest(item.id, 'rejected')}>Decline</button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Task
+  // Task (shown as "Request" when pending, "Task" when accepted+)
+  const isRequest = item.status === 'pending';
   return (
     <div className={`timeline-item ${completed ? 'completed' : ''}`}>
-      <div className="timeline-type-indicator type-task" />
+      <div className={`timeline-type-indicator ${isRequest ? 'type-request' : 'type-task'}`} />
       <div className="timeline-content">
         <div className="timeline-top-row">
           <span className="timeline-title">{item.title}</span>
           <div className="timeline-badges">
-            <span className="timeline-category cat-task">Task</span>
+            <span className={`timeline-category ${isRequest ? 'cat-request' : 'cat-task'}`}>{isRequest ? 'Request' : 'Task'}</span>
             <span className={`badge badge-${item.status}`}>{item.status === 'rejected' ? 'declined' : item.status.replace('_', ' ')}</span>
           </div>
         </div>
