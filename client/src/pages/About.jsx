@@ -140,11 +140,11 @@ export default function About() {
             <div className="feature-pill"><span className="pill-icon">&#128274;</span> Private &amp; secure</div>
             <div className="feature-pill"><span className="pill-icon">&#127775;</span> Kid-friendly</div>
           </div>
+          <h2 className="how-it-works-heading">How It Works in 4 Simple Steps</h2>
         </div>
       </section>
 
       <section className="how-it-works">
-        <h2 className="section-title">Get Started in 4 Simple Steps</h2>
         <div className="steps-grid">
           <div className="step">
             <div className="step-icon-wrap">
