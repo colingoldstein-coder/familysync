@@ -89,35 +89,6 @@ export default function Family() {
       {error && <div className="error-msg">{error}</div>}
       {success && <div className="success-msg">{success}</div>}
 
-      {user.isAdmin && (
-        <div className="card invite-card">
-          <h3>Invite Family Member</h3>
-          <p className="invite-hint">Send an email invitation. You choose their role.</p>
-          <form onSubmit={handleInvite} className="invite-form">
-            <div className="form-group">
-              <label>Email Address</label>
-              <input
-                type="email"
-                placeholder="family.member@email.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Role</label>
-              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                <option value="child">Child</option>
-                <option value="parent">Parent</option>
-              </select>
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={inviting}>
-              {inviting ? 'Sending...' : 'Send Invitation'}
-            </button>
-          </form>
-        </div>
-      )}
-
       {user.isAdmin && pendingInvites.length > 0 && (
         <div className="members-section">
           <h2>Pending Invitations</h2>
@@ -190,6 +161,35 @@ export default function Family() {
           </div>
         )}
       </div>
+
+      {user.isAdmin && (
+        <div className="card invite-card">
+          <h3>Invite Family Member</h3>
+          <p className="invite-hint">Send an email invitation. You choose their role.</p>
+          <form onSubmit={handleInvite} className="invite-form">
+            <div className="form-group">
+              <label>Email Address</label>
+              <input
+                type="email"
+                placeholder="family.member@email.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Role</label>
+              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                <option value="child">Child</option>
+                <option value="parent">Parent</option>
+              </select>
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={inviting}>
+              {inviting ? 'Sending...' : 'Send Invitation'}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
