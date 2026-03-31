@@ -617,6 +617,26 @@
   color: #000;
 }
 
+.rte-select {
+  background: var(--bg-highlight);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.rte-select:hover {
+  color: var(--text-primary);
+}
+
+.rte-select:focus {
+  outline: none;
+  border-color: var(--accent-green);
+}
+
 .rte-sep {
   width: 1px;
   height: 18px;
@@ -652,6 +672,12 @@
 
 .rte-editor a {
   color: var(--accent-green);
+}
+
+.rte-editor img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 8px 0;
 }
 
 .rte-editor ul,

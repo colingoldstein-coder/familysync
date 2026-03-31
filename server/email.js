@@ -97,10 +97,14 @@ async function sendContactEmail({ name, email, message }) {
 }
 
 async function sendBrandedEmail({ to, subject, bodyHtml }) {
+  const logoUrl = `${CLIENT_URL}/pwa-192x192.png`;
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; overflow: hidden;">
-      <div style="background: #1DB954; padding: 20px 32px;">
-        <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">FamilySync</h1>
+      <div style="background: #1DB954; padding: 16px 32px;">
+        <a href="${CLIENT_URL}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
+          <img src="${logoUrl}" alt="FamilySync" width="36" height="36" style="border-radius: 8px; display: block;" />
+          <span style="color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">FamilySync</span>
+        </a>
       </div>
       <div style="padding: 32px; color: #e0e0e0; font-size: 15px; line-height: 1.7;">
         <h2 style="color: #fff; font-size: 18px; margin: 0 0 16px;">${escapeHtml(subject)}</h2>

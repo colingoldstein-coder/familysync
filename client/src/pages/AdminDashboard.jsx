@@ -274,11 +274,19 @@ function EmailComposerCard() {
             <button type="button" className="rte-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); document.execCommand('italic'); }}><em>I</em></button>
             <button type="button" className="rte-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); document.execCommand('underline'); }}><u>U</u></button>
             <span className="rte-sep" />
+            <select className="rte-select" title="Font Size" defaultValue="" onChange={(e) => { if (e.target.value) { document.execCommand('fontSize', false, e.target.value); e.target.value = ''; } }}>
+              <option value="" disabled>Size</option>
+              <option value="1">Small</option>
+              <option value="3">Normal</option>
+              <option value="5">Large</option>
+              <option value="7">Huge</option>
+            </select>
+            <span className="rte-sep" />
             <button type="button" className="rte-btn" title="Bullet List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList'); }}>• List</button>
             <button type="button" className="rte-btn" title="Numbered List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList'); }}>1. List</button>
             <span className="rte-sep" />
             <button type="button" className="rte-btn" title="Link" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter URL:'); if (url) document.execCommand('createLink', false, url); }}>Link</button>
-            <button type="button" className="rte-btn" title="Remove Link" onMouseDown={(e) => { e.preventDefault(); document.execCommand('unlink'); }}>Unlink</button>
+            <button type="button" className="rte-btn" title="Insert Image" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter image URL:'); if (url) document.execCommand('insertImage', false, url); }}>Image</button>
           </div>
           <div
             ref={editorRef}
