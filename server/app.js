@@ -42,7 +42,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", 'https://accounts.google.com'],
-      scriptSrcAttr: ["'none'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
       connectSrc: ["'self'", 'https://accounts.google.com', 'https://oauth2.googleapis.com'],
@@ -53,6 +53,8 @@ app.use(helmet({
       upgradeInsecureRequests: isProduction ? [] : null,
     },
   },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
 }));
 
