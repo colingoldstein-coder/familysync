@@ -762,6 +762,25 @@
   border-color: var(--accent-green);
 }
 
+.rte-color {
+  width: 28px;
+  height: 26px;
+  padding: 1px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-highlight);
+  cursor: pointer;
+}
+
+.rte-color::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.rte-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
 .rte-sep {
   width: 1px;
   height: 18px;
