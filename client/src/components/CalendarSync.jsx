@@ -32,6 +32,11 @@ export default function CalendarSync() {
     ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`
     : '';
 
+  // Outlook web subscribe URL — pre-fills the URL and name
+  const outlookUrl = feedUrl
+    ? `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(feedUrl)}&name=${encodeURIComponent('FamilySync')}`
+    : '';
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(feedUrl);
@@ -110,25 +115,34 @@ export default function CalendarSync() {
             {isIOS ? (
               <>
                 <a href={webcalUrl} className="btn btn-primary calendar-add-btn">
-                  Add to Apple Calendar
+                  Apple Calendar
                 </a>
                 <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary calendar-add-btn">
-                  Add to Google Calendar
+                  Google Calendar
+                </a>
+                <a href={outlookUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary calendar-add-btn">
+                  Outlook
                 </a>
               </>
             ) : isAndroid ? (
               <>
                 <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary calendar-add-btn">
-                  Add to Google Calendar
+                  Google Calendar
+                </a>
+                <a href={outlookUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary calendar-add-btn">
+                  Outlook
                 </a>
                 <a href={webcalUrl} className="btn btn-secondary calendar-add-btn">
-                  Add to Other Calendar
+                  Other Calendar
                 </a>
               </>
             ) : (
               <>
                 <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary calendar-add-btn">
                   Google Calendar
+                </a>
+                <a href={outlookUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary calendar-add-btn">
+                  Outlook
                 </a>
                 <a href={webcalUrl} className="btn btn-secondary calendar-add-btn">
                   Apple Calendar
@@ -141,7 +155,7 @@ export default function CalendarSync() {
           </div>
 
           <p className="calendar-sync-note">
-            Click a button above to automatically add your FamilySync calendar. Google Calendar will ask you to confirm the subscription. Your calendar then updates automatically with tasks and events.
+            Click a button above to add your FamilySync calendar. Each app will ask you to confirm the subscription. Your calendar then updates automatically with tasks and events.
           </p>
 
           <button
