@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
-const { validate, schemas } = require('../validation');
+const { validate, validateParamId, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate } = require('../recurrence');
 const { notifyUser, notifyFamilyMembers } = require('../notifications');
 const logger = require('../logger');
@@ -100,7 +100,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Respond to an event (parent only — accept with travel time, or decline)
-router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respondToEvent), async (req, res) => {
+router.patch('/:id/respond', authenticate, requireParent, validateParamId, validate(schemas.respondToEvent), async (req, res) => {
   try {
     const { status, travelTimeBefore, travelTimeAfter, parentNotes } = req.body;
 
@@ -119,45 +119,59 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
       return res.status(403).json({ error: 'This event is not assigned to you' });
     }
 
-    await db('events').where({ id: req.params.id }).update({
-      status,
-      accepted_by: status === 'accepted' ? req.user.id : null,
-      travel_time_before: status === 'accepted' ? (travelTimeBefore || 0) : 0,
-      travel_time_after: status === 'accepted' ? (travelTimeAfter || 0) : 0,
-      parent_notes: parentNotes || null,
-      updated_at: db.fn.now(),
+    // Use transaction for atomic update + recurring next-occurrence
+    // WHERE status='pending' prevents race condition with concurrent responses
+    const updated = await db.transaction(async (trx) => {
+      const affected = await trx('events')
+        .where({ id: req.params.id, status: 'pending' })
+        .update({
+          status,
+          accepted_by: status === 'accepted' ? req.user.id : null,
+          travel_time_before: status === 'accepted' ? (travelTimeBefore || 0) : 0,
+          travel_time_after: status === 'accepted' ? (travelTimeAfter || 0) : 0,
+          parent_notes: parentNotes || null,
+          updated_at: db.fn.now(),
+        });
+
+      if (affected === 0) return false;
+
+      // Auto-create next occurrence for recurring events when accepted
+      if (status === 'accepted' && event.recurrence_type !== 'none') {
+        const config = getRecurrenceConfig(event);
+        const nextDate = getNextDate(config, event.event_date);
+
+        if (nextDate) {
+          await trx('events').insert({
+            title: event.title,
+            description: event.description,
+            event_date: nextDate,
+            event_time: event.event_time,
+            end_time: event.end_time,
+            event_type: event.event_type,
+            location_name: event.location_name,
+            location_address: event.location_address,
+            requested_by: event.requested_by,
+            requested_to: event.requested_to,
+            request_to_all: event.request_to_all,
+            family_id: event.family_id,
+            recurrence_type: event.recurrence_type,
+            recurrence_interval: event.recurrence_interval,
+            recurrence_unit: event.recurrence_unit,
+            recurrence_days: event.recurrence_days,
+            recurrence_end: event.recurrence_end,
+            series_id: event.series_id,
+          });
+        }
+      }
+
+      return true;
     });
 
-    // Auto-create next occurrence for recurring events when accepted
-    if (status === 'accepted' && event.recurrence_type !== 'none') {
-      const config = getRecurrenceConfig(event);
-      const nextDate = getNextDate(config, event.event_date);
-
-      if (nextDate) {
-        await db('events').insert({
-          title: event.title,
-          description: event.description,
-          event_date: nextDate,
-          event_time: event.event_time,
-          end_time: event.end_time,
-          event_type: event.event_type,
-          location_name: event.location_name,
-          location_address: event.location_address,
-          requested_by: event.requested_by,
-          requested_to: event.requested_to,
-          request_to_all: event.request_to_all,
-          family_id: event.family_id,
-          recurrence_type: event.recurrence_type,
-          recurrence_interval: event.recurrence_interval,
-          recurrence_unit: event.recurrence_unit,
-          recurrence_days: event.recurrence_days,
-          recurrence_end: event.recurrence_end,
-          series_id: event.series_id,
-        });
-      }
+    if (!updated) {
+      return res.status(400).json({ error: 'Event already responded to' });
     }
 
-    // Notify the event creator
+    // Notify the event creator (outside transaction)
     notifyUser(event.requested_by, {
       title: `Event ${status}`,
       body: `${req.user.name} ${status} "${event.title}"`,
@@ -173,7 +187,7 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
 });
 
 // Delete event
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, validateParamId, async (req, res) => {
   try {
     const event = await db('events')
       .where({ id: req.params.id, family_id: req.user.familyId }).first();

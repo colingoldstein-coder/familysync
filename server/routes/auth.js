@@ -7,7 +7,7 @@ const multer = require('multer');
 const db = require('../db');
 const { getJwtSecret, authenticate, requireAdmin } = require('../middleware/auth');
 const { sendInviteEmail, generatePasswordResetToken, verifyPasswordResetToken, sendPasswordResetEmail } = require('../email');
-const { validate, schemas } = require('../validation');
+const { validate, validateParamId, schemas } = require('../validation');
 const audit = require('../audit');
 const logger = require('../logger');
 const { verifyGoogleToken } = require('../oauth');
@@ -31,7 +31,7 @@ function generateJoinCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[crypto.randomInt(chars.length)];
   }
   return code;
 }
@@ -69,7 +69,7 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
     }
 
     const joinCode = generateJoinCode();
-    const passwordHash = bcrypt.hashSync(password, 10);
+    const passwordHash = bcrypt.hashSync(password, 12);
 
     const result = await db.transaction(async (trx) => {
       const familyRef = await nextRefNumber(trx, 'families', 'FS-F-');
@@ -134,7 +134,7 @@ router.post('/invite', authenticate, requireAdmin, validate(schemas.invite), asy
       logger.error({ msg: 'Email send error', error: emailErr.message });
     }
 
-    res.json({ message: 'Invitation sent', inviteToken });
+    res.json({ message: 'Invitation sent' });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
@@ -179,12 +179,19 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
       return res.status(400).json({ error: 'Invalid or expired invitation' });
     }
 
+    // Expire invitations older than 30 days
+    const inviteAge = Date.now() - new Date(invite.created_at).getTime();
+    if (inviteAge > 30 * 24 * 60 * 60 * 1000) {
+      await db('invitations').where({ id: invite.id }).update({ status: 'expired' });
+      return res.status(400).json({ error: 'This invitation has expired. Please ask your family admin to send a new one.' });
+    }
+
     const existingUser = await db('users').where({ email: invite.email }).first();
     if (existingUser) {
       return res.status(400).json({ error: 'Unable to register with this email' });
     }
 
-    const passwordHash = bcrypt.hashSync(password, 10);
+    const passwordHash = bcrypt.hashSync(password, 12);
 
     const result = await db.transaction(async (trx) => {
       const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
@@ -212,7 +219,7 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
 });
 
 // Resend invitation email (admin only)
-router.post('/invitations/:id/resend', authenticate, requireAdmin, async (req, res) => {
+router.post('/invitations/:id/resend', authenticate, requireAdmin, validateParamId, async (req, res) => {
   try {
     const invite = await db('invitations')
       .where({ id: req.params.id, family_id: req.user.familyId, status: 'pending' }).first();
@@ -298,7 +305,7 @@ router.post('/reset-password', validate(schemas.resetPassword), async (req, res)
       return res.status(400).json({ error: 'This account uses Google Sign-In. Password reset is not available.' });
     }
 
-    const passwordHash = bcrypt.hashSync(newPassword, 10);
+    const passwordHash = bcrypt.hashSync(newPassword, 12);
     await db('users').where({ id: userId }).update({
       password_hash: passwordHash,
       token_version: db.raw('token_version + 1'),
@@ -397,7 +404,7 @@ router.get('/family-members', authenticate, async (req, res) => {
 });
 
 // Remove a family member (admin only, cannot remove yourself)
-router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res) => {
+router.delete('/family-members/:id', authenticate, requireAdmin, validateParamId, async (req, res) => {
   try {
     const memberId = parseInt(req.params.id);
 
@@ -412,6 +419,16 @@ router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res
       return res.status(404).json({ error: 'Member not found' });
     }
 
+    // Prevent removing the last admin
+    if (toBool(member.is_admin)) {
+      const [{ count }] = await db('users')
+        .where({ family_id: req.user.familyId, is_admin: true, is_active: true })
+        .count('id as count');
+      if (Number(count) <= 1) {
+        return res.status(400).json({ error: 'Cannot remove the last admin of the family' });
+      }
+    }
+
     if (member.role === 'child') {
       // Soft-delete: deactivate child accounts instead of deleting
       await db('users').where({ id: memberId }).update({ is_active: false });
@@ -420,9 +437,12 @@ router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res
     } else {
       // Hard-delete for parent accounts
       await db.transaction(async (trx) => {
+        await trx('events').where({ requested_by: memberId }).orWhere({ accepted_by: memberId }).del();
         await trx('help_requests').where({ requested_by: memberId }).orWhere({ accepted_by: memberId }).del();
         await trx('tasks').where({ assigned_to: memberId }).orWhere({ assigned_by: memberId }).del();
         await trx('invitations').where({ invited_by: memberId }).del();
+        await trx('push_subscriptions').where({ user_id: memberId }).del();
+        await trx('webauthn_credentials').where({ user_id: memberId }).del();
         await trx('users').where({ id: memberId }).del();
       });
       audit.log({ action: 'user.delete', actorId: req.user.id, targetId: memberId, targetType: 'user', details: { name: member.name, role: member.role }, ip: req.ip });
@@ -447,7 +467,7 @@ router.patch('/me/password', authenticate, validate(schemas.updatePassword), asy
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
-    const passwordHash = bcrypt.hashSync(newPassword, 10);
+    const passwordHash = bcrypt.hashSync(newPassword, 12);
     await db('users').where({ id: req.user.id }).update({
       password_hash: passwordHash,
       token_version: db.raw('token_version + 1'),
@@ -649,6 +669,13 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
       return res.status(400).json({ error: 'Invalid or expired invitation' });
     }
 
+    // Expire invitations older than 30 days
+    const inviteAge = Date.now() - new Date(invite.created_at).getTime();
+    if (inviteAge > 30 * 24 * 60 * 60 * 1000) {
+      await db('invitations').where({ id: invite.id }).update({ status: 'expired' });
+      return res.status(400).json({ error: 'This invitation has expired. Please ask your family admin to send a new one.' });
+    }
+
     if (googleUser.email.toLowerCase() !== invite.email.toLowerCase()) {
       return res.status(400).json({ error: 'Your Google account email does not match the invitation email' });
     }
@@ -684,10 +711,9 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
 });
 
 // Email preferences (authenticated)
-router.patch('/me/email-preferences', authenticate, async (req, res) => {
+router.patch('/me/email-preferences', authenticate, validate(schemas.emailPreferences), async (req, res) => {
   try {
     const { optOut } = req.body;
-    if (typeof optOut !== 'boolean') return res.status(400).json({ error: 'optOut must be a boolean' });
     await db('users').where({ id: req.user.id }).update({ email_opt_out: optOut });
     res.json({ optedOut: optOut });
   } catch (err) {
@@ -697,16 +723,13 @@ router.patch('/me/email-preferences', authenticate, async (req, res) => {
 });
 
 // Notification preferences (which push notification types to receive)
-router.patch('/me/notification-preferences', authenticate, async (req, res) => {
+router.patch('/me/notification-preferences', authenticate, validate(schemas.notificationPreferences), async (req, res) => {
   try {
     const { pendingRequests, tasksDue, activeEvents } = req.body;
     const update = {};
-    if (typeof pendingRequests === 'boolean') update.notify_pending_requests = pendingRequests;
-    if (typeof tasksDue === 'boolean') update.notify_tasks_due = tasksDue;
-    if (typeof activeEvents === 'boolean') update.notify_active_events = activeEvents;
-    if (Object.keys(update).length === 0) {
-      return res.status(400).json({ error: 'No valid preferences provided' });
-    }
+    if (pendingRequests !== undefined) update.notify_pending_requests = pendingRequests;
+    if (tasksDue !== undefined) update.notify_tasks_due = tasksDue;
+    if (activeEvents !== undefined) update.notify_active_events = activeEvents;
     await db('users').where({ id: req.user.id }).update(update);
     res.json({ message: 'Notification preferences updated' });
   } catch (err) {
@@ -723,8 +746,8 @@ router.get('/email-preferences/:token', async (req, res) => {
     const userId = verifyEmailPrefToken(req.params.token);
     if (!userId) return res.status(400).json({ error: 'Invalid or expired link' });
 
-    const user = await db('users').where({ id: userId }).select('name', 'email', 'email_opt_out').first();
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await db('users').where({ id: userId }).select('name', 'email', 'email_opt_out', 'is_active').first();
+    if (!user || user.is_active === false) return res.status(404).json({ error: 'User not found' });
 
     res.json({ name: user.name, email: user.email, optedOut: !!user.email_opt_out });
   } catch (err) {
@@ -733,13 +756,15 @@ router.get('/email-preferences/:token', async (req, res) => {
   }
 });
 
-router.post('/email-preferences/:token', async (req, res) => {
+router.post('/email-preferences/:token', validate(schemas.emailPreferences), async (req, res) => {
   try {
     const userId = verifyEmailPrefToken(req.params.token);
     if (!userId) return res.status(400).json({ error: 'Invalid or expired link' });
 
+    const user = await db('users').where({ id: userId }).select('is_active').first();
+    if (!user || user.is_active === false) return res.status(404).json({ error: 'User not found' });
+
     const { optOut } = req.body;
-    if (typeof optOut !== 'boolean') return res.status(400).json({ error: 'optOut must be a boolean' });
 
     await db('users').where({ id: userId }).update({ email_opt_out: optOut });
     res.json({ optedOut: optOut });

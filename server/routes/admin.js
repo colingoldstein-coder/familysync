@@ -5,8 +5,10 @@ const crypto = require('crypto');
 const multer = require('multer');
 const db = require('../db');
 const { authenticate, requireSuperAdmin } = require('../middleware/auth');
+const { validate, schemas } = require('../validation');
 const logger = require('../logger');
 const { sendBrandedEmail, escapeHtml } = require('../email');
+const sanitizeHtml = require('sanitize-html');
 const audit = require('../audit');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -22,7 +24,7 @@ const upload = multer({
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
     else cb(new Error('Only image files are allowed'));
@@ -35,6 +37,10 @@ router.use(authenticate, requireSuperAdmin);
 
 const isSQLite = !process.env.DATABASE_URL;
 const likeOp = isSQLite ? 'like' : 'ilike';
+
+function escapeLike(str) {
+  return str.replace(/[%_\\]/g, '\\$&');
+}
 
 function parsePeriod(period) {
   const match = (period || '30d').match(/^(\d+)(d|w|m)$/);
@@ -258,7 +264,7 @@ router.get('/records/users', async (req, res) => {
     let countQuery = db('users as u');
 
     if (search) {
-      const like = `%${search}%`;
+      const like = `%${escapeLike(search)}%`;
       query = query.where(function () {
         this.where('u.name', likeOp, like)
           .orWhere('u.email', likeOp, like)
@@ -314,7 +320,7 @@ router.get('/records/families', async (req, res) => {
     let countQuery = db('families');
 
     if (search) {
-      const like = `%${search}%`;
+      const like = `%${escapeLike(search)}%`;
       query = query.where(function () {
         this.where('f.name', likeOp, like)
           .orWhere('f.ref_number', likeOp, like);
@@ -461,12 +467,9 @@ router.get('/inactive-users', async (req, res) => {
 });
 
 // Reactivate inactive users
-router.post('/reactivate', async (req, res) => {
+router.post('/reactivate', validate(schemas.adminReactivate), async (req, res) => {
   try {
     const { userIds } = req.body;
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ error: 'userIds array is required' });
-    }
 
     const updated = await db('users')
       .whereIn('id', userIds)
@@ -483,12 +486,9 @@ router.post('/reactivate', async (req, res) => {
 });
 
 // Broadcast push notification to all subscribers
-router.post('/broadcast-push', async (req, res) => {
+router.post('/broadcast-push', validate(schemas.adminBroadcastPush), async (req, res) => {
   try {
     const { title, body, url } = req.body;
-    if (!title || !body) {
-      return res.status(400).json({ error: 'Title and body are required' });
-    }
 
     const { isConfigured } = require('../notifications');
     if (!isConfigured()) {
@@ -593,6 +593,20 @@ router.post('/send-email', async (req, res) => {
     if (!bodyHtml) {
       return res.status(400).json({ error: 'Email content is required' });
     }
+
+    // Sanitize HTML — strip scripts, event handlers, dangerous attributes
+    const cleanHtml = sanitizeHtml(bodyHtml, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'span', 'div', 'font', 'u', 'br', 'hr']),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        '*': ['style', 'class'],
+        img: ['src', 'alt', 'width', 'height', 'style'],
+        a: ['href', 'target', 'rel'],
+        font: ['color', 'size'],
+      },
+      allowedSchemes: ['http', 'https', 'mailto'],
+    });
+
     if (!Array.isArray(userIds) || userIds.length === 0) {
       return res.status(400).json({ error: 'At least one recipient is required' });
     }
@@ -611,7 +625,7 @@ router.post('/send-email', async (req, res) => {
 
     const emailRecipients = users.map(u => ({ email: u.email, userId: u.id }));
 
-    const sendResults = await sendBrandedEmail({ to: emailRecipients, subject: subject.trim(), bodyHtml }) || [];
+    const sendResults = await sendBrandedEmail({ to: emailRecipients, subject: subject.trim(), bodyHtml: cleanHtml }) || [];
 
     // Build recipients array with per-recipient delivery status
     const resultsByEmail = {};
@@ -639,7 +653,7 @@ router.post('/send-email', async (req, res) => {
     await db('email_log').insert({
       sent_by: req.user.id,
       subject: subject.trim(),
-      body_html: bodyHtml,
+      body_html: cleanHtml,
       recipients: JSON.stringify(recipients),
       recipient_count: recipients.length,
       status: overallStatus,

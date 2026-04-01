@@ -8,7 +8,7 @@ const {
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const { authenticate, getJwtSecret } = require('../middleware/auth');
-const { validate, schemas } = require('../validation');
+const { validate, validateParamId, schemas } = require('../validation');
 const logger = require('../logger');
 const { toBool } = require('../utils');
 
@@ -74,7 +74,7 @@ router.post('/register-options', authenticate, async (req, res) => {
   }
 });
 
-router.post('/register', authenticate, async (req, res) => {
+router.post('/register', authenticate, validate(schemas.webauthnRegister), async (req, res) => {
   try {
     const user = await db('users').where({ id: req.user.id }).first();
 
@@ -159,6 +159,9 @@ router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
     if (!user || !user.webauthn_challenge) {
       return res.status(400).json({ error: 'Authentication failed' });
     }
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'This account has been deactivated. Please contact your family admin.' });
+    }
 
     const credential = await db('webauthn_credentials')
       .where({ credential_id: response.id, user_id: user.id })
@@ -225,7 +228,7 @@ router.get('/credentials', authenticate, async (req, res) => {
   }
 });
 
-router.delete('/credentials/:id', authenticate, async (req, res) => {
+router.delete('/credentials/:id', authenticate, validateParamId, async (req, res) => {
   try {
     const deleted = await db('webauthn_credentials')
       .where({ id: req.params.id, user_id: req.user.id })

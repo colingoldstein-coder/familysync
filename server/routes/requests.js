@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
-const { validate, schemas } = require('../validation');
+const { validate, validateParamId, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
 const { notifyUser, notifyFamilyMembers } = require('../notifications');
 const logger = require('../logger');
@@ -77,7 +77,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Respond to a help request
-router.patch('/:id/respond', authenticate, validate(schemas.respondToRequest), async (req, res) => {
+router.patch('/:id/respond', authenticate, validateParamId, validate(schemas.respondToRequest), async (req, res) => {
   try {
     const { status } = req.body;
 

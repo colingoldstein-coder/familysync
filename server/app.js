@@ -42,7 +42,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", 'https://accounts.google.com'],
-      scriptSrcAttr: ["'unsafe-inline'"],
+      scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
       connectSrc: ["'self'", 'https://accounts.google.com', 'https://oauth2.googleapis.com'],
@@ -117,6 +117,8 @@ if (process.env.NODE_ENV !== 'test') {
   app.use('/api/auth/reset-password', authLimiter);
   app.use('/api/webauthn/login-options', authLimiter);
   app.use('/api/webauthn/login', authLimiter);
+  app.use('/api/webauthn/register-options', tokenLimiter);
+  app.use('/api/webauthn/register', tokenLimiter);
   app.use('/api/auth/invite', tokenLimiter);
   app.use('/api/calendar/feed', tokenLimiter);
   app.use('/api/contact', contactLimiter);
@@ -147,7 +149,12 @@ app.use('/api/push', pushRoutes);
 app.use('/api/webauthn', webauthnRoutes);
 
 // Serve uploaded images publicly (for email content)
-app.use('/api/admin/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/admin/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res) => {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none'");
+  },
+}));
 
 // Serve static frontend when built files exist
 const staticDir = path.join(__dirname, 'public');

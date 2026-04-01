@@ -139,6 +139,10 @@ const webauthnLoginOptions = z.object({
   email: z.string().email().max(255),
 });
 
+const webauthnRegister = z.object({
+  deviceName: z.string().max(100).optional(),
+}).passthrough();
+
 const webauthnLogin = z.object({
   email: z.string().email().max(255),
   response: z.object({}).passthrough(),
@@ -153,6 +157,28 @@ const resetPassword = z.object({
   newPassword: strongPassword,
 });
 
+const emailPreferences = z.object({
+  optOut: z.boolean(),
+});
+
+const notificationPreferences = z.object({
+  pendingRequests: z.boolean().optional(),
+  tasksDue: z.boolean().optional(),
+  activeEvents: z.boolean().optional(),
+}).refine(data => data.pendingRequests !== undefined || data.tasksDue !== undefined || data.activeEvents !== undefined, {
+  message: 'At least one preference must be provided',
+});
+
+const adminReactivate = z.object({
+  userIds: z.array(z.number().int().positive()).min(1),
+});
+
+const adminBroadcastPush = z.object({
+  title: z.string().min(1).max(200),
+  body: z.string().min(1).max(1000),
+  url: z.string().max(500).optional(),
+});
+
 function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
@@ -165,8 +191,17 @@ function validate(schema) {
   };
 }
 
+function validateParamId(req, res, next) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid ID' });
+  }
+  next();
+}
+
 module.exports = {
   validate,
+  validateParamId,
   schemas: {
     registerFamily,
     login,
@@ -187,9 +222,14 @@ module.exports = {
     googleAcceptInvite,
     pushSubscribe,
     pushUnsubscribe,
+    webauthnRegister,
     webauthnLoginOptions,
     webauthnLogin,
     forgotPassword,
     resetPassword,
+    emailPreferences,
+    notificationPreferences,
+    adminReactivate,
+    adminBroadcastPush,
   },
 };

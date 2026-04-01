@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
-const { validate, schemas } = require('../validation');
+const { validate, validateParamId, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
 const { notifyUser } = require('../notifications');
 const logger = require('../logger');
@@ -102,7 +102,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Update task status
-router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), async (req, res) => {
+router.patch('/:id/status', authenticate, validateParamId, validate(schemas.updateTaskStatus), async (req, res) => {
   try {
     const { status } = req.body;
     const task = await db('tasks').where({ id: req.params.id }).first();
@@ -128,9 +128,39 @@ router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), as
       return res.status(403).json({ error: 'Not your task' });
     }
 
-    await db('tasks').where({ id: req.params.id }).update({ status, updated_at: db.fn.now() });
+    // Use transaction for status update + recurring next-occurrence
+    let nextTaskId = null;
+    await db.transaction(async (trx) => {
+      await trx('tasks').where({ id: req.params.id }).update({ status, updated_at: db.fn.now() });
 
-    // Notify the parent when a task is completed
+      if (status === 'completed' && task.recurrence_type !== 'none') {
+        const config = getRecurrenceConfig(task);
+        const baseDate = task.deadline || today();
+        const nextDate = getNextDate(config, baseDate);
+
+        if (nextDate) {
+          const [nextTask] = await trx('tasks').insert({
+            title: task.title,
+            description: task.description,
+            assigned_by: task.assigned_by,
+            assigned_to: task.assigned_to,
+            assign_to_all: task.assign_to_all,
+            family_id: task.family_id,
+            rejectable: task.rejectable,
+            deadline: task.deadline ? nextDate : null,
+            recurrence_type: task.recurrence_type,
+            recurrence_interval: task.recurrence_interval,
+            recurrence_unit: task.recurrence_unit,
+            recurrence_days: task.recurrence_days,
+            recurrence_end: task.recurrence_end,
+            series_id: task.series_id,
+          }).returning('id');
+          nextTaskId = nextTask.id || nextTask;
+        }
+      }
+    });
+
+    // Notify the parent when a task is completed (outside transaction)
     if (status === 'completed') {
       notifyUser(task.assigned_by, {
         title: 'Task completed',
@@ -138,34 +168,6 @@ router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), as
         url: '/dashboard',
         tag: 'task-done',
       });
-    }
-
-    // Auto-create next occurrence for recurring tasks
-    let nextTaskId = null;
-    if (status === 'completed' && task.recurrence_type !== 'none') {
-      const config = getRecurrenceConfig(task);
-      const baseDate = task.deadline || today();
-      const nextDate = getNextDate(config, baseDate);
-
-      if (nextDate) {
-        const [nextTask] = await db('tasks').insert({
-          title: task.title,
-          description: task.description,
-          assigned_by: task.assigned_by,
-          assigned_to: task.assigned_to,
-          assign_to_all: task.assign_to_all,
-          family_id: task.family_id,
-          rejectable: task.rejectable,
-          deadline: task.deadline ? nextDate : null,
-          recurrence_type: task.recurrence_type,
-          recurrence_interval: task.recurrence_interval,
-          recurrence_unit: task.recurrence_unit,
-          recurrence_days: task.recurrence_days,
-          recurrence_end: task.recurrence_end,
-          series_id: task.series_id,
-        }).returning('id');
-        nextTaskId = nextTask.id || nextTask;
-      }
     }
 
     res.json({ message: 'Task updated', nextTaskId });
@@ -176,7 +178,7 @@ router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), as
 });
 
 // Delete task (parent only) — ?series=true to delete all future in series
-router.delete('/:id', authenticate, requireParent, async (req, res) => {
+router.delete('/:id', authenticate, requireParent, validateParamId, async (req, res) => {
   try {
     const task = await db('tasks')
       .where({ id: req.params.id, family_id: req.user.familyId }).first();
