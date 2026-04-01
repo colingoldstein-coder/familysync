@@ -163,6 +163,10 @@ router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
     if (!user.is_active) {
       return res.status(403).json({ error: 'This account has been deactivated. Please contact your family admin.' });
     }
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+      return res.status(429).json({ error: `Account temporarily locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
+    }
 
     const credential = await db('webauthn_credentials')
       .where({ credential_id: response.id, user_id: user.id })

@@ -207,32 +207,40 @@ function getUnsubscribeUrl(userId) {
   return `${CLIENT_URL}/account#email-preferences`;
 }
 
-function generatePasswordResetToken(userId) {
-  const secret = process.env.JWT_SECRET || 'dev-secret';
-  const expiry = Date.now() + 60 * 60 * 1000; // 1 hour
-  const data = `pw-reset:${userId}:${expiry}`;
-  const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
-  return `${userId}.${expiry}.${hmac}`;
+async function generatePasswordResetToken(userId) {
+  const db = require('./db');
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  // Delete any existing tokens for this user
+  await db('password_reset_tokens').where({ user_id: userId }).del();
+
+  await db('password_reset_tokens').insert({
+    user_id: userId,
+    token_hash: tokenHash,
+    expires_at: expiresAt,
+  });
+
+  return token;
 }
 
-function verifyPasswordResetToken(token) {
-  const parts = (token || '').split('.');
-  if (parts.length !== 3) return null;
-  const userId = parseInt(parts[0]);
-  const expiry = parseInt(parts[1]);
-  const hmac = parts[2];
-  if (isNaN(userId) || isNaN(expiry) || !hmac) return null;
-  if (Date.now() > expiry) return null;
-  // Recompute the HMAC using the original expiry from the token
-  const secret = process.env.JWT_SECRET || 'dev-secret';
-  const data = `pw-reset:${userId}:${expiry}`;
-  const expectedHmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
-  // Use timing-safe comparison
-  if (expectedHmac.length !== hmac.length) return null;
-  const a = Buffer.from(expectedHmac);
-  const b = Buffer.from(hmac);
-  if (!crypto.timingSafeEqual(a, b)) return null;
-  return userId;
+async function verifyPasswordResetToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const db = require('./db');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+  const record = await db('password_reset_tokens')
+    .where({ token_hash: tokenHash })
+    .where('expires_at', '>', new Date())
+    .first();
+
+  if (!record) return null;
+
+  // Single-use: delete the token immediately
+  await db('password_reset_tokens').where({ id: record.id }).del();
+
+  return record.user_id;
 }
 
 async function sendPasswordResetEmail({ to, token }) {

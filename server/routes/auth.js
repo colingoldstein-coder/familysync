@@ -272,7 +272,7 @@ router.post('/forgot-password', validate(schemas.forgotPassword), async (req, re
     // Always return success to prevent email enumeration
     const user = await db('users').where({ email }).first();
     if (user && user.password_hash && user.is_active !== false) {
-      const token = generatePasswordResetToken(user.id);
+      const token = await generatePasswordResetToken(user.id);
       try {
         await sendPasswordResetEmail({ to: email, token });
       } catch (err) {
@@ -292,7 +292,7 @@ router.post('/reset-password', validate(schemas.resetPassword), async (req, res)
   try {
     const { token, newPassword } = req.body;
 
-    const userId = verifyPasswordResetToken(token);
+    const userId = await verifyPasswordResetToken(token);
     if (!userId) {
       return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
     }
@@ -336,8 +336,27 @@ router.post('/login', validate(schemas.login), async (req, res) => {
     if (!user.password_hash) {
       return res.status(401).json({ error: 'This account uses Google Sign-In. Please log in with Google.' });
     }
+
+    // Check account lockout
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+      return res.status(429).json({ error: `Account temporarily locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
+    }
+
     if (!bcrypt.compareSync(password, user.password_hash)) {
+      const attempts = (user.failed_login_attempts || 0) + 1;
+      const update = { failed_login_attempts: attempts };
+      if (attempts >= 5) {
+        update.locked_until = new Date(Date.now() + 15 * 60 * 1000); // lock for 15 minutes
+        audit.log({ action: 'user.locked', actorId: user.id, details: { attempts }, ip: req.ip });
+      }
+      await db('users').where({ id: user.id }).update(update);
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Reset failed attempts on successful login
+    if (user.failed_login_attempts > 0) {
+      await db('users').where({ id: user.id }).update({ failed_login_attempts: 0, locked_until: null });
     }
 
     const token = makeToken(user, user.family_id);
@@ -585,7 +604,7 @@ router.post('/google-login', validate(schemas.googleLogin), async (req, res) => 
 
     const user = await db('users').where({ email: googleUser.email }).first();
     if (!user) {
-      return res.status(404).json({ error: 'no_account', email: googleUser.email, name: googleUser.name });
+      return res.status(404).json({ error: 'no_account' });
     }
     if (!user.is_active) {
       return res.status(403).json({ error: 'This account has been deactivated. Please contact your family admin.' });

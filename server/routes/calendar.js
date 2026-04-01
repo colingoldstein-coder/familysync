@@ -22,7 +22,7 @@ router.post('/token', authenticate, async (req, res) => {
     const user = await db('users').where({ id: req.user.id }).first();
     let token = user.calendar_token;
     if (!token) {
-      token = crypto.randomUUID();
+      token = crypto.randomBytes(32).toString('hex');
       await db('users').where({ id: req.user.id }).update({ calendar_token: token });
     }
     res.json({ calendarToken: token });
@@ -34,7 +34,7 @@ router.post('/token', authenticate, async (req, res) => {
 // Regenerate calendar token (invalidates old URL)
 router.post('/token/regenerate', authenticate, async (req, res) => {
   try {
-    const token = crypto.randomUUID();
+    const token = crypto.randomBytes(32).toString('hex');
     await db('users').where({ id: req.user.id }).update({ calendar_token: token });
     res.json({ calendarToken: token });
   } catch (err) {
@@ -108,6 +108,8 @@ router.get('/feed/:token', async (req, res) => {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': 'inline; filename="familysync.ics"',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Referrer-Policy': 'no-referrer',
+      'X-Robots-Tag': 'noindex, nofollow',
     });
     res.send(ical);
   } catch (err) {

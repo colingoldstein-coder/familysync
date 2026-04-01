@@ -227,8 +227,8 @@ export function EmailComposerCard() {
             <button type="button" className="rte-btn" title="Bullet List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList'); }}>• List</button>
             <button type="button" className="rte-btn" title="Numbered List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList'); }}>1. List</button>
             <span className="rte-sep" />
-            <button type="button" className="rte-btn" title="Link" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter URL:'); if (url) document.execCommand('createLink', false, url); }}>Link</button>
-            <button type="button" className="rte-btn" title="Image from URL" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter image URL:'); if (url) document.execCommand('insertImage', false, url); }}>Image URL</button>
+            <button type="button" className="rte-btn" title="Link" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter URL:'); if (url && /^https?:\/\//i.test(url)) document.execCommand('createLink', false, url); else if (url) alert('Only http:// and https:// URLs are allowed.'); }}>Link</button>
+            <button type="button" className="rte-btn" title="Image from URL" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter image URL:'); if (url && /^https?:\/\//i.test(url)) document.execCommand('insertImage', false, url); else if (url) alert('Only http:// and https:// URLs are allowed.'); }}>Image URL</button>
             <button type="button" className="rte-btn" title="Upload Image" onMouseDown={(e) => { e.preventDefault(); imgInputRef.current?.click(); }}>Upload</button>
             <input
               ref={imgInputRef}

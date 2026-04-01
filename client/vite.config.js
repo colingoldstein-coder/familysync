@@ -42,11 +42,11 @@ export default defineConfig({
         navigateFallback: 'index.html',
         runtimeCaching: [
           {
-            urlPattern: /\/api\/(tasks|requests|events|auth\/me|auth\/family-members)/,
+            urlPattern: /\/api\/(tasks|requests|events|auth\/family-members)/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-data',
-              expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
               networkTimeoutSeconds: 3,
               cacheableResponse: { statuses: [0, 200] },
             },
