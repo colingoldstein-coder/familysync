@@ -4,6 +4,7 @@ import { api } from '../api';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import PasswordInput from '../components/PasswordInput';
 import CalendarSync from '../components/CalendarSync';
+import AvatarCropModal from '../components/AvatarCropModal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import '../styles/shared.css';
 import './Account.css';
@@ -220,15 +221,25 @@ function ProfilePhotoSection() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [cropImage, setCropImage] = useState(null);
+  const [viewing, setViewing] = useState(false);
 
-  const handleUpload = async (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setError('');
     setSuccess('');
+    const reader = new FileReader();
+    reader.onload = () => setCropImage(reader.result);
+    reader.readAsDataURL(file);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const handleCropSave = async (croppedFile) => {
+    setCropImage(null);
     setUploading(true);
     try {
-      await api.uploadAvatar(file);
+      await api.uploadAvatar(croppedFile);
       await refreshUser();
       setSuccess('Profile photo updated');
       setTimeout(() => setSuccess(''), 3000);
@@ -236,11 +247,16 @@ function ProfilePhotoSection() {
       setError(err.message);
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
+  const handleRecrop = () => {
+    setViewing(false);
+    setCropImage(user.avatarUrl);
+  };
+
   const handleRemove = async () => {
+    setViewing(false);
     setError('');
     setSuccess('');
     setUploading(true);
@@ -261,7 +277,13 @@ function ProfilePhotoSection() {
       <h2>Profile Photo</h2>
       <div className="avatar-upload-row">
         {user.avatarUrl ? (
-          <img src={user.avatarUrl} alt={user.name} className="avatar-preview" />
+          <img
+            src={user.avatarUrl}
+            alt={user.name}
+            className="avatar-preview avatar-preview-clickable"
+            onClick={() => setViewing(true)}
+            title="View photo"
+          />
         ) : (
           <div className="avatar-preview avatar-preview-fallback" style={{ background: user.avatarColor || '#1DB954' }}>
             {user.name?.charAt(0).toUpperCase()}
@@ -276,22 +298,49 @@ function ProfilePhotoSection() {
             {uploading ? 'Uploading...' : user.avatarUrl ? 'Change Photo' : 'Upload Photo'}
           </button>
           {user.avatarUrl && (
-            <button className="btn btn-secondary btn-small" onClick={handleRemove} disabled={uploading}>
-              Remove
-            </button>
+            <>
+              <button className="btn btn-secondary btn-small" onClick={() => setViewing(true)} disabled={uploading}>
+                View
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={handleRemove} disabled={uploading}>
+                Remove
+              </button>
+            </>
           )}
           <input
             ref={fileRef}
             type="file"
             accept="image/jpeg,image/png,image/gif,image/webp"
             style={{ display: 'none' }}
-            onChange={handleUpload}
+            onChange={handleFileSelect}
           />
         </div>
       </div>
       <p className="account-current" style={{ marginTop: 8 }}>JPG, PNG, GIF or WebP. Max 5MB.</p>
       {success && <div className="success-msg" style={{ marginTop: 8 }}>{success}</div>}
       {error && <div className="error-msg" style={{ marginTop: 8 }}>{error}</div>}
+
+      {cropImage && (
+        <AvatarCropModal
+          imageSrc={cropImage}
+          onSave={handleCropSave}
+          onCancel={() => setCropImage(null)}
+        />
+      )}
+
+      {viewing && user.avatarUrl && (
+        <div className="crop-overlay" onClick={() => setViewing(false)}>
+          <div className="avatar-view-modal" onClick={(e) => e.stopPropagation()}>
+            <img src={user.avatarUrl} alt={user.name} className="avatar-view-image" />
+            <div className="avatar-view-actions">
+              <button className="btn btn-secondary btn-small" onClick={handleRecrop}>Re-crop</button>
+              <button className="btn btn-secondary btn-small" onClick={() => { setViewing(false); fileRef.current?.click(); }}>Upload New</button>
+              <button className="btn btn-danger btn-small" onClick={handleRemove}>Remove</button>
+              <button className="btn btn-secondary btn-small" onClick={() => setViewing(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
