@@ -299,7 +299,8 @@ router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await db('users')
       .where({ id: req.user.id })
-      .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color', 'avatar_url', 'email_opt_out')
+      .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color', 'avatar_url', 'email_opt_out',
+        'notify_pending_requests', 'notify_tasks_due', 'notify_active_events')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
     res.json({
@@ -311,6 +312,9 @@ router.get('/me', authenticate, async (req, res) => {
         isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
         emailOptOut: toBool(user.email_opt_out),
+        notifyPendingRequests: user.notify_pending_requests !== false,
+        notifyTasksDue: user.notify_tasks_due !== false,
+        notifyActiveEvents: user.notify_active_events !== false,
       },
       family,
     });
@@ -625,6 +629,25 @@ router.patch('/me/email-preferences', authenticate, async (req, res) => {
     res.json({ optedOut: optOut });
   } catch (err) {
     logger.error({ msg: 'Email preferences update error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Notification preferences (which push notification types to receive)
+router.patch('/me/notification-preferences', authenticate, async (req, res) => {
+  try {
+    const { pendingRequests, tasksDue, activeEvents } = req.body;
+    const update = {};
+    if (typeof pendingRequests === 'boolean') update.notify_pending_requests = pendingRequests;
+    if (typeof tasksDue === 'boolean') update.notify_tasks_due = tasksDue;
+    if (typeof activeEvents === 'boolean') update.notify_active_events = activeEvents;
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ error: 'No valid preferences provided' });
+    }
+    await db('users').where({ id: req.user.id }).update(update);
+    res.json({ message: 'Notification preferences updated' });
+  } catch (err) {
+    logger.error({ msg: 'Notification preferences error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

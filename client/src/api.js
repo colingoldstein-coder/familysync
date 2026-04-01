@@ -106,6 +106,7 @@ export const api = {
   getVapidKey: () => request('/push/vapid-key'),
   subscribePush: (subscription) => request('/push/subscribe', { method: 'POST', body: JSON.stringify(subscription) }),
   unsubscribePush: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
+  updateNotificationPrefs: (data) => request('/auth/me/notification-preferences', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Admin
   getAdminOverview: () => request('/admin/stats/overview'),

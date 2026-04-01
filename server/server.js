@@ -1,6 +1,7 @@
 const app = require('./app');
 const db = require('./db');
 const logger = require('./logger');
+const notificationScheduler = require('./notificationScheduler');
 
 const PORT = process.env.PORT || 3001;
 
@@ -13,6 +14,7 @@ db.migrate.latest()
     logger.info('Seeds complete');
     app.listen(PORT, () => {
       logger.info(`FamilySync server running on port ${PORT}`);
+      notificationScheduler.start();
     });
   })
   .catch((err) => {

@@ -384,8 +384,10 @@ function EmailPreferencesSection() {
 }
 
 function NotificationSettings() {
+  const { user, refreshUser } = useAuth();
   const { isSupported, permission, isSubscribed, subscribe, unsubscribe } = usePushNotifications();
   const [loading, setLoading] = useState(false);
+  const [prefSaving, setPrefSaving] = useState(false);
 
   if (!isSupported) return null;
 
@@ -399,6 +401,15 @@ function NotificationSettings() {
     setLoading(false);
   };
 
+  const handlePrefChange = async (key, value) => {
+    setPrefSaving(true);
+    try {
+      await api.updateNotificationPrefs({ [key]: value });
+      await refreshUser();
+    } catch { /* ignore */ }
+    setPrefSaving(false);
+  };
+
   return (
     <div className="account-section">
       <h2>Notifications</h2>
@@ -408,13 +419,51 @@ function NotificationSettings() {
           : 'Get notified when tasks are assigned, requests are made, or events are created.'}
       </p>
       {permission !== 'denied' && (
-        <button
-          onClick={handleToggle}
-          className={`btn btn-small ${isSubscribed ? 'btn-secondary' : 'btn-primary'}`}
-          disabled={loading}
-        >
-          {loading ? 'Updating...' : isSubscribed ? 'Disable Notifications' : 'Enable Notifications'}
-        </button>
+        <>
+          <button
+            onClick={handleToggle}
+            className={`btn btn-small ${isSubscribed ? 'btn-secondary' : 'btn-primary'}`}
+            disabled={loading}
+            style={{ marginBottom: 16 }}
+          >
+            {loading ? 'Updating...' : isSubscribed ? 'Disable Notifications' : 'Enable Notifications'}
+          </button>
+
+          {isSubscribed && (
+            <div className="notification-prefs">
+              <p className="account-current" style={{ marginBottom: 8 }}>
+                Choose which notifications you receive:
+              </p>
+              <label className="notification-pref-item">
+                <input
+                  type="checkbox"
+                  checked={user.notifyPendingRequests !== false}
+                  onChange={(e) => handlePrefChange('pendingRequests', e.target.checked)}
+                  disabled={prefSaving}
+                />
+                <span>Pending help requests</span>
+              </label>
+              <label className="notification-pref-item">
+                <input
+                  type="checkbox"
+                  checked={user.notifyTasksDue !== false}
+                  onChange={(e) => handlePrefChange('tasksDue', e.target.checked)}
+                  disabled={prefSaving}
+                />
+                <span>Tasks due today</span>
+              </label>
+              <label className="notification-pref-item">
+                <input
+                  type="checkbox"
+                  checked={user.notifyActiveEvents !== false}
+                  onChange={(e) => handlePrefChange('activeEvents', e.target.checked)}
+                  disabled={prefSaving}
+                />
+                <span>Events happening today</span>
+              </label>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
