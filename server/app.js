@@ -153,13 +153,15 @@ app.use('/api/push', pushRoutes);
 app.use('/api/webauthn', webauthnRoutes);
 app.use('/api', siteRoutes);
 
-// Serve uploaded images publicly (for email content)
-app.use('/api/admin/uploads', express.static(path.join(__dirname, 'uploads'), {
+// Serve uploaded images publicly (for email content and site images)
+const uploadsStatic = express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res) => {
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none'");
   },
-}));
+});
+app.use('/api/uploads', uploadsStatic);
+app.use('/api/admin/uploads', uploadsStatic);
 
 // Serve static frontend when built files exist
 const staticDir = path.join(__dirname, 'public');
