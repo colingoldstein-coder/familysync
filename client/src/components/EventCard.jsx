@@ -1,44 +1,12 @@
 import { useState } from 'react';
+import { formatRecurrence, formatTime } from '../utils/formatting';
 import '../styles/shared.css';
-
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function formatRecurrence(item) {
-  const type = item.recurrence_type;
-  if (!type || type === 'none') return null;
-  const interval = item.recurrence_interval || 1;
-  const unit = item.recurrence_unit || 'week';
-  if (type === 'daily') return interval === 1 ? 'Daily' : `Every ${interval} days`;
-  if (type === 'weekly') {
-    const days = item.recurrence_days;
-    if (days === '1,2,3,4,5') return 'Weekdays';
-    if (days) {
-      const dayLabels = days.split(',').map(d => DAY_NAMES[Number(d)]).join(', ');
-      return interval === 1 ? `Weekly (${dayLabels})` : `Every ${interval} weeks (${dayLabels})`;
-    }
-    return interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
-  }
-  if (type === 'monthly') return interval === 1 ? 'Monthly' : `Every ${interval} months`;
-  if (type === 'custom') {
-    const unitLabel = interval === 1 ? unit : unit + 's';
-    return `Every ${interval === 1 ? '' : interval + ' '}${unitLabel}`;
-  }
-  return null;
-}
 
 const EVENT_TYPE_LABELS = {
   drop_off: 'Drop-off',
   pick_up: 'Pick-up',
   both: 'Drop-off & Pick-up',
 };
-
-function formatTime(timeStr) {
-  const [h, m] = timeStr.split(':');
-  const hour = parseInt(h, 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour % 12 || 12;
-  return `${hour12}:${m} ${ampm}`;
-}
 
 function formatDate(dateStr) {
   const str = String(dateStr);

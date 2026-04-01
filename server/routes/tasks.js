@@ -4,6 +4,7 @@ const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
 const { notifyUser } = require('../notifications');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
 
     if (assignedTo) {
       const member = await db('users')
-        .where({ id: assignedTo, family_id: req.user.familyId }).first();
+        .where({ id: assignedTo, family_id: req.user.familyId, is_active: true }).first();
       if (!member) {
         return res.status(400).json({ error: 'Invalid family member' });
       }
@@ -27,7 +28,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
 
     if (assignToAll) {
       const assignees = await db('users')
-        .where({ family_id: req.user.familyId })
+        .where({ family_id: req.user.familyId, is_active: true })
         .whereNot({ id: req.user.id })
         .select('id');
 
@@ -69,6 +70,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
       res.json({ message: 'Task created', taskId: task.id || task });
     }
   } catch (err) {
+    logger.error({ msg: 'Create task error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -94,6 +96,7 @@ router.get('/', authenticate, async (req, res) => {
     const tasks = await query;
     res.json({ tasks });
   } catch (err) {
+    logger.error({ msg: 'Get tasks error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -167,6 +170,7 @@ router.patch('/:id/status', authenticate, validate(schemas.updateTaskStatus), as
 
     res.json({ message: 'Task updated', nextTaskId });
   } catch (err) {
+    logger.error({ msg: 'Update task status error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -193,6 +197,7 @@ router.delete('/:id', authenticate, requireParent, async (req, res) => {
       res.json({ message: 'Task deleted' });
     }
   } catch (err) {
+    logger.error({ msg: 'Delete task error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

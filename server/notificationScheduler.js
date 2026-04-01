@@ -4,6 +4,8 @@ const logger = require('./logger');
 
 // Runs every 15 minutes, checks for pending items and sends summary push notifications
 const CHECK_INTERVAL = 15 * 60 * 1000;
+// Don't re-notify users within this window (2 hours)
+const NOTIFY_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
 function todayDateString() {
   return new Date().toISOString().slice(0, 10);
@@ -17,82 +19,133 @@ async function checkAndNotify() {
   if (!isConfigured()) return;
 
   try {
-    // Get all users who have push subscriptions and at least one notification type enabled
-    const usersWithSubs = await db('push_subscriptions')
+    const cooldownCutoff = new Date(Date.now() - NOTIFY_COOLDOWN_MS).toISOString();
+
+    // Get users with push subscriptions who haven't been notified recently
+    const users = await db('push_subscriptions')
       .join('users', 'users.id', 'push_subscriptions.user_id')
       .where('users.is_active', true)
-      .select('users.id', 'users.name', 'users.family_id',
+      .where(function () {
+        this.whereNull('users.last_summary_notified_at')
+          .orWhere('users.last_summary_notified_at', '<', cooldownCutoff);
+      })
+      .select('users.id', 'users.family_id',
         'users.notify_pending_requests', 'users.notify_tasks_due', 'users.notify_active_events')
-      .groupBy('users.id', 'users.name', 'users.family_id',
+      .groupBy('users.id', 'users.family_id',
         'users.notify_pending_requests', 'users.notify_tasks_due', 'users.notify_active_events');
+
+    if (users.length === 0) return;
 
     const today = todayDateString();
     const now = nowTimeString();
+    const userIds = users.map(u => u.id);
+    const familyIds = [...new Set(users.map(u => u.family_id))];
 
-    for (const user of usersWithSubs) {
+    // Batch query: pending requests for all relevant users at once
+    const pendingRequestCounts = await db('help_requests')
+      .where({ status: 'pending' })
+      .whereIn('family_id', familyIds)
+      .select('requested_to', 'request_to_all', 'family_id')
+      .then(rows => {
+        // Build a map: userId -> count
+        const counts = {};
+        for (const row of rows) {
+          if (row.request_to_all) {
+            // Count for all users in that family
+            for (const u of users) {
+              if (u.family_id === row.family_id) {
+                counts[u.id] = (counts[u.id] || 0) + 1;
+              }
+            }
+          } else if (row.requested_to) {
+            counts[row.requested_to] = (counts[row.requested_to] || 0) + 1;
+          }
+        }
+        return counts;
+      });
+
+    // Batch query: tasks due today for all relevant users
+    const tasksDueCounts = await db('tasks')
+      .where({ deadline: today })
+      .whereNotIn('status', ['completed', 'rejected'])
+      .whereIn('family_id', familyIds)
+      .select('assigned_to', 'assign_to_all', 'family_id')
+      .then(rows => {
+        const counts = {};
+        for (const row of rows) {
+          if (row.assign_to_all) {
+            for (const u of users) {
+              if (u.family_id === row.family_id) {
+                counts[u.id] = (counts[u.id] || 0) + 1;
+              }
+            }
+          } else if (row.assigned_to) {
+            counts[row.assigned_to] = (counts[row.assigned_to] || 0) + 1;
+          }
+        }
+        return counts;
+      });
+
+    // Batch query: active events today for all relevant users
+    const activeEventCounts = await db('events')
+      .where({ event_date: today })
+      .whereNot({ status: 'rejected' })
+      .where(function () {
+        this.whereNull('end_time').orWhere('end_time', '>=', now);
+      })
+      .whereIn('family_id', familyIds)
+      .select('requested_to', 'request_to_all', 'family_id')
+      .then(rows => {
+        const counts = {};
+        for (const row of rows) {
+          if (row.request_to_all) {
+            for (const u of users) {
+              if (u.family_id === row.family_id) {
+                counts[u.id] = (counts[u.id] || 0) + 1;
+              }
+            }
+          } else if (row.requested_to) {
+            counts[row.requested_to] = (counts[row.requested_to] || 0) + 1;
+          }
+        }
+        return counts;
+      });
+
+    // Send notifications and track who was notified
+    const notifiedUserIds = [];
+
+    for (const user of users) {
       const parts = [];
 
-      // Check pending requests (assigned to this user, still pending)
-      if (user.notify_pending_requests !== false) {
-        const pendingRequests = await db('help_requests')
-          .where({ requested_to: user.id, status: 'pending' })
-          .orWhere(function () {
-            this.where({ request_to_all: true, family_id: user.family_id, status: 'pending' });
-          })
-          .count('* as count')
-          .first();
-        const count = Number(pendingRequests.count);
-        if (count > 0) {
-          parts.push(`${count} pending request${count > 1 ? 's' : ''}`);
-        }
+      if (user.notify_pending_requests !== false && pendingRequestCounts[user.id]) {
+        const c = pendingRequestCounts[user.id];
+        parts.push(`${c} pending request${c > 1 ? 's' : ''}`);
       }
-
-      // Check tasks due today (assigned to this user, not completed)
-      if (user.notify_tasks_due !== false) {
-        const tasksDue = await db('tasks')
-          .where(function () {
-            this.where({ assigned_to: user.id }).orWhere({ assign_to_all: true, family_id: user.family_id });
-          })
-          .where({ deadline: today })
-          .whereNot({ status: 'completed' })
-          .whereNot({ status: 'rejected' })
-          .count('* as count')
-          .first();
-        const count = Number(tasksDue.count);
-        if (count > 0) {
-          parts.push(`${count} task${count > 1 ? 's' : ''} due today`);
-        }
+      if (user.notify_tasks_due !== false && tasksDueCounts[user.id]) {
+        const c = tasksDueCounts[user.id];
+        parts.push(`${c} task${c > 1 ? 's' : ''} due today`);
       }
-
-      // Check active events (today, not yet ended)
-      if (user.notify_active_events !== false) {
-        const activeEvents = await db('events')
-          .where(function () {
-            this.where({ requested_to: user.id }).orWhere({ request_to_all: true, family_id: user.family_id });
-          })
-          .where({ event_date: today })
-          .where(function () {
-            // Events with no end_time or end_time hasn't passed yet
-            this.whereNull('end_time').orWhere('end_time', '>=', now);
-          })
-          .whereNot({ status: 'rejected' })
-          .count('* as count')
-          .first();
-        const count = Number(activeEvents.count);
-        if (count > 0) {
-          parts.push(`${count} event${count > 1 ? 's' : ''} today`);
-        }
+      if (user.notify_active_events !== false && activeEventCounts[user.id]) {
+        const c = activeEventCounts[user.id];
+        parts.push(`${c} event${c > 1 ? 's' : ''} today`);
       }
 
       if (parts.length > 0) {
-        const body = `You have ${parts.join(', ')}`;
         await sendPushNotification(user.id, {
           title: 'FamilySync',
-          body,
+          body: `You have ${parts.join(', ')}`,
           url: '/dashboard',
           tag: 'daily-summary',
         });
+        notifiedUserIds.push(user.id);
       }
+    }
+
+    // Update last_summary_notified_at for users who received notifications
+    if (notifiedUserIds.length > 0) {
+      await db('users')
+        .whereIn('id', notifiedUserIds)
+        .update({ last_summary_notified_at: db.fn.now() });
     }
   } catch (err) {
     logger.error({ err: err.message }, 'Notification scheduler error');
@@ -100,6 +153,7 @@ async function checkAndNotify() {
 }
 
 let intervalId = null;
+let startupTimeout = null;
 
 function start() {
   if (!isConfigured()) {
@@ -108,15 +162,19 @@ function start() {
   }
 
   // Run first check after a short delay (let server fully start)
-  setTimeout(() => {
+  startupTimeout = setTimeout(() => {
     checkAndNotify();
     intervalId = setInterval(checkAndNotify, CHECK_INTERVAL);
   }, 30 * 1000);
 
-  logger.info('Notification scheduler started (every 15 minutes)');
+  logger.info('Notification scheduler started (every 15 minutes, 2h cooldown per user)');
 }
 
 function stop() {
+  if (startupTimeout) {
+    clearTimeout(startupTimeout);
+    startupTimeout = null;
+  }
   if (intervalId) {
     clearInterval(intervalId);
     intervalId = null;

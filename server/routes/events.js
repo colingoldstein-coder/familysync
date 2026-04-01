@@ -4,6 +4,7 @@ const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate } = require('../recurrence');
 const { notifyUser, notifyFamilyMembers } = require('../notifications');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.post('/', authenticate, validate(schemas.createEvent), async (req, res) =
 
     if (requestedTo) {
       const target = await db('users')
-        .where({ id: requestedTo, family_id: req.user.familyId }).first();
+        .where({ id: requestedTo, family_id: req.user.familyId, is_active: true }).first();
       if (!target) {
         return res.status(400).json({ error: 'Invalid family member' });
       }
@@ -54,6 +55,7 @@ router.post('/', authenticate, validate(schemas.createEvent), async (req, res) =
 
     res.json({ message: 'Event created', eventId: event.id || event });
   } catch (err) {
+    logger.error({ msg: 'Create event error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -92,6 +94,7 @@ router.get('/', authenticate, async (req, res) => {
     const events = await query;
     res.json({ events });
   } catch (err) {
+    logger.error({ msg: 'Get events error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -164,6 +167,7 @@ router.patch('/:id/respond', authenticate, requireParent, validate(schemas.respo
 
     res.json({ message: `Event ${status}` });
   } catch (err) {
+    logger.error({ msg: 'Respond to event error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -194,6 +198,7 @@ router.delete('/:id', authenticate, async (req, res) => {
       res.json({ message: 'Event deleted' });
     }
   } catch (err) {
+    logger.error({ msg: 'Delete event error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -7,6 +7,7 @@ const db = require('../db');
 const { authenticate, requireSuperAdmin } = require('../middleware/auth');
 const logger = require('../logger');
 const { sendBrandedEmail, escapeHtml } = require('../email');
+const audit = require('../audit');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -472,6 +473,8 @@ router.post('/reactivate', async (req, res) => {
       .where({ is_active: false })
       .update({ is_active: true });
 
+    audit.log({ action: 'admin.reactivate_users', actorId: req.user.id, details: { userIds, count: updated }, ip: req.ip });
+
     res.json({ reactivated: updated });
   } catch (err) {
     logger.error({ msg: 'Admin reactivate error', error: err.message });
@@ -597,10 +600,13 @@ router.post('/send-email', async (req, res) => {
     const users = await db('users')
       .whereIn('id', userIds)
       .where({ is_active: true })
+      .where(function () {
+        this.where({ email_opt_out: false }).orWhereNull('email_opt_out');
+      })
       .select('id', 'name', 'email');
 
     if (users.length === 0) {
-      return res.status(400).json({ error: 'No valid recipients found' });
+      return res.status(400).json({ error: 'No valid recipients found (all opted out or inactive)' });
     }
 
     const emailRecipients = users.map(u => ({ email: u.email, userId: u.id }));
@@ -639,6 +645,8 @@ router.post('/send-email', async (req, res) => {
       status: overallStatus,
       error_message: errorMessage,
     });
+
+    audit.log({ action: 'admin.send_email', actorId: req.user.id, details: { subject: subject.trim(), recipientCount: recipients.length, sentCount, failedCount }, ip: req.ip });
 
     if (overallStatus === 'failed') {
       return res.status(500).json({ error: `Email send failed: all ${failedCount} recipient(s) failed` });
@@ -724,5 +732,44 @@ router.post('/upload-image', upload.single('image'), (req, res) => {
 // Serve uploaded images (this route is behind authenticate + requireSuperAdmin via router.use,
 // but uploaded images need to be publicly accessible for emails)
 // We'll add a separate public route in app.js instead
+
+// Get audit logs
+router.get('/audit-log', async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+    const action = req.query.action || null;
+
+    let query = db('audit_logs as a')
+      .leftJoin('users as u', 'a.actor_id', 'u.id')
+      .select(
+        'a.id', 'a.action', 'a.actor_id', 'u.name as actor_name',
+        'a.target_id', 'a.target_type', 'a.details',
+        'a.ip_address', 'a.created_at'
+      )
+      .orderBy('a.created_at', 'desc');
+
+    if (action) query = query.where('a.action', action);
+
+    const logs = await query.offset(offset).limit(limit);
+    let countQuery = db('audit_logs').count('* as count');
+    if (action) countQuery = countQuery.where('action', action);
+    const [{ count }] = await countQuery;
+
+    res.json({
+      logs: logs.map(l => {
+        let details = null;
+        if (l.details) {
+          try { details = JSON.parse(l.details); } catch { details = l.details; }
+        }
+        return { ...l, details };
+      }),
+      total: Number(count),
+    });
+  } catch (err) {
+    logger.error({ msg: 'Audit log fetch error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 module.exports = router;

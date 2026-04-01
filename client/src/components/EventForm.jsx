@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import RecurrencePicker from './RecurrencePicker';
+import useFocusTrap from '../hooks/useFocusTrap';
 import '../styles/shared.css';
 
 export default function EventForm({ members, userRole, onSubmit, onCancel }) {
@@ -8,6 +9,7 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [timeError, setTimeError] = useState('');
   const [eventType, setEventType] = useState('drop_off');
   const [locationName, setLocationName] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
@@ -17,6 +19,7 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
     recurrenceType: 'none', recurrenceInterval: 1, recurrenceUnit: 'week',
     recurrenceDays: null, recurrenceEnd: null,
   });
+  const trapRef = useFocusTrap(true);
 
   // Filter targets: children see parents, parents see children
   const targets = userRole === 'child'
@@ -27,6 +30,11 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (eventTime && endTime && endTime <= eventTime) {
+      setTimeError('End time must be after start time');
+      return;
+    }
+    setTimeError('');
     onSubmit({
       title,
       description: description || undefined,
@@ -44,8 +52,8 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
-        <h2>New Event</h2>
+      <div ref={trapRef} className="modal" role="dialog" aria-modal="true" aria-labelledby="event-form-title" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+        <h2 id="event-form-title">New Event</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Event Name</label>
@@ -95,10 +103,11 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
               <input
                 type="time"
                 value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                onChange={(e) => { setEndTime(e.target.value); setTimeError(''); }}
               />
             </div>
           </div>
+          {timeError && <div className="error-msg">{timeError}</div>}
 
           <div className="form-group">
             <label>Type</label>

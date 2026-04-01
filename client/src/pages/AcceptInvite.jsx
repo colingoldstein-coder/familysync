@@ -153,6 +153,7 @@ export default function AcceptInvite() {
                 placeholder="Min 10 chars, upper + lower + number"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                showStrength
               />
             </div>
           )}

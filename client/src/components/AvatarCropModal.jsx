@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
+import useFocusTrap from '../hooks/useFocusTrap';
 import '../styles/shared.css';
 import './AvatarCropModal.css';
 
@@ -42,6 +43,7 @@ export default function AvatarCropModal({ imageSrc, onSave, onCancel }) {
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState(null);
   const [saving, setSaving] = useState(false);
+  const trapRef = useFocusTrap(true);
 
   const onCropComplete = useCallback((_, croppedAreaPixels) => {
     setCroppedArea(croppedAreaPixels);
@@ -61,9 +63,9 @@ export default function AvatarCropModal({ imageSrc, onSave, onCancel }) {
 
   return (
     <div className="crop-overlay" onClick={onCancel}>
-      <div className="crop-modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={trapRef} className="crop-modal" role="dialog" aria-modal="true" aria-labelledby="crop-modal-title" onClick={(e) => e.stopPropagation()}>
         <div className="crop-header">
-          <h3>Crop Profile Photo</h3>
+          <h3 id="crop-modal-title">Crop Profile Photo</h3>
         </div>
         <div className="crop-container">
           <Cropper

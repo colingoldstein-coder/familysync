@@ -49,6 +49,10 @@ export const api = {
   googleRegisterFamily: (data) => request('/auth/google-register-family', { method: 'POST', body: JSON.stringify(data) }),
   googleAcceptInvite: (data) => request('/auth/google-accept-invite', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Password reset
+  forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (data) => request('/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+
   // Account
   updatePassword: (data) => request('/auth/me/password', { method: 'PATCH', body: JSON.stringify(data) }),
   updateEmail: (data) => request('/auth/me/email', { method: 'PATCH', body: JSON.stringify(data) }),

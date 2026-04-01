@@ -113,6 +113,8 @@ if (process.env.NODE_ENV !== 'test') {
   app.use('/api/auth/google-login', authLimiter);
   app.use('/api/auth/google-register-family', authLimiter);
   app.use('/api/auth/google-accept-invite', authLimiter);
+  app.use('/api/auth/forgot-password', authLimiter);
+  app.use('/api/auth/reset-password', authLimiter);
   app.use('/api/webauthn/login-options', authLimiter);
   app.use('/api/webauthn/login', authLimiter);
   app.use('/api/auth/invite', tokenLimiter);

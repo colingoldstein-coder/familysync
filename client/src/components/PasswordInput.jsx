@@ -1,8 +1,21 @@
 import { useState } from 'react';
 import './PasswordInput.css';
 
-export default function PasswordInput({ value, onChange, placeholder = 'Password', required = true }) {
+function getStrength(password) {
+  if (!password) return { score: 0, checks: [] };
+  const checks = [
+    { label: '10+ characters', met: password.length >= 10 },
+    { label: 'Lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'Uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'Number', met: /[0-9]/.test(password) },
+  ];
+  const score = checks.filter(c => c.met).length;
+  return { score, checks };
+}
+
+export default function PasswordInput({ value, onChange, placeholder = 'Password', required = true, showStrength = false }) {
   const [visible, setVisible] = useState(false);
+  const { score, checks } = showStrength ? getStrength(value) : { score: 0, checks: [] };
 
   return (
     <div className="password-input-wrap">
@@ -32,6 +45,23 @@ export default function PasswordInput({ value, onChange, placeholder = 'Password
           </svg>
         )}
       </button>
+      {showStrength && value && (
+        <div className="password-strength">
+          <div className="password-strength-bar">
+            <div
+              className={`password-strength-fill strength-${score}`}
+              style={{ width: `${(score / 4) * 100}%` }}
+            />
+          </div>
+          <ul className="password-checks">
+            {checks.map(c => (
+              <li key={c.label} className={c.met ? 'met' : ''}>
+                {c.met ? '✓' : '○'} {c.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

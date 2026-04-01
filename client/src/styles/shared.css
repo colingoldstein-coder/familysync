@@ -56,6 +56,11 @@
   touch-action: manipulation;
 }
 
+.btn:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
+}
+
 .btn-primary {
   background: var(--accent-green);
   color: #000;
@@ -105,6 +110,11 @@
 .btn-icon:hover {
   color: var(--text-primary);
   background: var(--bg-highlight);
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
 }
 
 /* Forms */
@@ -297,6 +307,12 @@
 
 .tab:hover {
   color: var(--text-primary);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: -2px;
+  border-radius: 4px 4px 0 0;
 }
 
 .tab.active {

@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { validate, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
 const { notifyUser, notifyFamilyMembers } = require('../notifications');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.post('/', authenticate, validate(schemas.createRequest), async (req, res)
 
     if (requestedTo) {
       const member = await db('users')
-        .where({ id: requestedTo, family_id: req.user.familyId })
+        .where({ id: requestedTo, family_id: req.user.familyId, is_active: true })
         .whereNot({ id: req.user.id })
         .first();
       if (!member) {
@@ -45,6 +46,7 @@ router.post('/', authenticate, validate(schemas.createRequest), async (req, res)
 
     res.json({ message: 'Request created', requestId: request.id || request });
   } catch (err) {
+    logger.error({ msg: 'Create request error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -69,6 +71,7 @@ router.get('/', authenticate, async (req, res) => {
     const requests = await query;
     res.json({ requests });
   } catch (err) {
+    logger.error({ msg: 'Get requests error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -137,6 +140,7 @@ router.patch('/:id/respond', authenticate, validate(schemas.respondToRequest), a
 
     res.json({ message: `Request ${status}` });
   } catch (err) {
+    logger.error({ msg: 'Respond to request error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

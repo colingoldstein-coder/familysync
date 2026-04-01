@@ -6,10 +6,12 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const db = require('../db');
 const { getJwtSecret, authenticate, requireAdmin } = require('../middleware/auth');
-const { sendInviteEmail } = require('../email');
+const { sendInviteEmail, generatePasswordResetToken, verifyPasswordResetToken, sendPasswordResetEmail } = require('../email');
 const { validate, schemas } = require('../validation');
+const audit = require('../audit');
 const logger = require('../logger');
 const { verifyGoogleToken } = require('../oauth');
+const { toBool } = require('../utils');
 
 const router = express.Router();
 
@@ -48,10 +50,6 @@ async function nextRefNumber(trx, table, prefix) {
   return `${prefix}${String(next).padStart(5, '0')}`;
 }
 
-function toBool(val) {
-  return val === true || val === 1 || val === '1' || val === 't' || val === 'true';
-}
-
 function makeToken(user, familyId) {
   return jwt.sign(
     { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin), familyId, tv: user.token_version || 0 },
@@ -87,6 +85,8 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
 
     const user = { id: result.userId, name, email, role: 'parent', is_admin: true };
     const token = makeToken(user, result.familyId);
+
+    audit.log({ action: 'family.register', actorId: result.userId, targetId: result.familyId, targetType: 'family', ip: req.ip });
 
     res.json({
       token,
@@ -256,6 +256,63 @@ router.get('/invitations', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// Forgot password — sends reset email
+router.post('/forgot-password', validate(schemas.forgotPassword), async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Always return success to prevent email enumeration
+    const user = await db('users').where({ email }).first();
+    if (user && user.password_hash && user.is_active !== false) {
+      const token = generatePasswordResetToken(user.id);
+      try {
+        await sendPasswordResetEmail({ to: email, token });
+      } catch (err) {
+        logger.error({ msg: 'Password reset email error', error: err.message });
+      }
+    }
+
+    res.json({ message: 'If an account exists with that email, a reset link has been sent.' });
+  } catch (err) {
+    logger.error({ msg: 'Forgot password error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Reset password — validates token and sets new password
+router.post('/reset-password', validate(schemas.resetPassword), async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    const userId = verifyPasswordResetToken(token);
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+    }
+
+    const user = await db('users').where({ id: userId }).first();
+    if (!user || user.is_active === false) {
+      return res.status(400).json({ error: 'Invalid or expired reset link.' });
+    }
+
+    if (!user.password_hash) {
+      return res.status(400).json({ error: 'This account uses Google Sign-In. Password reset is not available.' });
+    }
+
+    const passwordHash = bcrypt.hashSync(newPassword, 10);
+    await db('users').where({ id: userId }).update({
+      password_hash: passwordHash,
+      token_version: db.raw('token_version + 1'),
+    });
+
+    audit.log({ action: 'password.reset', actorId: userId, targetId: userId, targetType: 'user', ip: req.ip });
+
+    res.json({ message: 'Password has been reset. You can now log in with your new password.' });
+  } catch (err) {
+    logger.error({ msg: 'Reset password error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Login
 router.post('/login', validate(schemas.login), async (req, res) => {
   try {
@@ -276,6 +333,8 @@ router.post('/login', validate(schemas.login), async (req, res) => {
     }
 
     const token = makeToken(user, user.family_id);
+
+    audit.log({ action: 'user.login', actorId: user.id, ip: req.ip });
 
     res.json({
       token,
@@ -356,6 +415,7 @@ router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res
     if (member.role === 'child') {
       // Soft-delete: deactivate child accounts instead of deleting
       await db('users').where({ id: memberId }).update({ is_active: false });
+      audit.log({ action: 'user.deactivate', actorId: req.user.id, targetId: memberId, targetType: 'user', details: { name: member.name, role: member.role }, ip: req.ip });
       res.json({ message: 'Member deactivated' });
     } else {
       // Hard-delete for parent accounts
@@ -365,6 +425,7 @@ router.delete('/family-members/:id', authenticate, requireAdmin, async (req, res
         await trx('invitations').where({ invited_by: memberId }).del();
         await trx('users').where({ id: memberId }).del();
       });
+      audit.log({ action: 'user.delete', actorId: req.user.id, targetId: memberId, targetType: 'user', details: { name: member.name, role: member.role }, ip: req.ip });
       res.json({ message: 'Member removed' });
     }
   } catch (err) {
@@ -395,6 +456,8 @@ router.patch('/me/password', authenticate, validate(schemas.updatePassword), asy
     // Issue a fresh token so the current session stays valid
     const updated = await db('users').where({ id: req.user.id }).first();
     const token = makeToken(updated, updated.family_id);
+
+    audit.log({ action: 'password.change', actorId: req.user.id, targetId: req.user.id, targetType: 'user', ip: req.ip });
 
     res.json({ message: 'Password updated', token });
   } catch (err) {

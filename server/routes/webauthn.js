@@ -8,7 +8,9 @@ const {
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const { authenticate, getJwtSecret } = require('../middleware/auth');
+const { validate, schemas } = require('../validation');
 const logger = require('../logger');
+const { toBool } = require('../utils');
 
 const router = express.Router();
 
@@ -23,10 +25,6 @@ function getRpId(req) {
 function getOrigin(req) {
   const proto = req.header('x-forwarded-proto') || req.protocol;
   return `${proto}://${req.hostname}`;
-}
-
-function toBool(val) {
-  return val === true || val === 1 || val === '1' || val === 't' || val === 'true';
 }
 
 function makeToken(user) {
@@ -118,12 +116,9 @@ router.post('/register', authenticate, async (req, res) => {
 
 // ===== AUTHENTICATION (public - biometric login) =====
 
-router.post('/login-options', async (req, res) => {
+router.post('/login-options', validate(schemas.webauthnLoginOptions), async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
 
     const user = await db('users').where({ email }).first();
     if (!user) {
@@ -156,12 +151,9 @@ router.post('/login-options', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
   try {
     const { email, response } = req.body;
-    if (!email || !response) {
-      return res.status(400).json({ error: 'Email and response are required' });
-    }
 
     const user = await db('users').where({ email }).first();
     if (!user || !user.webauthn_challenge) {

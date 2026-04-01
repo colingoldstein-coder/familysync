@@ -21,6 +21,8 @@ import AdminEmailLog from './pages/AdminEmailLog';
 import Account from './pages/Account';
 import Welcome from './pages/Welcome';
 import EmailPreferences from './pages/EmailPreferences';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import './index.css';
 
 function ProtectedRoute({ children, requireRole }) {
@@ -94,6 +96,8 @@ function AppRoutes() {
         <Route path="/contact" element={<ContactRoute />} />
         <Route path="/about" element={<About />} />
         <Route path="/install" element={<Install />} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/reset-password/:token" element={<PublicRoute><ResetPassword /></PublicRoute>} />
         <Route path="/email-preferences/:token" element={<EmailPreferences />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

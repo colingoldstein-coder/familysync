@@ -55,7 +55,7 @@ export default function InstallPrompt() {
   return (
     <div className="install-prompt">
       <div className="install-prompt-inner">
-        <img src="/pwa-64x64.png" alt="" className="install-prompt-app-icon" />
+        <img src="/pwa-64x64.png" alt="FamilySync" className="install-prompt-app-icon" />
         <div className="install-prompt-text">
           {showIosPrompt ? (
             <>

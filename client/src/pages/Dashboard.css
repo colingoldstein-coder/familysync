@@ -136,6 +136,11 @@
   color: var(--text-primary);
 }
 
+.day-btn:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
+}
+
 .day-btn.active {
   background: var(--accent-green);
   border-color: var(--accent-green);
@@ -482,6 +487,11 @@
 .filter-toggle.active {
   border-color: var(--accent-green);
   color: var(--accent-green);
+}
+
+.filter-toggle:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
 }
 
 .filter-bar {

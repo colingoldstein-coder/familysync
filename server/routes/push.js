@@ -1,6 +1,8 @@
 const express = require('express');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
+const { validate, schemas } = require('../validation');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -14,13 +16,9 @@ router.get('/vapid-key', (req, res) => {
 });
 
 // Subscribe to push notifications
-router.post('/subscribe', authenticate, async (req, res) => {
+router.post('/subscribe', authenticate, validate(schemas.pushSubscribe), async (req, res) => {
   try {
     const { endpoint, keys } = req.body;
-
-    if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
-      return res.status(400).json({ error: 'Invalid subscription' });
-    }
 
     await db('push_subscriptions')
       .insert({
@@ -34,18 +32,15 @@ router.post('/subscribe', authenticate, async (req, res) => {
 
     res.json({ message: 'Subscribed' });
   } catch (err) {
+    logger.error({ msg: 'Push subscribe error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 // Unsubscribe
-router.post('/unsubscribe', authenticate, async (req, res) => {
+router.post('/unsubscribe', authenticate, validate(schemas.pushUnsubscribe), async (req, res) => {
   try {
     const { endpoint } = req.body;
-
-    if (!endpoint) {
-      return res.status(400).json({ error: 'Endpoint required' });
-    }
 
     await db('push_subscriptions')
       .where({ user_id: req.user.id, endpoint })
@@ -53,6 +48,7 @@ router.post('/unsubscribe', authenticate, async (req, res) => {
 
     res.json({ message: 'Unsubscribed' });
   } catch (err) {
+    logger.error({ msg: 'Push unsubscribe error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

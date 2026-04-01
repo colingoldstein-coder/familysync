@@ -199,4 +199,81 @@ function getUnsubscribeUrl(userId) {
   return `${CLIENT_URL}/account#email-preferences`;
 }
 
-module.exports = { sendInviteEmail, sendContactEmail, sendBrandedEmail, escapeHtml, getUnsubscribeUrl, verifyEmailPrefToken };
+function generatePasswordResetToken(userId) {
+  const secret = process.env.JWT_SECRET || 'dev-secret';
+  const expiry = Date.now() + 60 * 60 * 1000; // 1 hour
+  const data = `pw-reset:${userId}:${expiry}`;
+  const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
+  return `${userId}.${expiry}.${hmac}`;
+}
+
+function verifyPasswordResetToken(token) {
+  const parts = (token || '').split('.');
+  if (parts.length !== 3) return null;
+  const userId = parseInt(parts[0]);
+  const expiry = parseInt(parts[1]);
+  const hmac = parts[2];
+  if (isNaN(userId) || isNaN(expiry) || !hmac) return null;
+  if (Date.now() > expiry) return null;
+  // Recompute the HMAC using the original expiry from the token
+  const secret = process.env.JWT_SECRET || 'dev-secret';
+  const data = `pw-reset:${userId}:${expiry}`;
+  const expectedHmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
+  // Use timing-safe comparison
+  if (expectedHmac.length !== hmac.length) return null;
+  const a = Buffer.from(expectedHmac);
+  const b = Buffer.from(hmac);
+  if (!crypto.timingSafeEqual(a, b)) return null;
+  return userId;
+}
+
+async function sendPasswordResetEmail({ to, token }) {
+  const resetUrl = `${CLIENT_URL}/reset-password/${token}`;
+
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+      <h2 style="color: #1DB954;">FamilySync</h2>
+      <p>Hi there!</p>
+      <p>We received a request to reset the password for your FamilySync account.</p>
+      <p>
+        <a href="${resetUrl}" style="display: inline-block; background: #1DB954; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+          Reset Password
+        </a>
+      </p>
+      <p style="color: #888; font-size: 13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+      <p style="color: #888; font-size: 13px;">Or copy this link: ${resetUrl}</p>
+    </div>
+  `;
+
+  if (process.env.RESEND_API_KEY) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to,
+        subject: 'Reset your FamilySync password',
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      logger.error({ to, status: res.status, body }, 'Resend API error (password reset)');
+      throw new Error(`Failed to send password reset email`);
+    }
+
+    logger.info({ to }, 'Password reset email sent');
+  } else {
+    logger.warn({ to, resetUrl }, 'No email provider configured — logging password reset link');
+  }
+}
+
+module.exports = {
+  sendInviteEmail, sendContactEmail, sendBrandedEmail, escapeHtml,
+  getUnsubscribeUrl, verifyEmailPrefToken,
+  generatePasswordResetToken, verifyPasswordResetToken, sendPasswordResetEmail,
+};

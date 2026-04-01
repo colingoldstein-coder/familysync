@@ -105,7 +105,7 @@ export default function Account() {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: 16 }}>
+      <div className="page-header mb-16">
         <h1>Account Settings</h1>
       </div>
 
@@ -302,9 +302,9 @@ function ProfilePhotoSection() {
           )}
         </div>
       </div>
-      <p className="account-current" style={{ marginTop: 8 }}>JPG, PNG, GIF or WebP. Max 5MB.</p>
-      {success && <div className="success-msg" style={{ marginTop: 8 }}>{success}</div>}
-      {error && <div className="error-msg" style={{ marginTop: 8 }}>{error}</div>}
+      <p className="account-current mt-8">JPG, PNG, GIF or WebP. Max 5MB.</p>
+      {success && <div className="success-msg mt-8">{success}</div>}
+      {error && <div className="error-msg mt-8">{error}</div>}
       <input
         ref={fileRef}
         type="file"
@@ -357,28 +357,25 @@ function EmailPreferencesSection() {
   return (
     <div className="account-section" id="email-preferences" ref={sectionRef}>
       <h2>Email Preferences</h2>
-      <label style={{
-        display: 'flex', alignItems: 'flex-start', gap: 12, cursor: saving ? 'wait' : 'pointer',
-        padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-color)',
-      }}>
+      <label className={`email-pref-label ${saving ? 'saving' : ''}`}>
         <input
           type="checkbox"
+          className="email-pref-checkbox"
           checked={!optedOut}
           onChange={handleToggle}
           disabled={saving}
-          style={{ accentColor: '#1DB954', width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
         />
         <div>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+          <div className="email-pref-title">
             Receive marketing emails from FamilySync
           </div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+          <div className="email-pref-desc">
             Updates about new features, tips, and announcements. You can change this at any time.
           </div>
         </div>
       </label>
-      {success && <div className="success-msg" style={{ marginTop: 12 }}>{success}</div>}
-      {error && <div className="error-msg" style={{ marginTop: 12 }}>{error}</div>}
+      {success && <div className="success-msg mt-12">{success}</div>}
+      {error && <div className="error-msg mt-12">{error}</div>}
     </div>
   );
 }
@@ -422,16 +419,15 @@ function NotificationSettings() {
         <>
           <button
             onClick={handleToggle}
-            className={`btn btn-small ${isSubscribed ? 'btn-secondary' : 'btn-primary'}`}
+            className={`btn btn-small mb-16 ${isSubscribed ? 'btn-secondary' : 'btn-primary'}`}
             disabled={loading}
-            style={{ marginBottom: 16 }}
           >
             {loading ? 'Updating...' : isSubscribed ? 'Disable Notifications' : 'Enable Notifications'}
           </button>
 
           {isSubscribed && (
             <div className="notification-prefs">
-              <p className="account-current" style={{ marginBottom: 8 }}>
+              <p className="account-current mb-8">
                 Choose which notifications you receive:
               </p>
               <label className="notification-pref-item">

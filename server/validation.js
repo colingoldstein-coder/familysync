@@ -123,6 +123,36 @@ const contact = z.object({
   message: z.string().min(1).max(2000),
 });
 
+const pushSubscribe = z.object({
+  endpoint: z.string().url().max(2000),
+  keys: z.object({
+    p256dh: z.string().min(1).max(500),
+    auth: z.string().min(1).max(500),
+  }),
+});
+
+const pushUnsubscribe = z.object({
+  endpoint: z.string().url().max(2000),
+});
+
+const webauthnLoginOptions = z.object({
+  email: z.string().email().max(255),
+});
+
+const webauthnLogin = z.object({
+  email: z.string().email().max(255),
+  response: z.object({}).passthrough(),
+});
+
+const forgotPassword = z.object({
+  email: z.string().email().max(255),
+});
+
+const resetPassword = z.object({
+  token: z.string().min(1),
+  newPassword: strongPassword,
+});
+
 function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
@@ -155,5 +185,11 @@ module.exports = {
     googleLogin,
     googleRegisterFamily,
     googleAcceptInvite,
+    pushSubscribe,
+    pushUnsubscribe,
+    webauthnLoginOptions,
+    webauthnLogin,
+    forgotPassword,
+    resetPassword,
   },
 };
