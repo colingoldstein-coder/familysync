@@ -1,7 +1,9 @@
 const express = require('express');
 const crypto = require('crypto');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const db = require('../db');
 const { getJwtSecret, authenticate, requireAdmin } = require('../middleware/auth');
 const { sendInviteEmail } = require('../email');
@@ -10,6 +12,25 @@ const logger = require('../logger');
 const { verifyGoogleToken } = require('../oauth');
 
 const router = express.Router();
+
+// Avatar upload setup (reuse server/uploads dir)
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.png';
+      cb(null, `avatar-${crypto.randomBytes(12).toString('hex')}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  },
+});
 
 function generateJoinCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -283,13 +304,14 @@ router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await db('users')
       .where({ id: req.user.id })
-      .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color', 'email_opt_out')
+      .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color', 'avatar_url', 'email_opt_out')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
     res.json({
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
         avatarColor: user.avatar_color,
+        avatarUrl: user.avatar_url || null,
         isAdmin: toBool(user.is_admin),
         isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
@@ -308,7 +330,7 @@ router.get('/family-members', authenticate, async (req, res) => {
   try {
     const members = await db('users')
       .where({ family_id: req.user.familyId, is_active: true })
-      .select('id', 'name', 'email', 'role', 'is_admin', 'avatar_color');
+      .select('id', 'name', 'email', 'role', 'is_admin', 'avatar_color', 'avatar_url');
     res.json({ members });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
@@ -425,6 +447,32 @@ router.patch('/me/name', authenticate, validate(schemas.updateName), async (req,
     res.json({ message: 'Name updated', token, name });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Upload avatar
+router.post('/me/avatar', authenticate, avatarUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+    const avatarUrl = `/api/admin/uploads/${req.file.filename}`;
+    await db('users').where({ id: req.user.id }).update({ avatar_url: avatarUrl });
+    res.json({ avatarUrl });
+  } catch (err) {
+    logger.error({ msg: 'Avatar upload error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Remove avatar
+router.delete('/me/avatar', authenticate, async (req, res) => {
+  try {
+    await db('users').where({ id: req.user.id }).update({ avatar_url: null });
+    res.json({ message: 'Avatar removed' });
+  } catch (err) {
+    logger.error({ msg: 'Avatar remove error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

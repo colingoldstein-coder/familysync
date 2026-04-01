@@ -62,6 +62,10 @@
   flex-shrink: 0;
 }
 
+.member-avatar-img {
+  object-fit: cover;
+}
+
 .member-info {
   flex: 1;
 }

@@ -108,6 +108,9 @@ export default function Account() {
         <h1>Account Settings</h1>
       </div>
 
+      {/* Profile Photo */}
+      <ProfilePhotoSection />
+
       {/* Name */}
       <div className="account-section">
         <h2>Display Name</h2>
@@ -207,6 +210,88 @@ export default function Account() {
 
       {/* Calendar Sync */}
       <CalendarSync />
+    </div>
+  );
+}
+
+function ProfilePhotoSection() {
+  const { user, refreshUser } = useAuth();
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setSuccess('');
+    setUploading(true);
+    try {
+      await api.uploadAvatar(file);
+      await refreshUser();
+      setSuccess('Profile photo updated');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleRemove = async () => {
+    setError('');
+    setSuccess('');
+    setUploading(true);
+    try {
+      await api.removeAvatar();
+      await refreshUser();
+      setSuccess('Profile photo removed');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="account-section">
+      <h2>Profile Photo</h2>
+      <div className="avatar-upload-row">
+        {user.avatarUrl ? (
+          <img src={user.avatarUrl} alt={user.name} className="avatar-preview" />
+        ) : (
+          <div className="avatar-preview avatar-preview-fallback" style={{ background: user.avatarColor || '#1DB954' }}>
+            {user.name?.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="avatar-upload-actions">
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? 'Uploading...' : user.avatarUrl ? 'Change Photo' : 'Upload Photo'}
+          </button>
+          {user.avatarUrl && (
+            <button className="btn btn-secondary btn-small" onClick={handleRemove} disabled={uploading}>
+              Remove
+            </button>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            style={{ display: 'none' }}
+            onChange={handleUpload}
+          />
+        </div>
+      </div>
+      <p className="account-current" style={{ marginTop: 8 }}>JPG, PNG, GIF or WebP. Max 5MB.</p>
+      {success && <div className="success-msg" style={{ marginTop: 8 }}>{success}</div>}
+      {error && <div className="error-msg" style={{ marginTop: 8 }}>{error}</div>}
     </div>
   );
 }

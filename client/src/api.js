@@ -53,6 +53,20 @@ export const api = {
   updatePassword: (data) => request('/auth/me/password', { method: 'PATCH', body: JSON.stringify(data) }),
   updateEmail: (data) => request('/auth/me/email', { method: 'PATCH', body: JSON.stringify(data) }),
   updateName: (data) => request('/auth/me/name', { method: 'PATCH', body: JSON.stringify(data) }),
+  uploadAvatar: async (file) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('avatar', file);
+    const res = await fetch(`${API_URL}/auth/me/avatar`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data;
+  },
+  removeAvatar: () => request('/auth/me/avatar', { method: 'DELETE' }),
   updateEmailPrefs: (data) => request('/auth/me/email-preferences', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Invitations

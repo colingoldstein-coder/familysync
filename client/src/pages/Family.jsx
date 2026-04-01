@@ -102,7 +102,7 @@ export default function Family() {
                 </div>
                 <div className="member-info">
                   <h3>{invite.email}</h3>
-                  <p>Invited {(() => { const s = String(invite.created_at).slice(0, 10); return new Date(s + 'T00:00:00').toLocaleDateString(); })()}</p>
+                  <p>Invited {(() => { const d = new Date(String(invite.created_at)); return isNaN(d) ? invite.created_at : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); })()}</p>
                 </div>
                 <span className="badge badge-pending" style={{ textTransform: 'capitalize' }}>{invite.role}</span>
                 <button className="btn btn-primary btn-sm" onClick={() => handleResendInvite(invite)}>Resend</button>
@@ -117,9 +117,13 @@ export default function Family() {
         <div className="card-grid">
           {parents.map(member => (
             <div key={member.id} className="card member-card">
-              <div className="member-avatar" style={{ background: member.avatar_color || '#1DB954' }}>
-                {member.name.charAt(0).toUpperCase()}
-              </div>
+              {member.avatar_url ? (
+                <img src={member.avatar_url} alt={member.name} className="member-avatar member-avatar-img" />
+              ) : (
+                <div className="member-avatar" style={{ background: member.avatar_color || '#1DB954' }}>
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div className="member-info">
                 <h3>
                   {member.name} {member.id === user.id ? '(You)' : ''}
@@ -147,9 +151,13 @@ export default function Family() {
           <div className="card-grid">
             {children.map(member => (
               <div key={member.id} className="card member-card">
-                <div className="member-avatar" style={{ background: member.avatar_color || '#3498db' }}>
-                  {member.name.charAt(0).toUpperCase()}
-                </div>
+                {member.avatar_url ? (
+                  <img src={member.avatar_url} alt={member.name} className="member-avatar member-avatar-img" />
+                ) : (
+                  <div className="member-avatar" style={{ background: member.avatar_color || '#3498db' }}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="member-info">
                   <h3>{member.name} {member.id === user.id ? '(You)' : ''}</h3>
                   <p>{member.email}</p>
