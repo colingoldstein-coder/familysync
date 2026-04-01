@@ -16,7 +16,7 @@ export default function AdminSiteImages() {
     try {
       const res = await api.getAdminSiteImages();
       setImages(res.images || []);
-    } catch (err) {
+    } catch {
       setError('Failed to load site images');
     } finally {
       setLoading(false);
