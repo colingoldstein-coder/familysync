@@ -3,6 +3,8 @@ import Cropper from 'react-easy-crop';
 import '../styles/shared.css';
 import './AvatarCropModal.css';
 
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
 async function getCroppedBlob(imageSrc, crop) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
@@ -24,9 +26,15 @@ async function getCroppedBlob(imageSrc, crop) {
     0, 0, size, size
   );
 
-  return new Promise((resolve) => {
-    canvas.toBlob(resolve, 'image/jpeg', 0.9);
-  });
+  // Progressively reduce quality until under 5MB
+  let quality = 0.92;
+  let blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', quality));
+  while (blob.size > MAX_SIZE && quality > 0.1) {
+    quality -= 0.1;
+    blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', quality));
+  }
+
+  return blob;
 }
 
 export default function AvatarCropModal({ imageSrc, onSave, onCancel }) {
