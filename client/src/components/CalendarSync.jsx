@@ -28,7 +28,7 @@ export default function CalendarSync() {
   const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
 
   const googleUrl = feedUrl
-    ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(feedUrl)}`
+    ? `https://calendar.google.com/calendar/u/0/r/settings/addbyurl?url=${encodeURIComponent(feedUrl)}`
     : '';
 
   const handleCopy = async () => {
