@@ -873,6 +873,11 @@
   color: var(--accent-red);
 }
 
+.email-log-badge.partial {
+  background: rgba(243, 156, 18, 0.15);
+  color: var(--accent-orange);
+}
+
 .email-log-meta {
   font-size: 0.75rem;
   color: var(--text-subdued);
@@ -905,6 +910,56 @@
   color: var(--text-secondary);
   line-height: 1.6;
   margin-top: 8px;
+}
+
+.email-log-recipient-list {
+  margin-top: 8px;
+}
+
+.email-log-recipient-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.8125rem;
+}
+
+.email-log-status-dot {
+  width: 18px;
+  text-align: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.email-log-status-dot.sent {
+  color: var(--accent-green);
+}
+
+.email-log-status-dot.failed {
+  color: var(--accent-red);
+}
+
+.email-log-recipient-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 80px;
+}
+
+.email-log-recipient-email {
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-log-recipient-error {
+  font-size: 0.75rem;
+  color: var(--accent-red);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .email-log-error {

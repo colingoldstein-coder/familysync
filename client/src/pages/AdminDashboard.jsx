@@ -420,6 +420,7 @@ function EmailLogCard() {
             <div className="email-log-subject">
               {log.subject}
               {log.status === 'failed' && <span className="email-log-badge failed">Failed</span>}
+              {log.status === 'partial' && <span className="email-log-badge partial">Partial</span>}
             </div>
             <div className="email-log-meta">
               <span>{log.recipientCount} recipient{log.recipientCount !== 1 ? 's' : ''}</span>
@@ -432,8 +433,19 @@ function EmailLogCard() {
           {expanded === log.id && (
             <div className="email-log-details">
               <div className="email-log-recipients">
-                <strong>Recipients:</strong>{' '}
-                {log.recipients.map(r => `${r.name} (${r.email})`).join(', ')}
+                <strong>Recipients:</strong>
+                <div className="email-log-recipient-list">
+                  {log.recipients.map((r, i) => (
+                    <div key={i} className="email-log-recipient-row">
+                      <span className={`email-log-status-dot ${r.status === 'sent' ? 'sent' : r.status === 'failed' ? 'failed' : ''}`}>
+                        {r.status === 'sent' ? '✓' : r.status === 'failed' ? '✗' : '–'}
+                      </span>
+                      <span className="email-log-recipient-name">{r.name}</span>
+                      <span className="email-log-recipient-email">{r.email}</span>
+                      {r.error && <span className="email-log-recipient-error">{r.error}</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="email-log-body" dangerouslySetInnerHTML={{ __html: log.bodyHtml }} />
               {log.errorMessage && (

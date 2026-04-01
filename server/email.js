@@ -122,12 +122,17 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
     `;
   }
 
+  const recipients = Array.isArray(to) ? to : [to];
+
   if (!process.env.RESEND_API_KEY) {
-    logger.warn({ to: Array.isArray(to) ? to.length + ' recipients' : to }, 'No email provider configured — skipping branded email');
-    return;
+    logger.warn({ to: recipients.length + ' recipients' }, 'No email provider configured — skipping branded email');
+    return recipients.map(r => {
+      const email = typeof r === 'string' ? r : r.email;
+      return { email, status: 'skipped' };
+    });
   }
 
-  const recipients = Array.isArray(to) ? to : [to];
+  const results = [];
 
   for (let i = 0; i < recipients.length; i++) {
     const recipient = recipients[i];
@@ -138,28 +143,39 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
     // Rate limit: wait 300ms between sends to stay under Resend's 5/sec limit
     if (i > 0) await new Promise(r => setTimeout(r, 300));
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromAddress,
-        to: email,
-        subject,
-        html: buildHtml(unsubUrl),
-      }),
-    });
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: email,
+          subject,
+          html: buildHtml(unsubUrl),
+        }),
+      });
 
-    if (!res.ok) {
-      const body = await res.text();
-      logger.error({ to: email, status: res.status, body }, 'Resend API error (branded)');
-      throw new Error(`Resend API error for ${email}: ${res.status} ${body}`);
+      if (!res.ok) {
+        const body = await res.text();
+        logger.error({ to: email, status: res.status, body }, 'Resend API error (branded)');
+        results.push({ email, status: 'failed', error: `${res.status} ${body}` });
+      } else {
+        results.push({ email, status: 'sent' });
+      }
+    } catch (err) {
+      logger.error({ to: email, error: err.message }, 'Resend API exception (branded)');
+      results.push({ email, status: 'failed', error: err.message });
     }
   }
 
-  logger.info({ recipientCount: recipients.length }, 'Branded email sent');
+  const sentCount = results.filter(r => r.status === 'sent').length;
+  const failedCount = results.filter(r => r.status === 'failed').length;
+  logger.info({ recipientCount: recipients.length, sentCount, failedCount }, 'Branded email batch complete');
+
+  return results;
 }
 
 function generateEmailPrefToken(userId) {

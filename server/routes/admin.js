@@ -603,18 +603,31 @@ router.post('/send-email', async (req, res) => {
       return res.status(400).json({ error: 'No valid recipients found' });
     }
 
-    const recipients = users.map(u => ({ userId: u.id, name: u.name, email: u.email }));
     const emailRecipients = users.map(u => ({ email: u.email, userId: u.id }));
 
-    let status = 'sent';
-    let errorMessage = null;
+    const sendResults = await sendBrandedEmail({ to: emailRecipients, subject: subject.trim(), bodyHtml }) || [];
 
-    try {
-      await sendBrandedEmail({ to: emailRecipients, subject: subject.trim(), bodyHtml });
-    } catch (err) {
-      status = 'failed';
-      errorMessage = err.message;
-    }
+    // Build recipients array with per-recipient delivery status
+    const resultsByEmail = {};
+    sendResults.forEach(r => { resultsByEmail[r.email] = r; });
+
+    const recipients = users.map(u => {
+      const result = resultsByEmail[u.email] || {};
+      return {
+        userId: u.id,
+        name: u.name,
+        email: u.email,
+        status: result.status || 'unknown',
+        error: result.error || null,
+      };
+    });
+
+    const failedCount = recipients.filter(r => r.status === 'failed').length;
+    const sentCount = recipients.filter(r => r.status === 'sent').length;
+    const overallStatus = failedCount === recipients.length ? 'failed' : failedCount > 0 ? 'partial' : 'sent';
+    const errorMessage = failedCount > 0
+      ? `${failedCount} of ${recipients.length} recipient(s) failed`
+      : null;
 
     // Log the email
     await db('email_log').insert({
@@ -623,15 +636,15 @@ router.post('/send-email', async (req, res) => {
       body_html: bodyHtml,
       recipients: JSON.stringify(recipients),
       recipient_count: recipients.length,
-      status,
+      status: overallStatus,
       error_message: errorMessage,
     });
 
-    if (status === 'failed') {
-      return res.status(500).json({ error: `Email send failed: ${errorMessage}` });
+    if (overallStatus === 'failed') {
+      return res.status(500).json({ error: `Email send failed: all ${failedCount} recipient(s) failed` });
     }
 
-    res.json({ sent: recipients.length });
+    res.json({ sent: sentCount, failed: failedCount });
   } catch (err) {
     logger.error({ msg: 'Admin send email error', error: err.message });
     res.status(500).json({ error: 'Server error' });
