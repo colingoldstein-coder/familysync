@@ -222,9 +222,8 @@ function ProfilePhotoSection() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cropImage, setCropImage] = useState(null);
-  const [localAvatarUrl, setLocalAvatarUrl] = useState(null);
 
-  const avatarUrl = localAvatarUrl || user.avatarUrl || null;
+  const avatarUrl = user.avatarUrl || null;
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
@@ -241,9 +240,7 @@ function ProfilePhotoSection() {
     setCropImage(null);
     setUploading(true);
     try {
-      const data = await api.uploadAvatar(croppedFile);
-      // Use returned URL with cache-bust for immediate display
-      setLocalAvatarUrl(data.avatarUrl + '?t=' + Date.now());
+      await api.uploadAvatar(croppedFile);
       await refreshUser();
       setSuccess('Profile photo updated');
       setTimeout(() => setSuccess(''), 3000);
@@ -264,7 +261,6 @@ function ProfilePhotoSection() {
     setUploading(true);
     try {
       await api.removeAvatar();
-      setLocalAvatarUrl(null);
       await refreshUser();
       setSuccess('Profile photo removed');
       setTimeout(() => setSuccess(''), 3000);
