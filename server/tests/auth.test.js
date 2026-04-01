@@ -1,6 +1,14 @@
 const request = require('supertest');
 const app = require('../app');
+const db = require('../db');
 const { setup, teardown, cleanup } = require('./setup');
+
+function getCookie(res) {
+  const raw = res.headers['set-cookie'];
+  if (!raw) return '';
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr.map(c => c.split(';')[0]).join('; ');
+}
 
 describe('Auth API', () => {
   beforeAll(setup);
@@ -8,13 +16,13 @@ describe('Auth API', () => {
   beforeEach(cleanup);
 
   describe('POST /api/auth/register-family', () => {
-    it('should register a new family and return token', async () => {
+    it('should register a new family and set auth cookie', async () => {
       const res = await request(app)
         .post('/api/auth/register-family')
         .send({ familyName: 'Test Family', name: 'Parent', email: 'parent@test.com', password: 'Password1test' });
 
       expect(res.status).toBe(200);
-      expect(res.body.token).toBeDefined();
+      expect(getCookie(res)).toContain('familysync_session=');
       expect(res.body.user.name).toBe('Parent');
       expect(res.body.user.role).toBe('parent');
       expect(res.body.user.isAdmin).toBe(true);
@@ -57,7 +65,7 @@ describe('Auth API', () => {
         .send({ email: 'login@test.com', password: 'Password1test' });
 
       expect(res.status).toBe(200);
-      expect(res.body.token).toBeDefined();
+      expect(getCookie(res)).toContain('familysync_session=');
       expect(res.body.user.email).toBe('login@test.com');
     });
 
@@ -75,14 +83,16 @@ describe('Auth API', () => {
   });
 
   describe('GET /api/auth/me', () => {
-    it('should return current user with valid token', async () => {
+    it('should return current user with valid cookie', async () => {
       const reg = await request(app)
         .post('/api/auth/register-family')
         .send({ familyName: 'Test', name: 'Parent', email: 'me@test.com', password: 'Password1test' });
 
+      const cookie = getCookie(reg);
+
       const res = await request(app)
         .get('/api/auth/me')
-        .set('Authorization', `Bearer ${reg.body.token}`);
+        .set('Cookie', cookie);
 
       expect(res.status).toBe(200);
       expect(res.body.user.email).toBe('me@test.com');
@@ -101,25 +111,27 @@ describe('Auth API', () => {
         .post('/api/auth/register-family')
         .send({ familyName: 'Test', name: 'Parent', email: 'admin@test.com', password: 'Password1test' });
 
-      const token = reg.body.token;
+      const cookie = getCookie(reg);
 
       const inviteRes = await request(app)
         .post('/api/auth/invite')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Cookie', cookie)
         .send({ email: 'child@test.com', role: 'child' });
 
       expect(inviteRes.status).toBe(200);
-      expect(inviteRes.body.inviteToken).toBeDefined();
+
+      const invite = await db('invitations').where({ email: 'child@test.com' }).first();
+      const inviteToken = invite.token;
 
       const getInvite = await request(app)
-        .get(`/api/auth/invite/${inviteRes.body.inviteToken}`);
+        .get(`/api/auth/invite/${inviteToken}`);
 
       expect(getInvite.status).toBe(200);
       expect(getInvite.body.email).toBe('child@test.com');
 
       const acceptRes = await request(app)
         .post('/api/auth/accept-invite')
-        .send({ token: inviteRes.body.inviteToken, name: 'Child', password: 'Password1test' });
+        .send({ token: inviteToken, name: 'Child', password: 'Password1test' });
 
       expect(acceptRes.status).toBe(200);
       expect(acceptRes.body.user.role).toBe('child');
