@@ -13,16 +13,9 @@ const { verifyGoogleToken } = require('../oauth');
 
 const router = express.Router();
 
-// Avatar upload setup (reuse server/uploads dir)
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+// Avatar upload setup (memory storage — saved as base64 in DB)
 const avatarUpload = multer({
-  storage: multer.diskStorage({
-    destination: uploadsDir,
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.png';
-      cb(null, `avatar-${crypto.randomBytes(12).toString('hex')}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -453,13 +446,15 @@ router.patch('/me/name', authenticate, validate(schemas.updateName), async (req,
   }
 });
 
-// Upload avatar
+// Upload avatar (stored as base64 data URL in DB — persists across deploys)
 router.post('/me/avatar', authenticate, avatarUpload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
     }
-    const avatarUrl = `/api/admin/uploads/${req.file.filename}`;
+    const mime = req.file.mimetype || 'image/jpeg';
+    const base64 = req.file.buffer.toString('base64');
+    const avatarUrl = `data:${mime};base64,${base64}`;
     await db('users').where({ id: req.user.id }).update({ avatar_url: avatarUrl });
     res.json({ avatarUrl });
   } catch (err) {
