@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import ColorPalettePicker from './ColorPalettePicker';
 import { api } from '../api';
 
@@ -334,7 +335,7 @@ export function EmailLogCard() {
                   ))}
                 </div>
               </div>
-              <div className="email-log-body" dangerouslySetInnerHTML={{ __html: log.bodyHtml }} />
+              <div className="email-log-body" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(log.bodyHtml) }} />
               {log.errorMessage && (
                 <div className="email-log-error">Error: {log.errorMessage}</div>
               )}

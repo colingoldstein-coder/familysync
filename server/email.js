@@ -180,18 +180,26 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
 
 function generateEmailPrefToken(userId) {
   const secret = process.env.JWT_SECRET || 'dev-secret';
-  const data = `email-pref:${userId}`;
+  const expiry = Date.now() + 90 * 24 * 60 * 60 * 1000; // 90 days
+  const data = `email-pref:${userId}:${expiry}`;
   const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
-  return `${userId}.${hmac}`;
+  return `${userId}.${expiry}.${hmac}`;
 }
 
 function verifyEmailPrefToken(token) {
   const parts = (token || '').split('.');
-  if (parts.length !== 2) return null;
+  if (parts.length !== 3) return null;
   const userId = parseInt(parts[0]);
-  if (isNaN(userId)) return null;
-  const expected = generateEmailPrefToken(userId);
-  if (token !== expected) return null;
+  const expiry = parseInt(parts[1]);
+  const hmac = parts[2];
+  if (isNaN(userId) || isNaN(expiry) || !hmac) return null;
+  if (Date.now() > expiry) return null;
+  // Recompute HMAC with original expiry
+  const secret = process.env.JWT_SECRET || 'dev-secret';
+  const data = `email-pref:${userId}:${expiry}`;
+  const expectedHmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
+  if (expectedHmac.length !== hmac.length) return null;
+  if (!crypto.timingSafeEqual(Buffer.from(expectedHmac), Buffer.from(hmac))) return null;
   return userId;
 }
 

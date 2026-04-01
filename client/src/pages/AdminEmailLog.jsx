@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { api } from '../api';
 import '../styles/shared.css';
 import './AdminDashboard.css';
@@ -159,7 +160,7 @@ export default function AdminEmailLog() {
               </div>
             </div>
 
-            <div className="email-log-body" style={{ marginTop: 16 }} dangerouslySetInnerHTML={{ __html: log.bodyHtml }} />
+            <div className="email-log-body" style={{ marginTop: 16 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(log.bodyHtml) }} />
             {log.errorMessage && <div className="email-log-error">Error: {log.errorMessage}</div>}
           </div>
         );
