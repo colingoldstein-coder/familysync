@@ -531,7 +531,10 @@ router.patch('/me/email', authenticate, validate(schemas.updateEmail), async (re
       return res.status(400).json({ error: 'Email is already in use' });
     }
 
+    const oldEmail = user.email;
     await db('users').where({ id: req.user.id }).update({ email: newEmail });
+
+    audit.log({ action: 'email.change', actorId: req.user.id, targetId: req.user.id, targetType: 'user', details: { oldEmail, newEmail }, ip: req.ip });
 
     // Issue a new token with the updated email
     const updated = await db('users').where({ id: req.user.id }).first();
