@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { COOKIE_NAME } = require('../cookie');
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -10,27 +11,42 @@ function getJwtSecret() {
 }
 
 async function authenticate(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  // Read token from httpOnly cookie first, fall back to Authorization header
+  let token = req.cookies?.[COOKIE_NAME];
+  if (!token) {
+    const header = req.headers.authorization;
+    if (header && header.startsWith('Bearer ')) {
+      token = header.split(' ')[1];
+    }
+  }
+
+  if (!token) {
     return res.status(401).json({ error: 'No token provided' });
   }
 
   try {
-    const token = header.split(' ')[1];
     const decoded = jwt.verify(token, getJwtSecret());
 
-    // Verify token hasn't been invalidated by password change
-    if (decoded.tv !== undefined) {
-      const user = await db('users').where({ id: decoded.id }).select('token_version', 'is_active').first();
-      if (user && user.token_version !== decoded.tv) {
-        return res.status(401).json({ error: 'Token expired — please log in again' });
-      }
-      if (user && !user.is_active) {
-        return res.status(403).json({ error: 'This account has been deactivated' });
-      }
+    // Verify token version and active status, and get authoritative familyId from DB
+    const user = await db('users').where({ id: decoded.id }).select('token_version', 'is_active', 'family_id', 'role', 'is_admin', 'is_super_admin').first();
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    if (decoded.tv !== undefined && user.token_version !== decoded.tv) {
+      return res.status(401).json({ error: 'Token expired — please log in again' });
+    }
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'This account has been deactivated' });
     }
 
-    req.user = decoded;
+    // Use DB-verified familyId, role, and admin status — never trust JWT claims for these
+    req.user = {
+      ...decoded,
+      familyId: user.family_id,
+      role: user.role,
+      isAdmin: !!user.is_admin,
+      isSuperAdmin: !!user.is_super_admin,
+    };
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid token' });

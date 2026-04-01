@@ -8,6 +8,7 @@ const {
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const { authenticate, getJwtSecret } = require('../middleware/auth');
+const { setAuthCookie } = require('../cookie');
 const { validate, validateParamId, schemas } = require('../validation');
 const logger = require('../logger');
 const { toBool } = require('../utils');
@@ -198,8 +199,8 @@ router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
 
     const token = makeToken(user);
 
+    setAuthCookie(res, token);
     res.json({
-      token,
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
         avatarColor: user.avatar_color,

@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const db = require('../db');
 const { getJwtSecret, authenticate, requireAdmin } = require('../middleware/auth');
+const { setAuthCookie, clearAuthCookie } = require('../cookie');
 const { sendInviteEmail, generatePasswordResetToken, verifyPasswordResetToken, sendPasswordResetEmail } = require('../email');
 const { validate, validateParamId, schemas } = require('../validation');
 const audit = require('../audit');
@@ -88,8 +89,8 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
 
     audit.log({ action: 'family.register', actorId: result.userId, targetId: result.familyId, targetType: 'family', ip: req.ip });
 
+    setAuthCookie(res, token);
     res.json({
-      token,
       user: { id: result.userId, name, email, role: 'parent', isAdmin: true, familyId: result.familyId },
     });
   } catch (err) {
@@ -208,8 +209,8 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
     const user = { id: result.userId, name, email: invite.email, role: invite.role, is_admin: false };
     const jwtToken = makeToken(user, invite.family_id);
 
+    setAuthCookie(res, jwtToken);
     res.json({
-      token: jwtToken,
       user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id },
     });
   } catch (err) {
@@ -343,8 +344,8 @@ router.post('/login', validate(schemas.login), async (req, res) => {
 
     audit.log({ action: 'user.login', actorId: user.id, ip: req.ip });
 
+    setAuthCookie(res, token);
     res.json({
-      token,
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
         avatarColor: user.avatar_color,
@@ -358,6 +359,12 @@ router.post('/login', validate(schemas.login), async (req, res) => {
     logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// Logout
+router.post('/logout', (req, res) => {
+  clearAuthCookie(res);
+  res.json({ message: 'Logged out' });
 });
 
 // Get current user info
@@ -479,7 +486,8 @@ router.patch('/me/password', authenticate, validate(schemas.updatePassword), asy
 
     audit.log({ action: 'password.change', actorId: req.user.id, targetId: req.user.id, targetType: 'user', ip: req.ip });
 
-    res.json({ message: 'Password updated', token });
+    setAuthCookie(res, token);
+    res.json({ message: 'Password updated' });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
@@ -510,7 +518,8 @@ router.patch('/me/email', authenticate, validate(schemas.updateEmail), async (re
     const updated = await db('users').where({ id: req.user.id }).first();
     const token = makeToken(updated, updated.family_id);
 
-    res.json({ message: 'Email updated', token, email: newEmail });
+    setAuthCookie(res, token);
+    res.json({ message: 'Email updated', email: newEmail });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
@@ -526,7 +535,8 @@ router.patch('/me/name', authenticate, validate(schemas.updateName), async (req,
     const updated = await db('users').where({ id: req.user.id }).first();
     const token = makeToken(updated, updated.family_id);
 
-    res.json({ message: 'Name updated', token, name });
+    setAuthCookie(res, token);
+    res.json({ message: 'Name updated', name });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
     res.status(500).json({ error: 'Server error' });
@@ -590,8 +600,8 @@ router.post('/google-login', validate(schemas.googleLogin), async (req, res) => 
     }
 
     const token = makeToken(user, user.family_id);
+    setAuthCookie(res, token);
     res.json({
-      token,
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
         avatarColor: user.avatar_color,
@@ -642,8 +652,8 @@ router.post('/google-register-family', validate(schemas.googleRegisterFamily), a
     const user = { id: result.userId, name, email: googleUser.email, role: 'parent', is_admin: true };
     const token = makeToken(user, result.familyId);
 
+    setAuthCookie(res, token);
     res.json({
-      token,
       user: { id: result.userId, name, email: googleUser.email, role: 'parent', isAdmin: true, familyId: result.familyId },
     });
   } catch (err) {
@@ -700,8 +710,8 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
     const user = { id: result.userId, name, email: invite.email, role: invite.role, is_admin: false };
     const jwtToken = makeToken(user, invite.family_id);
 
+    setAuthCookie(res, jwtToken);
     res.json({
-      token: jwtToken,
       user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id },
     });
   } catch (err) {

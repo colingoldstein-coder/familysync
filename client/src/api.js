@@ -1,9 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-function getToken() {
-  return localStorage.getItem('familysync_token');
-}
-
 class OfflineError extends Error {
   constructor() {
     super("You're offline. Please check your connection.");
@@ -13,13 +9,11 @@ class OfflineError extends Error {
 }
 
 async function request(path, options = {}) {
-  const token = getToken();
   const headers = { 'Content-Type': 'application/json', ...options.headers };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   let res;
   try {
-    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    res = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: 'include' });
   } catch (err) {
     if (err instanceof TypeError) {
       throw new OfflineError();
@@ -40,6 +34,7 @@ export const api = {
   // Auth
   registerFamily: (data) => request('/auth/register-family', { method: 'POST', body: JSON.stringify(data) }),
   login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
   getMe: () => request('/auth/me'),
   getFamilyMembers: () => request('/auth/family-members'),
   removeFamilyMember: (id) => request(`/auth/family-members/${id}`, { method: 'DELETE' }),
@@ -58,12 +53,11 @@ export const api = {
   updateEmail: (data) => request('/auth/me/email', { method: 'PATCH', body: JSON.stringify(data) }),
   updateName: (data) => request('/auth/me/name', { method: 'PATCH', body: JSON.stringify(data) }),
   uploadAvatar: async (file) => {
-    const token = getToken();
     const form = new FormData();
     form.append('avatar', file);
     const res = await fetch(`${API_URL}/auth/me/avatar`, {
       method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      credentials: 'include',
       body: form,
     });
     const data = await res.json();
@@ -147,12 +141,11 @@ export const api = {
     return request(`/admin/email-log${qs ? `?${qs}` : ''}`);
   },
   adminUploadImage: async (file) => {
-    const token = getToken();
     const form = new FormData();
     form.append('image', file);
     const res = await fetch(`${API_URL}/admin/upload-image`, {
       method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      credentials: 'include',
       body: form,
     });
     const data = await res.json();
@@ -171,4 +164,14 @@ export const api = {
   webauthnLogin: (data) => request('/webauthn/login', { method: 'POST', body: JSON.stringify(data) }),
   webauthnCredentials: () => request('/webauthn/credentials'),
   webauthnDeleteCredential: (id) => request(`/webauthn/credentials/${id}`, { method: 'DELETE' }),
+
+  // Audit log
+  getAdminAuditLog: (params = {}) => {
+    const p = new URLSearchParams();
+    if (params.limit) p.set('limit', params.limit);
+    if (params.offset) p.set('offset', params.offset);
+    if (params.action) p.set('action', params.action);
+    const qs = p.toString();
+    return request(`/admin/audit-log${qs ? `?${qs}` : ''}`);
+  },
 };

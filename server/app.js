@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const pino = require('pino-http');
 const logger = require('./logger');
@@ -72,6 +73,8 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true,
 }));
+
+app.use(cookieParser());
 
 // Rate limiting (skip in test)
 if (process.env.NODE_ENV !== 'test') {

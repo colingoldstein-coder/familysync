@@ -10,7 +10,7 @@ import '../styles/shared.css';
 import './Account.css';
 
 export default function Account() {
-  const { user, updateToken, refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // Scroll to hash section on mount (e.g. #email-preferences)
   useEffect(() => {
@@ -47,8 +47,7 @@ export default function Account() {
     setNameSuccess('');
     setNameSaving(true);
     try {
-      const data = await api.updateName({ name });
-      updateToken(data.token);
+      await api.updateName({ name });
       await refreshUser();
       setNameSuccess('Name updated');
       setTimeout(() => setNameSuccess(''), 3000);
@@ -65,8 +64,7 @@ export default function Account() {
     setEmailSuccess('');
     setEmailSaving(true);
     try {
-      const data = await api.updateEmail({ newEmail, password: emailPassword });
-      updateToken(data.token);
+      await api.updateEmail({ newEmail, password: emailPassword });
       await refreshUser();
       setNewEmail('');
       setEmailPassword('');
@@ -89,8 +87,7 @@ export default function Account() {
     }
     setPwSaving(true);
     try {
-      const data = await api.updatePassword({ currentPassword, newPassword });
-      if (data.token) updateToken(data.token);
+      await api.updatePassword({ currentPassword, newPassword });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
