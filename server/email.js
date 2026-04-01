@@ -129,10 +129,14 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
 
   const recipients = Array.isArray(to) ? to : [to];
 
-  for (const recipient of recipients) {
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i];
     const email = typeof recipient === 'string' ? recipient : recipient.email;
     const userId = typeof recipient === 'object' ? recipient.userId : null;
     const unsubUrl = userId ? getUnsubscribeUrl(userId) : null;
+
+    // Rate limit: wait 300ms between sends to stay under Resend's 5/sec limit
+    if (i > 0) await new Promise(r => setTimeout(r, 300));
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
