@@ -207,6 +207,8 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: user.id, name: user.name, email: user.email, role: user.role,
+        avatarColor: user.avatar_color,
+        avatarUrl: user.avatar_url || null,
         isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
       },
