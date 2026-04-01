@@ -4,7 +4,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { EmailComposerCard, EmailLogCard, UnsubscribedUsersCard, InactiveUsersCard } from '../components/AdminEmailCards';
+import { EmailComposerCard, EmailLogCard, UnsubscribedUsersCard, InactiveUsersCard, LockedAccountsCard } from '../components/AdminEmailCards';
 import '../styles/shared.css';
 import './AdminDashboard.css';
 
@@ -168,6 +168,7 @@ function SystemTab() {
     <div className="system-section">
       <EmailComposerCard />
       <EmailLogCard />
+      <LockedAccountsCard />
       <UnsubscribedUsersCard />
       <InactiveUsersCard />
 

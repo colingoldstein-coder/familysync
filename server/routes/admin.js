@@ -485,6 +485,55 @@ router.post('/reactivate', validate(schemas.adminReactivate), async (req, res) =
   }
 });
 
+// List locked accounts
+router.get('/locked-accounts', async (req, res) => {
+  try {
+    const users = await db('users as u')
+      .leftJoin('families as f', 'f.id', 'u.family_id')
+      .where('u.locked_until', '>', new Date())
+      .select(
+        'u.id', 'u.name', 'u.email', 'u.role',
+        'u.failed_login_attempts', 'u.locked_until',
+        'u.family_id', 'f.name as family_name'
+      )
+      .orderBy('u.locked_until', 'desc');
+
+    res.json({
+      users: users.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        failedAttempts: u.failed_login_attempts,
+        lockedUntil: u.locked_until,
+        familyId: u.family_id,
+        familyName: u.family_name,
+      })),
+    });
+  } catch (err) {
+    logger.error({ msg: 'Admin locked accounts error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Unlock locked accounts
+router.post('/unlock-accounts', validate(schemas.adminReactivate), async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    const updated = await db('users')
+      .whereIn('id', userIds)
+      .update({ failed_login_attempts: 0, locked_until: null });
+
+    audit.log({ action: 'admin.unlock_accounts', actorId: req.user.id, details: { userIds, count: updated }, ip: req.ip });
+
+    res.json({ unlocked: updated });
+  } catch (err) {
+    logger.error({ msg: 'Admin unlock error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Broadcast push notification to all subscribers
 router.post('/broadcast-push', validate(schemas.adminBroadcastPush), async (req, res) => {
   try {

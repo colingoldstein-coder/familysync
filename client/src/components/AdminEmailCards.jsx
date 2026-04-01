@@ -384,6 +384,112 @@ export function UnsubscribedUsersCard() {
   );
 }
 
+export function LockedAccountsCard() {
+  const [users, setUsers] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [unlocking, setUnlocking] = useState(false);
+  const [result, setResult] = useState('');
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api.getAdminLockedAccounts();
+      setUsers(data.users);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selected.size === users.length) setSelected(new Set());
+    else setSelected(new Set(users.map(u => u.id)));
+  };
+
+  const handleUnlock = async () => {
+    if (selected.size === 0) return;
+    setUnlocking(true);
+    setResult('');
+    setError('');
+    try {
+      const res = await api.adminUnlockAccounts([...selected]);
+      setResult(`${res.unlocked} account${res.unlocked !== 1 ? 's' : ''} unlocked`);
+      setSelected(new Set());
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
+  const formatLockedUntil = (dateStr) => {
+    const d = new Date(dateStr);
+    const mins = Math.max(0, Math.ceil((d - new Date()) / 60000));
+    return mins > 0 ? `${mins}m remaining` : 'Expired';
+  };
+
+  return (
+    <div className="system-card">
+      <h3>Locked Accounts</h3>
+      <p className="system-description">Accounts locked due to repeated failed login attempts. Select accounts to unlock.</p>
+
+      {loading && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading...</p>}
+
+      {!loading && users.length === 0 && (
+        <p style={{ color: 'var(--text-subdued)', fontSize: '0.875rem', padding: '12px 0' }}>No locked accounts</p>
+      )}
+
+      {!loading && users.length > 0 && (
+        <>
+          <div className="inactive-actions">
+            <button className="btn btn-secondary btn-small" onClick={selectAll}>
+              {selected.size === users.length ? 'Deselect All' : 'Select All'}
+            </button>
+            <button
+              className="btn btn-primary btn-small"
+              disabled={selected.size === 0 || unlocking}
+              onClick={handleUnlock}
+            >
+              {unlocking ? 'Unlocking...' : `Unlock (${selected.size})`}
+            </button>
+          </div>
+
+          {users.map(u => (
+            <label key={u.id} className="inactive-user-row">
+              <input
+                type="checkbox"
+                checked={selected.has(u.id)}
+                onChange={() => toggle(u.id)}
+              />
+              <span className="inactive-user-name">{u.name}</span>
+              <span className="inactive-user-email">{u.email}</span>
+              <span className="inactive-user-role" style={{ color: 'var(--text-error, #e74c3c)' }}>
+                {u.failedAttempts} failed &middot; {formatLockedUntil(u.lockedUntil)}
+              </span>
+            </label>
+          ))}
+        </>
+      )}
+
+      {result && <div className="broadcast-result success">{result}</div>}
+      {error && <div className="broadcast-result error">{error}</div>}
+    </div>
+  );
+}
+
 export function InactiveUsersCard() {
   const [users, setUsers] = useState([]);
   const [selected, setSelected] = useState(new Set());

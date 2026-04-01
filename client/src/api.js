@@ -120,6 +120,8 @@ export const api = {
   getAdminUnsubscribedUsers: () => request('/admin/unsubscribed-users'),
   getAdminInactiveUsers: () => request('/admin/inactive-users'),
   adminReactivateUsers: (userIds) => request('/admin/reactivate', { method: 'POST', body: JSON.stringify({ userIds }) }),
+  getAdminLockedAccounts: () => request('/admin/locked-accounts'),
+  adminUnlockAccounts: (userIds) => request('/admin/unlock-accounts', { method: 'POST', body: JSON.stringify({ userIds }) }),
   getAdminEmailRecipients: (familyId, excludeOptedOut = false) => {
     const params = new URLSearchParams();
     if (familyId) params.set('familyId', familyId);
