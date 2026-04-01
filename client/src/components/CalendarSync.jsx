@@ -27,8 +27,9 @@ export default function CalendarSync() {
 
   const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
 
+  // Use webcal:// with cid param — Google Calendar recognises this and auto-subscribes
   const googleUrl = feedUrl
-    ? `https://calendar.google.com/calendar/u/0/r/settings/addbyurl?url=${encodeURIComponent(feedUrl)}`
+    ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`
     : '';
 
   const handleCopy = async () => {
@@ -140,7 +141,7 @@ export default function CalendarSync() {
           </div>
 
           <p className="calendar-sync-note">
-            Your calendar updates automatically. Tasks with deadlines appear as all-day events. Events appear at their scheduled time.
+            Click a button above to automatically add your FamilySync calendar. Google Calendar will ask you to confirm the subscription. Your calendar then updates automatically with tasks and events.
           </p>
 
           <button
