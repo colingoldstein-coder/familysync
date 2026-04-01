@@ -144,6 +144,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/webauthn', webauthnRoutes);
 
+// Serve uploaded images publicly (for email content)
+app.use('/api/admin/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Serve static frontend when built files exist
 const staticDir = path.join(__dirname, 'public');
 const fallbackDir = path.join(__dirname, '../client/dist');

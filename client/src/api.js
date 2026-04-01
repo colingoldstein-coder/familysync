@@ -112,6 +112,19 @@ export const api = {
   },
   adminSendEmail: (data) => request('/admin/send-email', { method: 'POST', body: JSON.stringify(data) }),
   getAdminEmailLog: (page = 1) => request(`/admin/email-log?page=${page}`),
+  adminUploadImage: async (file) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('image', file);
+    const res = await fetch(`${API_URL}/admin/upload-image`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data;
+  },
 
   // Email preferences (public, token-based)
   getEmailPreferences: (token) => request(`/auth/email-preferences/${token}`),

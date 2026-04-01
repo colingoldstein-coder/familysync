@@ -1,8 +1,32 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const multer = require('multer');
 const db = require('../db');
 const { authenticate, requireSuperAdmin } = require('../middleware/auth');
 const logger = require('../logger');
 const { sendBrandedEmail, escapeHtml } = require('../email');
+
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.png';
+      cb(null, `${crypto.randomBytes(12).toString('hex')}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  },
+});
 
 const router = express.Router();
 
@@ -631,5 +655,18 @@ router.get('/email-log', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// Upload image for email
+router.post('/upload-image', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file provided' });
+  }
+  const url = `/api/admin/uploads/${req.file.filename}`;
+  res.json({ url });
+});
+
+// Serve uploaded images (this route is behind authenticate + requireSuperAdmin via router.use,
+// but uploaded images need to be publicly accessible for emails)
+// We'll add a separate public route in app.js instead
 
 module.exports = router;

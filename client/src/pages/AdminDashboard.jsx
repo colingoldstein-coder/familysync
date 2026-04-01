@@ -138,6 +138,7 @@ function EmailComposerCard() {
   const [expandedFamilies, setExpandedFamilies] = useState(new Set());
   const [subject, setSubject] = useState('');
   const editorRef = useRef(null);
+  const imgInputRef = useRef(null);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
@@ -331,7 +332,26 @@ function EmailComposerCard() {
             <button type="button" className="rte-btn" title="Numbered List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList'); }}>1. List</button>
             <span className="rte-sep" />
             <button type="button" className="rte-btn" title="Link" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter URL:'); if (url) document.execCommand('createLink', false, url); }}>Link</button>
-            <button type="button" className="rte-btn" title="Insert Image" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter image URL:'); if (url) document.execCommand('insertImage', false, url); }}>Image</button>
+            <button type="button" className="rte-btn" title="Image from URL" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter image URL:'); if (url) document.execCommand('insertImage', false, url); }}>Image URL</button>
+            <button type="button" className="rte-btn" title="Upload Image" onMouseDown={(e) => { e.preventDefault(); imgInputRef.current?.click(); }}>Upload</button>
+            <input
+              ref={imgInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const res = await api.adminUploadImage(file);
+                  editorRef.current?.focus();
+                  document.execCommand('insertImage', false, res.url);
+                } catch (err) {
+                  setError(`Upload failed: ${err.message}`);
+                }
+                e.target.value = '';
+              }}
+            />
           </div>
           <div
             ref={editorRef}
