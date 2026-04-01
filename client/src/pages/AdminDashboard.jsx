@@ -455,6 +455,43 @@ function EmailLogCard() {
   );
 }
 
+function UnsubscribedUsersCard() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getAdminUnsubscribedUsers()
+      .then(data => setUsers(data.users))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="system-card">
+      <h3>Unsubscribed from Marketing Emails ({users.length})</h3>
+      <p className="system-description">Users who have opted out of receiving marketing emails.</p>
+
+      {loading && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading...</p>}
+
+      {!loading && users.length === 0 && (
+        <p style={{ color: 'var(--text-subdued)', fontSize: '0.875rem', padding: '12px 0' }}>No users have unsubscribed</p>
+      )}
+
+      {!loading && users.length > 0 && (
+        <div className="unsub-list">
+          {users.map(u => (
+            <div key={u.id} className="unsub-user-row">
+              <span className="unsub-user-name">{u.name}</span>
+              <span className="unsub-user-email">{u.email}</span>
+              <span className="unsub-user-family">{u.familyName || '—'}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InactiveUsersCard() {
   const [users, setUsers] = useState([]);
   const [selected, setSelected] = useState(new Set());
@@ -619,6 +656,7 @@ function SystemTab() {
     <div className="system-section">
       <EmailComposerCard />
       <EmailLogCard />
+      <UnsubscribedUsersCard />
       <InactiveUsersCard />
 
       <div className="system-card">

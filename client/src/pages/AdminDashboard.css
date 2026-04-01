@@ -913,6 +913,44 @@
   font-size: 0.75rem;
 }
 
+/* Unsubscribed users */
+.unsub-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.unsub-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.unsub-user-row:last-child {
+  border-bottom: none;
+}
+
+.unsub-user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 100px;
+}
+
+.unsub-user-email {
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unsub-user-family {
+  color: var(--text-subdued);
+  font-size: 0.75rem;
+}
+
 /* Inactive users */
 .inactive-actions {
   display: flex;

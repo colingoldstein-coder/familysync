@@ -101,6 +101,7 @@ export const api = {
   getAdminFamilyRecords: (page = 1, search = '') => request(`/admin/records/families?page=${page}&search=${encodeURIComponent(search)}`),
   getAdminPushStats: () => request('/admin/push-stats'),
   adminBroadcastPush: (data) => request('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(data) }),
+  getAdminUnsubscribedUsers: () => request('/admin/unsubscribed-users'),
   getAdminInactiveUsers: () => request('/admin/inactive-users'),
   adminReactivateUsers: (userIds) => request('/admin/reactivate', { method: 'POST', body: JSON.stringify({ userIds }) }),
   getAdminEmailRecipients: (familyId, excludeOptedOut = false) => {

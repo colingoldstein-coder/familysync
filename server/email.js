@@ -116,7 +116,7 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
       </div>
       <div style="padding: 16px 32px; border-top: 1px solid #333; color: #888; font-size: 12px; text-align: center;">
         Sent by FamilySync &bull; <a href="${CLIENT_URL}" style="color: #1DB954; text-decoration: none;">Open App</a>
-        ${unsubUrl ? `<br/><a href="${unsubUrl}" style="color: #888; text-decoration: underline; font-size: 11px;">Email preferences &amp; unsubscribe</a>` : ''}
+        ${unsubUrl ? `<br/><a href="${unsubUrl}" style="color: #888; text-decoration: underline; font-size: 11px;">Manage email settings</a>` : ''}
       </div>
     </div>
     `;

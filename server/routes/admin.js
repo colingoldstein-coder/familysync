@@ -402,6 +402,30 @@ router.get('/stats/active-users', async (req, res) => {
   }
 });
 
+// List users who unsubscribed from marketing emails
+router.get('/unsubscribed-users', async (req, res) => {
+  try {
+    const users = await db('users as u')
+      .leftJoin('families as f', 'f.id', 'u.family_id')
+      .where({ 'u.email_opt_out': true })
+      .select('u.id', 'u.name', 'u.email', 'u.role', 'f.name as family_name')
+      .orderBy('u.name');
+
+    res.json({
+      users: users.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        familyName: u.family_name,
+      })),
+    });
+  } catch (err) {
+    logger.error({ msg: 'Admin unsubscribed users error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // List inactive users
 router.get('/inactive-users', async (req, res) => {
   try {

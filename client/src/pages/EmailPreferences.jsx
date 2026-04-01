@@ -18,14 +18,16 @@ export default function EmailPreferences() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const handleToggle = async () => {
+  const handleChange = async (optOut) => {
     setSaving(true);
     setError('');
     setSuccess('');
     try {
-      const res = await api.updateEmailPreferences(token, !prefs.optedOut);
+      const res = await api.updateEmailPreferences(token, optOut);
       setPrefs(p => ({ ...p, optedOut: res.optedOut }));
-      setSuccess(res.optedOut ? 'You have been unsubscribed from marketing emails.' : 'You have been resubscribed to emails.');
+      setSuccess(res.optedOut
+        ? 'You have been unsubscribed from marketing emails.'
+        : 'You have been resubscribed to marketing emails.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,32 +56,40 @@ export default function EmailPreferences() {
   return (
     <div className="page-container" style={{ maxWidth: 480, margin: '0 auto', paddingTop: 48 }}>
       <div className="page-header">
-        <h1>Email Preferences</h1>
-        <p>Manage email settings for {prefs.name} ({prefs.email})</p>
+        <h1>Email Settings</h1>
+        <p>Manage email preferences for {prefs.name} ({prefs.email})</p>
       </div>
 
       <div className="card" style={{ padding: 24 }}>
-        <h3 style={{ marginBottom: 8 }}>Marketing Emails</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20 }}>
-          {prefs.optedOut
-            ? 'You are currently unsubscribed from marketing emails.'
-            : 'You are currently subscribed to marketing emails from FamilySync.'}
-        </p>
+        <h3 style={{ marginBottom: 16 }}>Marketing Emails</h3>
 
-        <button
-          className={prefs.optedOut ? 'btn btn-primary' : 'btn btn-danger'}
-          onClick={handleToggle}
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : prefs.optedOut ? 'Resubscribe' : 'Unsubscribe'}
-        </button>
+        <label style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12, cursor: saving ? 'wait' : 'pointer',
+          padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-color)',
+        }}>
+          <input
+            type="checkbox"
+            checked={!prefs.optedOut}
+            onChange={(e) => handleChange(!e.target.checked)}
+            disabled={saving}
+            style={{ accentColor: '#1DB954', width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
+          />
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              Receive marketing emails from FamilySync
+            </div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+              Updates about new features, tips, and announcements. You can change this at any time.
+            </div>
+          </div>
+        </label>
 
         {success && <div className="success-msg" style={{ marginTop: 16 }}>{success}</div>}
         {error && <div className="error-msg" style={{ marginTop: 16 }}>{error}</div>}
       </div>
 
       <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-subdued)', fontSize: '0.8rem' }}>
-        This will not affect important account notifications like invitations or password resets.
+        This does not affect important account notifications such as invitations or password resets.
       </p>
     </div>
   );
