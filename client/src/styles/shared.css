@@ -1,4 +1,4 @@
-/* Shared component styles - Spotify-inspired */
+/* Shared component styles */
 
 .page-container {
   max-width: 960px;
@@ -26,11 +26,12 @@
   background: var(--bg-secondary);
   border-radius: var(--card-radius);
   padding: 20px;
-  transition: background 0.2s;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s;
 }
 
 .card:hover {
-  background: var(--bg-elevated);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .card-grid {
@@ -45,11 +46,9 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 24px;
-  border-radius: 500px;
+  border-radius: 8px;
   font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-weight: 600;
   border: none;
   transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
@@ -63,22 +62,22 @@
 
 .btn-primary {
   background: var(--accent-green);
-  color: #000;
+  color: #fff;
 }
 
 .btn-primary:hover {
   background: var(--accent-green-hover);
-  transform: scale(1.04);
 }
 
 .btn-secondary {
   background: transparent;
   color: var(--text-primary);
-  border: 1px solid var(--text-subdued);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  border-color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg-highlight);
 }
 
 .btn-danger {
@@ -88,7 +87,6 @@
 
 .btn-danger:hover {
   opacity: 0.9;
-  transform: scale(1.04);
 }
 
 .btn-small {
@@ -125,7 +123,7 @@
 .form-group label {
   display: block;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 8px;
   color: var(--text-primary);
 }
@@ -135,9 +133,9 @@
 .form-group textarea {
   width: 100%;
   padding: 12px 14px;
-  background: var(--bg-highlight);
-  border: 1px solid transparent;
-  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 0.9375rem;
   outline: none;
@@ -148,6 +146,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   border-color: var(--accent-green);
+  box-shadow: 0 0 0 3px rgba(0, 151, 167, 0.12);
 }
 
 .form-group input::placeholder,
@@ -179,49 +178,56 @@
   padding: 4px 12px;
   border-radius: 500px;
   font-size: 0.6875rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .badge-pending {
-  background: var(--accent-orange);
-  color: #000;
+  background: rgba(232, 133, 12, 0.12);
+  color: #b86800;
 }
 
 .badge-accepted, .badge-in_progress {
-  background: var(--accent-blue);
-  color: #fff;
+  background: rgba(46, 134, 193, 0.12);
+  color: #1a6da3;
 }
 
 .badge-completed {
-  background: var(--accent-green);
-  color: #000;
+  background: rgba(0, 151, 167, 0.12);
+  color: #00798a;
 }
 
 .badge-rejected {
-  background: var(--accent-red);
-  color: #fff;
+  background: rgba(217, 76, 76, 0.12);
+  color: #b33a3a;
 }
 
 /* Error / Success messages */
 .error-msg {
-  background: rgba(231, 76, 60, 0.15);
+  background: rgba(217, 76, 76, 0.08);
   color: var(--accent-red);
   padding: 12px 16px;
   border-radius: var(--card-radius);
   font-size: 0.875rem;
   margin-bottom: 16px;
+  border: 1px solid rgba(217, 76, 76, 0.2);
 }
 
 .success-msg {
-  background: rgba(29, 185, 84, 0.15);
+  background: rgba(0, 151, 167, 0.08);
   color: var(--accent-green);
   padding: 12px 16px;
   border-radius: var(--card-radius);
   font-size: 0.875rem;
   margin-bottom: 16px;
+  border: 1px solid rgba(0, 151, 167, 0.2);
 }
+
+/* msg classes used in admin components */
+.msg { padding: 12px 16px; border-radius: var(--card-radius); font-size: 0.875rem; }
+.msg-error { background: rgba(217, 76, 76, 0.08); color: var(--accent-red); border: 1px solid rgba(217, 76, 76, 0.2); }
+.msg-success { background: rgba(0, 151, 167, 0.08); color: var(--accent-green); border: 1px solid rgba(0, 151, 167, 0.2); }
 
 /* Empty state */
 .empty-state {
@@ -253,7 +259,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(35, 48, 68, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -269,6 +275,7 @@
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 .modal h2 {
@@ -298,7 +305,7 @@
   border: none;
   color: var(--text-secondary);
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;

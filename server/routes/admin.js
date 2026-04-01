@@ -835,4 +835,41 @@ router.get('/audit-log', async (req, res) => {
   }
 });
 
+// Site images management
+router.get('/site-images', async (req, res) => {
+  try {
+    const images = await db('site_images').select('*').orderBy('id');
+    res.json({ images });
+  } catch (err) {
+    logger.error({ msg: 'Admin site images error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.put('/site-images/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { imageUrl, altText } = req.body;
+
+    const image = await db('site_images').where({ key }).first();
+    if (!image) {
+      return res.status(404).json({ error: 'Site image key not found' });
+    }
+
+    const update = { updated_at: db.fn.now() };
+    if (imageUrl !== undefined) update.image_url = imageUrl;
+    if (altText !== undefined) update.alt_text = altText;
+
+    await db('site_images').where({ key }).update(update);
+
+    audit.log({ action: 'admin.update_site_image', actorId: req.user.id, details: { key, imageUrl, altText }, ip: req.ip });
+
+    const updated = await db('site_images').where({ key }).first();
+    res.json({ image: updated });
+  } catch (err) {
+    logger.error({ msg: 'Admin site image update error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

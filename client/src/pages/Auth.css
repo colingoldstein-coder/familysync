@@ -4,16 +4,16 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 60%);
+  background: linear-gradient(180deg, #e8f6f7 0%, var(--bg-primary) 60%);
 }
 
 .auth-card {
-  background: var(--bg-secondary);
+  background: #ffffff;
   border-radius: var(--card-radius);
   padding: 48px 40px;
   width: 100%;
   max-width: 420px;
-  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
 }
 
 .auth-logo {

@@ -275,7 +275,7 @@ function ProfilePhotoSection() {
         {avatarUrl ? (
           <img src={avatarUrl} alt={user.name} className="avatar-display" />
         ) : (
-          <div className="avatar-display avatar-display-fallback" style={{ background: user.avatarColor || '#1DB954' }}>
+          <div className="avatar-display avatar-display-fallback" style={{ background: user.avatarColor || '#0097A7' }}>
             {user.name?.charAt(0).toUpperCase()}
           </div>
         )}

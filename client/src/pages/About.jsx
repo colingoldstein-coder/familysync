@@ -1,131 +1,49 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api';
 import './About.css';
 
 const useCases = [
   {
     title: 'Morning Routines',
     description: 'Set up daily chores like making beds, brushing teeth, and packing school bags. Kids check them off as they go — parents see progress in real time.',
-    illustration: 'morning',
+    imageKey: 'usecase-morning',
   },
   {
     title: 'Homework Tracking',
     description: 'Assign homework tasks with descriptions and deadlines. Children can request help when they\'re stuck, and parents get notified instantly.',
-    illustration: 'homework',
+    imageKey: 'usecase-homework',
   },
   {
     title: 'Household Chores',
     description: 'Distribute weekly chores fairly across the family. Everyone knows what they\'re responsible for — no more "I didn\'t know it was my turn!"',
-    illustration: 'chores',
+    imageKey: 'usecase-chores',
   },
   {
     title: 'Family Projects',
     description: 'Planning a garage sale, garden makeover, or holiday prep? Break big projects into tasks and assign them to family members.',
-    illustration: 'project',
+    imageKey: 'usecase-project',
   },
 ];
 
-function MorningIllustration() {
-  return (
-    <div className="illustration morning-scene">
-      <div className="sun">
-        <div className="sun-core" />
-        <div className="sun-ray ray-1" />
-        <div className="sun-ray ray-2" />
-        <div className="sun-ray ray-3" />
-        <div className="sun-ray ray-4" />
-        <div className="sun-ray ray-5" />
-        <div className="sun-ray ray-6" />
-      </div>
-      <div className="checklist">
-        <div className="check-item done"><span className="checkmark">&#10003;</span> Make bed</div>
-        <div className="check-item done delay-1"><span className="checkmark">&#10003;</span> Breakfast</div>
-        <div className="check-item pending delay-2"><span className="checkbox" /> Pack bag</div>
-      </div>
-    </div>
-  );
-}
-
-function HomeworkIllustration() {
-  return (
-    <div className="illustration homework-scene">
-      <div className="book">
-        <div className="book-cover" />
-        <div className="book-pages">
-          <div className="book-line" />
-          <div className="book-line short" />
-          <div className="book-line" />
-          <div className="book-line short" />
-        </div>
-      </div>
-      <div className="help-bubble">
-        <span>?</span>
-      </div>
-      <div className="lightbulb">
-        <div className="bulb" />
-        <div className="bulb-glow" />
-      </div>
-    </div>
-  );
-}
-
-function ChoresIllustration() {
-  return (
-    <div className="illustration chores-scene">
-      <div className="wheel">
-        <div className="wheel-ring" />
-        <div className="wheel-section section-1"><span>Dishes</span></div>
-        <div className="wheel-section section-2"><span>Vacuum</span></div>
-        <div className="wheel-section section-3"><span>Trash</span></div>
-        <div className="wheel-section section-4"><span>Laundry</span></div>
-      </div>
-    </div>
-  );
-}
-
-function ProjectIllustration() {
-  return (
-    <div className="illustration project-scene">
-      <div className="kanban">
-        <div className="kanban-col">
-          <div className="kanban-header">To Do</div>
-          <div className="kanban-card float-1" />
-          <div className="kanban-card float-2" />
-        </div>
-        <div className="kanban-col">
-          <div className="kanban-header">Doing</div>
-          <div className="kanban-card active float-3" />
-        </div>
-        <div className="kanban-col">
-          <div className="kanban-header">Done</div>
-          <div className="kanban-card completed float-1" />
-          <div className="kanban-card completed float-2" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const illustrations = {
-  morning: MorningIllustration,
-  homework: HomeworkIllustration,
-  chores: ChoresIllustration,
-  project: ProjectIllustration,
-};
-
 export default function About() {
   const { user } = useAuth();
+  const [siteImages, setSiteImages] = useState({});
+
+  useEffect(() => {
+    api.getSiteImages().then(res => setSiteImages(res.images || {})).catch(() => {});
+  }, []);
+
   return (
     <div className="about-page">
       <section className="hero">
-        <div className="hero-bg">
-          <div className="hero-orb orb-1" />
-          <div className="hero-orb orb-2" />
-          <div className="hero-orb orb-3" />
-        </div>
         <div className="hero-content">
-          <span className="hero-icon">&#x27D0;</span>
-          <h1>Meet <span className="text-green">FamilySync</span></h1>
+          <svg className="hero-logo" width="56" height="56" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="7" fill="var(--accent-green)" />
+            <text x="14" y="20.5" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="18" fontWeight="700" fill="#ffffff">F</text>
+          </svg>
+          <h1>Meet <span className="text-accent">FamilySync</span></h1>
           <p className="hero-subtitle">
             The family task manager that brings everyone together.
             Assign chores, track progress, and keep your household running smoothly — all in one place.
@@ -150,21 +68,16 @@ export default function About() {
             <div className="step-icon-wrap">
               <div className="step-number">1</div>
               <svg className="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {/* Parent 1 (back left) */}
                 <circle cx="13" cy="10" r="4" className="step-icon-family" />
                 <path d="M13 14C9 14 6 17 6 21V30" className="step-icon-family" />
                 <path d="M13 14C17 14 20 17 20 21V24" className="step-icon-family" />
-                {/* Parent 2 (back right) */}
                 <circle cx="35" cy="10" r="4" className="step-icon-family" />
                 <path d="M35 14C39 14 42 17 42 21V30" className="step-icon-family" />
                 <path d="M35 14C31 14 28 17 28 21V24" className="step-icon-family" />
-                {/* Parent arms wrapping around children */}
                 <path d="M6 30C6 30 10 32 17 32" className="step-icon-arm" />
                 <path d="M42 30C42 30 38 32 31 32" className="step-icon-arm" />
-                {/* Child 1 (front left) */}
                 <circle cx="17" cy="24" r="3.5" className="step-icon-child" />
                 <path d="M17 27.5C13.5 27.5 11 30 11 33V38H23V33C23 30 20.5 27.5 17 27.5Z" className="step-icon-child" />
-                {/* Child 2 (front right) */}
                 <circle cx="31" cy="24" r="3.5" className="step-icon-child" />
                 <path d="M31 27.5C27.5 27.5 25 30 25 33V38H37V33C37 30 34.5 27.5 31 27.5Z" className="step-icon-child" />
               </svg>
@@ -226,15 +139,19 @@ export default function About() {
       <section className="use-cases">
         <h2 className="section-title">How Families Use FamilySync</h2>
         {useCases.map((uc, i) => {
-          const Illustration = illustrations[uc.illustration];
+          const img = siteImages[uc.imageKey];
           return (
             <div className={`use-case ${i % 2 === 1 ? 'reverse' : ''}`} key={uc.title}>
               <div className="use-case-text">
                 <h3>{uc.title}</h3>
                 <p>{uc.description}</p>
               </div>
-              <div className="use-case-visual">
-                <Illustration />
+              <div className="use-case-photo">
+                {img && img.url ? (
+                  <img src={img.url} alt={img.alt || uc.title} loading="lazy" />
+                ) : (
+                  <div className="use-case-placeholder">{uc.title}</div>
+                )}
               </div>
             </div>
           );

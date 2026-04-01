@@ -18,11 +18,11 @@ async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
 
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
-      <h2 style="color: #1DB954;">FamilySync</h2>
+      <h2 style="color: #0097A7;">FamilySync</h2>
       <p>Hi there!</p>
       <p><strong>${escapeHtml(inviterName)}</strong> has invited you to join the <strong>${escapeHtml(familyName)}</strong> family on FamilySync as a <strong>${escapeHtml(role)}</strong>.</p>
       <p>
-        <a href="${joinUrl}" style="display: inline-block; background: #1DB954; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+        <a href="${joinUrl}" style="display: inline-block; background: #0097A7; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
           Join Family
         </a>
       </p>
@@ -62,9 +62,9 @@ async function sendContactEmail({ name, email, message }) {
 
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
-      <h2 style="color: #1DB954;">FamilySync — New Contact Message</h2>
+      <h2 style="color: #0097A7;">FamilySync — New Contact Message</h2>
       <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(email)})</p>
-      <hr style="border: none; border-top: 1px solid #333; margin: 16px 0;" />
+      <hr style="border: none; border-top: 1px solid #e0e4ea; margin: 16px 0;" />
       <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
     </div>
   `;
@@ -103,20 +103,20 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
 
   function buildHtml(unsubUrl) {
     return `
-    <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; overflow: hidden;">
-      <div style="background: #1DB954; padding: 16px 32px;">
+    <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e0e4ea;">
+      <div style="background: #0097A7; padding: 16px 32px;">
         <a href="${CLIENT_URL}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
           <img src="${logoUrl}" alt="FamilySync" width="36" height="36" style="border-radius: 8px; display: block;" />
-          <span style="color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">FamilySync</span>
+          <span style="color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px;">FamilySync</span>
         </a>
       </div>
-      <div style="padding: 32px; color: #e0e0e0; font-size: 15px; line-height: 1.7;">
-        <h2 style="color: #fff; font-size: 26px; margin: 0 0 16px;">${escapeHtml(subject)}</h2>
+      <div style="padding: 32px; color: #233044; font-size: 15px; line-height: 1.7;">
+        <h2 style="color: #233044; font-size: 26px; margin: 0 0 16px;">${escapeHtml(subject)}</h2>
         ${bodyHtml}
       </div>
-      <div style="padding: 16px 32px; border-top: 1px solid #333; color: #888; font-size: 12px; text-align: center;">
-        Sent by FamilySync &bull; <a href="${CLIENT_URL}" style="color: #1DB954; text-decoration: none;">Open App</a>
-        ${unsubUrl ? `<br/><a href="${unsubUrl}" style="color: #888; text-decoration: underline; font-size: 11px;">Manage email settings</a>` : ''}
+      <div style="padding: 16px 32px; border-top: 1px solid #e0e4ea; color: #6b7685; font-size: 12px; text-align: center;">
+        Sent by FamilySync &bull; <a href="${CLIENT_URL}" style="color: #0097A7; text-decoration: none;">Open App</a>
+        ${unsubUrl ? `<br/><a href="${unsubUrl}" style="color: #6b7685; text-decoration: underline; font-size: 11px;">Manage email settings</a>` : ''}
       </div>
     </div>
     `;
@@ -248,11 +248,11 @@ async function sendPasswordResetEmail({ to, token }) {
 
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
-      <h2 style="color: #1DB954;">FamilySync</h2>
+      <h2 style="color: #0097A7;">FamilySync</h2>
       <p>Hi there!</p>
       <p>We received a request to reset the password for your FamilySync account.</p>
       <p>
-        <a href="${resetUrl}" style="display: inline-block; background: #1DB954; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+        <a href="${resetUrl}" style="display: inline-block; background: #0097A7; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
           Reset Password
         </a>
       </p>

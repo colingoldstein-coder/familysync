@@ -32,7 +32,7 @@
 .install-guide-toggle {
   background: none;
   border: none;
-  color: var(--accent-green);
+  color: #0097A7;
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -43,7 +43,7 @@
 }
 
 .install-guide-toggle:hover {
-  color: var(--accent-green-hover);
+  color: #00838F;
 }
 
 .ios-guide {
@@ -79,8 +79,8 @@
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  color: var(--accent-green);
-  background: rgba(29, 185, 84, 0.1);
+  color: #0097A7;
+  background: rgba(0, 151, 167, 0.1);
   border-radius: 6px;
   padding: 4px;
 }

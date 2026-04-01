@@ -19,7 +19,10 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="navbar-inner">
           <Link to="/" className="navbar-brand">
-            <span className="brand-icon">⟐</span>
+            <svg className="brand-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="28" height="28" rx="7" fill="var(--accent-green)" />
+              <text x="14" y="20.5" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="18" fontWeight="700" fill="#ffffff">F</text>
+            </svg>
             <span className="brand-text">FamilySync</span>
           </Link>
 

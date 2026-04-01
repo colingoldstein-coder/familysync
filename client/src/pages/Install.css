@@ -60,10 +60,10 @@
   gap: 16px;
   align-items: flex-start;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
-  transition: border-color 0.3s;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s;
 }
 
 .install-step:hover {
@@ -71,14 +71,14 @@
 }
 
 .install-step-shared {
-  background: linear-gradient(135deg, rgba(29, 185, 84, 0.08), rgba(52, 152, 219, 0.08));
-  border-color: rgba(29, 185, 84, 0.2);
+  background: linear-gradient(135deg, rgba(0, 151, 167, 0.08), rgba(46, 134, 193, 0.08));
+  border: 1px solid rgba(0, 151, 167, 0.2);
 }
 
 .install-step-number {
   width: 32px;
   height: 32px;
-  background: rgba(29, 185, 84, 0.15);
+  background: rgba(0, 151, 167, 0.15);
   color: var(--accent-green);
   border-radius: 50%;
   display: flex;
@@ -125,7 +125,7 @@
   width: 32px;
   height: 32px;
   color: var(--accent-green);
-  background: rgba(29, 185, 84, 0.1);
+  background: rgba(0, 151, 167, 0.1);
   border-radius: 8px;
   padding: 5px;
 }

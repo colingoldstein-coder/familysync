@@ -6,12 +6,13 @@
 }
 
 .stat-card {
-  background: var(--bg-secondary);
+  background: #ffffff;
   border-radius: var(--card-radius);
   padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
+  box-shadow: var(--shadow-card);
 }
 
 .stat-number {
@@ -87,18 +88,18 @@
 }
 
 .deadline-soon {
-  background: rgba(243, 156, 18, 0.15);
+  background: rgba(232, 133, 12, 0.15);
   color: var(--accent-orange);
 }
 
 .deadline-today {
-  background: rgba(243, 156, 18, 0.2);
+  background: rgba(232, 133, 12, 0.2);
   color: var(--accent-orange);
   font-weight: 700;
 }
 
 .deadline-overdue {
-  background: rgba(231, 76, 60, 0.15);
+  background: rgba(217, 76, 76, 0.15);
   color: var(--accent-red);
   font-weight: 700;
 }
@@ -144,7 +145,7 @@
 .day-btn.active {
   background: var(--accent-green);
   border-color: var(--accent-green);
-  color: #000;
+  color: #fff;
 }
 
 .custom-interval {
@@ -163,7 +164,7 @@
 
 /* Recurrence tag */
 .recurrence-tag {
-  background: rgba(52, 152, 219, 0.15);
+  background: rgba(46, 134, 193, 0.15);
   color: var(--accent-blue);
 }
 
@@ -199,7 +200,7 @@
 }
 
 .event-type-tag {
-  background: rgba(52, 152, 219, 0.15);
+  background: rgba(46, 134, 193, 0.15);
   color: var(--accent-blue);
 }
 
@@ -242,8 +243,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  background: rgba(243, 156, 18, 0.1);
-  border: 1px solid rgba(243, 156, 18, 0.2);
+  background: rgba(232, 133, 12, 0.1);
+  border: 1px solid rgba(232, 133, 12, 0.2);
   border-radius: var(--card-radius);
   padding: 10px 14px;
   margin-bottom: 12px;
@@ -258,7 +259,7 @@
 .busy-preview {
   font-size: 0.8125rem;
   color: var(--accent-orange);
-  background: rgba(243, 156, 18, 0.1);
+  background: rgba(232, 133, 12, 0.1);
   padding: 8px 12px;
   border-radius: var(--card-radius);
   margin-bottom: 12px;
@@ -305,11 +306,11 @@
 
 /* Calendar Sync */
 .calendar-sync {
-  background: var(--bg-secondary);
+  background: #ffffff;
   border-radius: var(--card-radius);
   padding: 20px;
   margin-top: 32px;
-  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
 }
 
 .calendar-sync-header h3 {
@@ -337,7 +338,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent-green);
-  background: rgba(29, 185, 84, 0.12);
+  background: rgba(0, 151, 167, 0.12);
   padding: 4px 12px;
   border-radius: 500px;
 }
@@ -441,8 +442,9 @@
   justify-content: space-between;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: var(--bg-secondary);
+  background: #ffffff;
   border-radius: var(--card-radius);
+  box-shadow: var(--shadow-card);
 }
 
 .summary-counts {
@@ -501,8 +503,9 @@
   gap: 16px;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: var(--bg-secondary);
+  background: #ffffff;
   border-radius: var(--card-radius);
+  box-shadow: var(--shadow-card);
 }
 
 .filter-check {
@@ -559,9 +562,10 @@
   display: flex;
   gap: 14px;
   padding: 16px;
-  background: var(--bg-secondary);
+  background: #ffffff;
   border-radius: var(--card-radius);
   margin-bottom: 8px;
+  box-shadow: var(--shadow-card);
   transition: background 0.2s;
 }
 
@@ -619,17 +623,17 @@
 }
 
 .timeline-category.cat-task {
-  background: rgba(29, 185, 84, 0.15);
+  background: rgba(0, 151, 167, 0.15);
   color: var(--accent-green);
 }
 
 .timeline-category.cat-request {
-  background: rgba(243, 156, 18, 0.15);
+  background: rgba(232, 133, 12, 0.15);
   color: var(--accent-orange);
 }
 
 .timeline-category.cat-event {
-  background: rgba(52, 152, 219, 0.15);
+  background: rgba(46, 134, 193, 0.15);
   color: var(--accent-blue);
 }
 
@@ -669,7 +673,7 @@
 /* Tab badge */
 .tab-badge {
   background: var(--accent-green);
-  color: #000;
+  color: #fff;
   font-size: 0.6875rem;
   padding: 2px 8px;
   border-radius: 500px;

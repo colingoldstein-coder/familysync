@@ -5,15 +5,16 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { EmailComposerCard, EmailLogCard, UnsubscribedUsersCard, InactiveUsersCard, LockedAccountsCard } from '../components/AdminEmailCards';
+import AdminSiteImages from '../components/AdminSiteImages';
 import '../styles/shared.css';
 import './AdminDashboard.css';
 
 const COLORS = {
-  green: '#1DB954',
-  blue: '#3498db',
-  orange: '#f39c12',
-  red: '#e74c3c',
-  purple: '#9b59b6',
+  green: '#0097A7',
+  blue: '#2e86c1',
+  orange: '#e8850c',
+  red: '#d94c4c',
+  purple: '#8e5bb5',
   teal: '#1abc9c',
 };
 
@@ -27,8 +28,8 @@ const PERIODS = [
 ];
 
 const tooltipStyle = {
-  contentStyle: { background: '#282828', border: '1px solid #333', borderRadius: 8, fontSize: '0.8125rem' },
-  labelStyle: { color: '#b3b3b3' },
+  contentStyle: { background: '#ffffff', border: '1px solid #e0e4ea', borderRadius: 8, fontSize: '0.8125rem', color: '#233044' },
+  labelStyle: { color: '#6b7685' },
 };
 
 function formatDate(dateStr) {
@@ -166,6 +167,7 @@ function SystemTab() {
 
   return (
     <div className="system-section">
+      <AdminSiteImages />
       <EmailComposerCard />
       <EmailLogCard />
       <LockedAccountsCard />

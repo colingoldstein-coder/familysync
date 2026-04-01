@@ -155,6 +155,9 @@ export const api = {
     return data;
   },
 
+  // Site images (public)
+  getSiteImages: () => request('/site-images'),
+
   // Email preferences (public, token-based)
   getEmailPreferences: (token) => request(`/auth/email-preferences/${token}`),
   updateEmailPreferences: (token, optOut) => request(`/auth/email-preferences/${token}`, { method: 'POST', body: JSON.stringify({ optOut }) }),
@@ -166,6 +169,10 @@ export const api = {
   webauthnLogin: (data) => request('/webauthn/login', { method: 'POST', body: JSON.stringify(data) }),
   webauthnCredentials: () => request('/webauthn/credentials'),
   webauthnDeleteCredential: (id) => request(`/webauthn/credentials/${id}`, { method: 'DELETE' }),
+
+  // Site images (admin)
+  getAdminSiteImages: () => request('/admin/site-images'),
+  updateAdminSiteImage: (key, data) => request(`/admin/site-images/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
 
   // Audit log
   getAdminAuditLog: (params = {}) => {

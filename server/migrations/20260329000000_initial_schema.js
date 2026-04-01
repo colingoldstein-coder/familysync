@@ -14,7 +14,7 @@ exports.up = function (knex) {
       table.enu('role', ['parent', 'child']).notNullable();
       table.boolean('is_admin').defaultTo(false);
       table.integer('family_id').unsigned().notNullable().references('id').inTable('families');
-      table.string('avatar_color').defaultTo('#1DB954');
+      table.string('avatar_color').defaultTo('#0097A7');
       table.timestamp('created_at').defaultTo(knex.fn.now());
     })
     .createTable('invitations', (table) => {

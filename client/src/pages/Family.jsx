@@ -120,7 +120,7 @@ export default function Family() {
               {member.avatar_url ? (
                 <img src={member.avatar_url} alt={member.name} className="member-avatar member-avatar-img" />
               ) : (
-                <div className="member-avatar" style={{ background: member.avatar_color || '#1DB954' }}>
+                <div className="member-avatar" style={{ background: member.avatar_color || '#0097A7' }}>
                   {member.name.charAt(0).toUpperCase()}
                 </div>
               )}

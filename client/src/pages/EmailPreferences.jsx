@@ -84,7 +84,7 @@ function EmailPreferencesPublic({ token }) {
             checked={!prefs.optedOut}
             onChange={(e) => handleChange(!e.target.checked)}
             disabled={saving}
-            style={{ accentColor: '#1DB954', width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
+            style={{ accentColor: '#0097A7', width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
           />
           <div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>

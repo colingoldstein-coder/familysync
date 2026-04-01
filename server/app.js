@@ -21,6 +21,7 @@ const calendarRoutes = require('./routes/calendar');
 const adminRoutes = require('./routes/admin');
 const pushRoutes = require('./routes/push');
 const webauthnRoutes = require('./routes/webauthn');
+const siteRoutes = require('./routes/site');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -44,10 +45,10 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", 'https://accounts.google.com'],
       scriptSrcAttr: ["'none'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com', 'https://fonts.googleapis.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
       connectSrc: ["'self'", 'https://accounts.google.com', 'https://oauth2.googleapis.com'],
-      fontSrc: ["'self'"],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       frameSrc: ['https://accounts.google.com'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
@@ -150,6 +151,7 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/webauthn', webauthnRoutes);
+app.use('/api', siteRoutes);
 
 // Serve uploaded images publicly (for email content)
 app.use('/api/admin/uploads', express.static(path.join(__dirname, 'uploads'), {

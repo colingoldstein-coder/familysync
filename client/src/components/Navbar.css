@@ -1,6 +1,6 @@
 .navbar {
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 1px 0 var(--border-color);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -31,8 +31,8 @@
 }
 
 .brand-icon {
-  font-size: 1.5rem;
-  color: var(--accent-green);
+  display: flex;
+  flex-shrink: 0;
 }
 
 .navbar-links {
@@ -42,10 +42,10 @@
 
 .nav-link {
   padding: 8px 16px;
-  border-radius: 500px;
+  border-radius: 8px;
   color: var(--text-secondary);
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
   transition: color 0.2s, background 0.2s;
 }
 
@@ -74,7 +74,7 @@
 .user-badge-link {
   font-size: 0.8125rem;
   color: var(--text-secondary);
-  background: var(--bg-elevated);
+  background: var(--bg-highlight);
   padding: 6px 14px;
   border-radius: 500px;
   text-decoration: none;
@@ -82,7 +82,7 @@
 }
 
 .user-badge-link:hover {
-  background: var(--bg-highlight);
+  background: var(--border-color);
   text-decoration: none;
   color: var(--text-primary);
 }
@@ -123,7 +123,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(24, 24, 24, 0.85);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-color);

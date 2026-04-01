@@ -5,21 +5,23 @@
 }
 
 :root {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #222222;
-  --bg-elevated: #2e2e2e;
-  --bg-highlight: #3a3a3a;
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-subdued: #6a6a6a;
-  --accent-green: #1DB954;
-  --accent-green-hover: #1ed760;
-  --accent-red: #e74c3c;
-  --accent-orange: #f39c12;
-  --accent-blue: #3498db;
-  --border-color: #333333;
-  --card-radius: 8px;
-  --font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --bg-primary: #f7f8fa;
+  --bg-secondary: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-highlight: #edf0f5;
+  --text-primary: #233044;
+  --text-secondary: #6b7685;
+  --text-subdued: #99a3b0;
+  --accent-green: #0097A7;
+  --accent-green-hover: #00798a;
+  --accent-red: #d94c4c;
+  --accent-orange: #e8850c;
+  --accent-blue: #2e86c1;
+  --border-color: #e0e4ea;
+  --card-radius: 12px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.10);
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
@@ -71,10 +73,10 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-highlight);
+  background: #c4c9d1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-subdued);
+  background: #a0a8b4;
 }
