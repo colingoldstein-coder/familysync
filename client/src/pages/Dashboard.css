@@ -319,6 +319,48 @@
   margin-bottom: 16px;
 }
 
+.calendar-quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.calendar-add-btn {
+  text-decoration: none;
+  text-align: center;
+  font-size: 0.875rem;
+  padding: 10px 20px;
+}
+
+.calendar-sync-note {
+  font-size: 0.75rem;
+  color: var(--text-subdued);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.calendar-manual-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+.calendar-manual-toggle:hover {
+  color: var(--text-primary);
+}
+
+.calendar-manual {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
 .feed-url-row {
   display: flex;
   gap: 8px;
@@ -334,6 +376,7 @@
   color: var(--text-secondary);
   font-size: 0.8125rem;
   font-family: monospace;
+  min-width: 0;
 }
 
 .feed-url-input:focus {
@@ -341,16 +384,8 @@
   outline: none;
 }
 
-.calendar-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
 .calendar-instructions {
   margin-top: 16px;
-  border-top: 1px solid var(--border-color);
-  padding-top: 16px;
 }
 
 .instruction-block {
@@ -371,13 +406,8 @@
   line-height: 1.7;
 }
 
-.instruction-note {
-  font-size: 0.75rem;
-  color: var(--text-subdued);
-  margin-top: 12px;
-  padding: 10px;
-  background: var(--bg-elevated);
-  border-radius: var(--card-radius);
+.instruction-block a {
+  color: var(--accent-green);
 }
 
 /* Filter bar */

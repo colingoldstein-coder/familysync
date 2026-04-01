@@ -6,7 +6,7 @@ export default function CalendarSync() {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
+  const [showManual, setShowManual] = useState(false);
 
   useEffect(() => {
     api.getCalendarToken()
@@ -19,13 +19,20 @@ export default function CalendarSync() {
     ? `${window.location.origin}/api/calendar/feed/${token}`
     : '';
 
+  // webcal:// triggers native calendar subscription on iOS/macOS
+  const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
+
+  // Google Calendar subscribe URL
+  const googleUrl = feedUrl
+    ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(feedUrl)}`
+    : '';
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(feedUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       const input = document.createElement('input');
       input.value = feedUrl;
       document.body.appendChild(input);
@@ -46,79 +53,118 @@ export default function CalendarSync() {
 
   if (loading) return null;
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+
   return (
     <div className="calendar-sync">
       <div className="calendar-sync-header">
         <h3>Calendar Sync</h3>
-        <p>Subscribe to your FamilySync calendar in any calendar app</p>
+        <p>Add your FamilySync events and task deadlines to your phone's calendar</p>
       </div>
 
       {token && (
         <>
-          <div className="feed-url-row">
-            <input
-              type="text"
-              value={feedUrl}
-              readOnly
-              className="feed-url-input"
-              onClick={(e) => e.target.select()}
-            />
-            <button className="btn btn-primary btn-small" onClick={handleCopy}>
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
+          <div className="calendar-quick-actions">
+            {isIOS ? (
+              <>
+                <a href={webcalUrl} className="btn btn-primary calendar-add-btn">
+                  Add to Apple Calendar
+                </a>
+                <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary calendar-add-btn">
+                  Add to Google Calendar
+                </a>
+              </>
+            ) : isAndroid ? (
+              <>
+                <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary calendar-add-btn">
+                  Add to Google Calendar
+                </a>
+                <a href={webcalUrl} className="btn btn-secondary calendar-add-btn">
+                  Add to Other Calendar
+                </a>
+              </>
+            ) : (
+              <>
+                <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary calendar-add-btn">
+                  Google Calendar
+                </a>
+                <a href={webcalUrl} className="btn btn-secondary calendar-add-btn">
+                  Apple Calendar
+                </a>
+                <button className="btn btn-secondary calendar-add-btn" onClick={handleCopy}>
+                  {copied ? 'Copied!' : 'Copy URL'}
+                </button>
+              </>
+            )}
           </div>
 
-          <div className="calendar-actions">
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() => setShowInstructions(!showInstructions)}
-            >
-              {showInstructions ? 'Hide instructions' : 'How to add'}
-            </button>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={handleRegenerate}
-              title="Generate a new URL (invalidates the old one)"
-            >
-              Reset URL
-            </button>
-          </div>
+          <p className="calendar-sync-note">
+            Your calendar updates automatically. Tasks with deadlines appear as all-day events. Events appear at their scheduled time.
+          </p>
 
-          {showInstructions && (
-            <div className="calendar-instructions">
-              <div className="instruction-block">
-                <h4>Google Calendar</h4>
-                <ol>
-                  <li>Open <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">Google Calendar</a></li>
-                  <li>Click the <strong>+</strong> next to "Other calendars"</li>
-                  <li>Select <strong>"From URL"</strong></li>
-                  <li>Paste the URL above and click <strong>"Add calendar"</strong></li>
-                </ol>
+          <button
+            className="calendar-manual-toggle"
+            onClick={() => setShowManual(!showManual)}
+          >
+            {showManual ? 'Hide manual setup' : 'Manual setup & other apps'}
+          </button>
+
+          {showManual && (
+            <div className="calendar-manual">
+              <div className="feed-url-row">
+                <input
+                  type="text"
+                  value={feedUrl}
+                  readOnly
+                  className="feed-url-input"
+                  onClick={(e) => e.target.select()}
+                />
+                <button className="btn btn-primary btn-small" onClick={handleCopy}>
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
               </div>
 
-              <div className="instruction-block">
-                <h4>Apple Calendar (iPhone/Mac)</h4>
-                <ol>
-                  <li>Go to <strong>Settings &gt; Calendar &gt; Accounts</strong></li>
-                  <li>Tap <strong>"Add Account" &gt; "Other"</strong></li>
-                  <li>Tap <strong>"Add Subscribed Calendar"</strong></li>
-                  <li>Paste the URL above and tap <strong>"Next"</strong></li>
-                </ol>
+              <div className="calendar-instructions">
+                <div className="instruction-block">
+                  <h4>iPhone / iPad</h4>
+                  <ol>
+                    <li>Tap the <strong>"Add to Apple Calendar"</strong> button above, or:</li>
+                    <li>Go to <strong>Settings &gt; Calendar &gt; Accounts</strong></li>
+                    <li>Tap <strong>"Add Account" &gt; "Other"</strong></li>
+                    <li>Tap <strong>"Add Subscribed Calendar"</strong></li>
+                    <li>Paste the URL and tap <strong>"Next"</strong></li>
+                  </ol>
+                </div>
+
+                <div className="instruction-block">
+                  <h4>Android / Google Calendar</h4>
+                  <ol>
+                    <li>Tap the <strong>"Add to Google Calendar"</strong> button above, or:</li>
+                    <li>Open <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">Google Calendar</a> in a browser</li>
+                    <li>Click <strong>+</strong> next to "Other calendars"</li>
+                    <li>Select <strong>"From URL"</strong>, paste the URL and click <strong>"Add"</strong></li>
+                  </ol>
+                </div>
+
+                <div className="instruction-block">
+                  <h4>Outlook</h4>
+                  <ol>
+                    <li>Open Outlook Calendar</li>
+                    <li>Click <strong>"Add calendar" &gt; "Subscribe from web"</strong></li>
+                    <li>Paste the URL and click <strong>"Import"</strong></li>
+                  </ol>
+                </div>
               </div>
 
-              <div className="instruction-block">
-                <h4>Outlook</h4>
-                <ol>
-                  <li>Open Outlook Calendar</li>
-                  <li>Click <strong>"Add calendar" &gt; "Subscribe from web"</strong></li>
-                  <li>Paste the URL above and click <strong>"Import"</strong></li>
-                </ol>
-              </div>
-
-              <p className="instruction-note">
-                Your calendar will update automatically. Tasks with deadlines appear as all-day events.
-                Events appear at their scheduled time (including travel time if accepted).
-              </p>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={handleRegenerate}
+                style={{ marginTop: 12 }}
+                title="Generate a new URL (invalidates the old one)"
+              >
+                Reset Calendar URL
+              </button>
             </div>
           )}
         </>
