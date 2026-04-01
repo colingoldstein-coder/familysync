@@ -222,7 +222,6 @@ function ProfilePhotoSection() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cropImage, setCropImage] = useState(null);
-  const [viewing, setViewing] = useState(false);
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
@@ -251,12 +250,10 @@ function ProfilePhotoSection() {
   };
 
   const handleRecrop = () => {
-    setViewing(false);
     setCropImage(user.avatarUrl);
   };
 
   const handleRemove = async () => {
-    setViewing(false);
     setError('');
     setSuccess('');
     setUploading(true);
@@ -275,50 +272,44 @@ function ProfilePhotoSection() {
   return (
     <div className="account-section">
       <h2>Profile Photo</h2>
-      <div className="avatar-upload-row">
+      <div className="avatar-section">
         {user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt={user.name}
-            className="avatar-preview avatar-preview-clickable"
-            onClick={() => setViewing(true)}
-            title="View photo"
-          />
+          <img src={user.avatarUrl} alt={user.name} className="avatar-display" />
         ) : (
-          <div className="avatar-preview avatar-preview-fallback" style={{ background: user.avatarColor || '#1DB954' }}>
+          <div className="avatar-display avatar-display-fallback" style={{ background: user.avatarColor || '#1DB954' }}>
             {user.name?.charAt(0).toUpperCase()}
           </div>
         )}
         <div className="avatar-upload-actions">
-          <button
-            className="btn btn-primary btn-small"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? 'Uploading...' : user.avatarUrl ? 'Change Photo' : 'Upload Photo'}
-          </button>
-          {user.avatarUrl && (
+          {user.avatarUrl ? (
             <>
-              <button className="btn btn-secondary btn-small" onClick={() => setViewing(true)} disabled={uploading}>
-                View
+              <button className="btn btn-primary btn-small" onClick={handleRecrop} disabled={uploading}>
+                Edit Photo
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                {uploading ? 'Uploading...' : 'Change Photo'}
               </button>
               <button className="btn btn-secondary btn-small" onClick={handleRemove} disabled={uploading}>
                 Remove
               </button>
             </>
+          ) : (
+            <button className="btn btn-primary btn-small" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              {uploading ? 'Uploading...' : 'Upload Photo'}
+            </button>
           )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            style={{ display: 'none' }}
-            onChange={handleFileSelect}
-          />
         </div>
       </div>
       <p className="account-current" style={{ marginTop: 8 }}>JPG, PNG, GIF or WebP. Max 5MB.</p>
       {success && <div className="success-msg" style={{ marginTop: 8 }}>{success}</div>}
       {error && <div className="error-msg" style={{ marginTop: 8 }}>{error}</div>}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        style={{ display: 'none' }}
+        onChange={handleFileSelect}
+      />
 
       {cropImage && (
         <AvatarCropModal
@@ -326,20 +317,6 @@ function ProfilePhotoSection() {
           onSave={handleCropSave}
           onCancel={() => setCropImage(null)}
         />
-      )}
-
-      {viewing && user.avatarUrl && (
-        <div className="crop-overlay" onClick={() => setViewing(false)}>
-          <div className="avatar-view-modal" onClick={(e) => e.stopPropagation()}>
-            <img src={user.avatarUrl} alt={user.name} className="avatar-view-image" />
-            <div className="avatar-view-actions">
-              <button className="btn btn-secondary btn-small" onClick={handleRecrop}>Re-crop</button>
-              <button className="btn btn-secondary btn-small" onClick={() => { setViewing(false); fileRef.current?.click(); }}>Upload New</button>
-              <button className="btn btn-danger btn-small" onClick={handleRemove}>Remove</button>
-              <button className="btn btn-secondary btn-small" onClick={() => setViewing(false)}>Close</button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

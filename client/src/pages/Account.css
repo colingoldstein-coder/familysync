@@ -18,64 +18,31 @@
 }
 
 /* Avatar upload */
-.avatar-upload-row {
+.avatar-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 16px;
 }
 
-.avatar-preview {
-  width: 64px;
-  height: 64px;
+.avatar-display {
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
 
-.avatar-preview-fallback {
+.avatar-display-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #fff;
 }
 
-.avatar-preview-clickable {
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.avatar-preview-clickable:hover {
-  opacity: 0.8;
-}
-
 .avatar-upload-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.avatar-view-modal {
-  background: var(--bg-secondary);
-  border-radius: var(--card-radius);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  max-width: 360px;
-  width: 100%;
-}
-
-.avatar-view-image {
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.avatar-view-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
