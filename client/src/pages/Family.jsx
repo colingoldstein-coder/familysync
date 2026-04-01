@@ -41,6 +41,7 @@ export default function Family() {
     try {
       await api.sendInvite({ email: inviteEmail, role: inviteRole });
       setSuccess(`Invitation sent to ${inviteEmail}`);
+      setTimeout(() => setSuccess(''), 5000);
       setInviteEmail('');
       setInviteRole('child');
       load();
@@ -70,6 +71,7 @@ export default function Family() {
     try {
       await api.resendInvite(invite.id);
       setSuccess(`Invitation resent to ${invite.email}`);
+      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       setError(err.message);
     }
@@ -187,6 +189,7 @@ export default function Family() {
             <button type="submit" className="btn btn-primary" disabled={inviting}>
               {inviting ? 'Sending...' : 'Send Invitation'}
             </button>
+            {success && <div className="success-msg" style={{ marginTop: 12 }}>{success}</div>}
           </form>
         </div>
       )}
