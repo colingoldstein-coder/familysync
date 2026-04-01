@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
@@ -10,6 +10,14 @@ import './Account.css';
 
 export default function Account() {
   const { user, updateToken, refreshUser } = useAuth();
+
+  // Scroll to hash section on mount (e.g. #email-preferences)
+  useEffect(() => {
+    if (window.location.hash) {
+      const el = document.querySelector(window.location.hash);
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, []);
 
   // Name form
   const [name, setName] = useState(user.name);
@@ -188,6 +196,9 @@ export default function Account() {
         </form>
       </div>
 
+      {/* Email Preferences */}
+      <EmailPreferencesSection />
+
       {/* Biometric Login */}
       <BiometricSettings />
 
@@ -196,6 +207,65 @@ export default function Account() {
 
       {/* Calendar Sync */}
       <CalendarSync />
+    </div>
+  );
+}
+
+function EmailPreferencesSection() {
+  const { user, refreshUser } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [optedOut, setOptedOut] = useState(!!user.emailOptOut);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
+  const sectionRef = useRef(null);
+
+  useEffect(() => { setOptedOut(!!user.emailOptOut); }, [user.emailOptOut]);
+
+  const handleToggle = async (e) => {
+    const newOptOut = !e.target.checked;
+    setSaving(true);
+    setSuccess('');
+    setError('');
+    try {
+      await api.updateEmailPrefs({ optOut: newOptOut });
+      setOptedOut(newOptOut);
+      refreshUser();
+      setSuccess(newOptOut
+        ? 'You have been unsubscribed from marketing emails.'
+        : 'You have been resubscribed to marketing emails.');
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="account-section" id="email-preferences" ref={sectionRef}>
+      <h2>Email Preferences</h2>
+      <label style={{
+        display: 'flex', alignItems: 'flex-start', gap: 12, cursor: saving ? 'wait' : 'pointer',
+        padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-color)',
+      }}>
+        <input
+          type="checkbox"
+          checked={!optedOut}
+          onChange={handleToggle}
+          disabled={saving}
+          style={{ accentColor: '#1DB954', width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
+        />
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            Receive marketing emails from FamilySync
+          </div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+            Updates about new features, tips, and announcements. You can change this at any time.
+          </div>
+        </div>
+      </label>
+      {success && <div className="success-msg" style={{ marginTop: 12 }}>{success}</div>}
+      {error && <div className="error-msg" style={{ marginTop: 12 }}>{error}</div>}
     </div>
   );
 }

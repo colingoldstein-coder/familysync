@@ -196,7 +196,7 @@ function verifyEmailPrefToken(token) {
 }
 
 function getUnsubscribeUrl(userId) {
-  return `${CLIENT_URL}/email-preferences/${generateEmailPrefToken(userId)}`;
+  return `${CLIENT_URL}/account#email-preferences`;
 }
 
 module.exports = { sendInviteEmail, sendContactEmail, sendBrandedEmail, escapeHtml, getUnsubscribeUrl, verifyEmailPrefToken };

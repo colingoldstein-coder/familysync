@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import '../styles/shared.css';
 
 export default function EmailPreferences() {
   const { token } = useParams();
+  const { user } = useAuth();
+
+  // If the user is logged in, redirect to account settings
+  if (user) {
+    return <Navigate to="/account#email-preferences" replace />;
+  }
+
+  return <EmailPreferencesPublic token={token} />;
+}
+
+function EmailPreferencesPublic({ token }) {
   const [prefs, setPrefs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

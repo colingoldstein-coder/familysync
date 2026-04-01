@@ -53,6 +53,7 @@ export const api = {
   updatePassword: (data) => request('/auth/me/password', { method: 'PATCH', body: JSON.stringify(data) }),
   updateEmail: (data) => request('/auth/me/email', { method: 'PATCH', body: JSON.stringify(data) }),
   updateName: (data) => request('/auth/me/name', { method: 'PATCH', body: JSON.stringify(data) }),
+  updateEmailPrefs: (data) => request('/auth/me/email-preferences', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Invitations
   sendInvite: (data) => request('/auth/invite', { method: 'POST', body: JSON.stringify(data) }),

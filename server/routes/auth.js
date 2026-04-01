@@ -283,7 +283,7 @@ router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await db('users')
       .where({ id: req.user.id })
-      .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color')
+      .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color', 'email_opt_out')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
     res.json({
@@ -293,6 +293,7 @@ router.get('/me', authenticate, async (req, res) => {
         isAdmin: toBool(user.is_admin),
         isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
+        emailOptOut: toBool(user.email_opt_out),
       },
       family,
     });
@@ -564,6 +565,19 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
     });
   } catch (err) {
     logger.error({ msg: 'Google accept-invite error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Email preferences (authenticated)
+router.patch('/me/email-preferences', authenticate, async (req, res) => {
+  try {
+    const { optOut } = req.body;
+    if (typeof optOut !== 'boolean') return res.status(400).json({ error: 'optOut must be a boolean' });
+    await db('users').where({ id: req.user.id }).update({ email_opt_out: optOut });
+    res.json({ optedOut: optOut });
+  } catch (err) {
+    logger.error({ msg: 'Email preferences update error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
