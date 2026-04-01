@@ -319,6 +319,24 @@
   margin-bottom: 16px;
 }
 
+.calendar-sync-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.calendar-sync-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-green);
+  background: rgba(29, 185, 84, 0.12);
+  padding: 4px 12px;
+  border-radius: 500px;
+}
+
 .calendar-quick-actions {
   display: flex;
   gap: 10px;

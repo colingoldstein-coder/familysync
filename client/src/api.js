@@ -95,7 +95,9 @@ export const api = {
 
   // Calendar
   getCalendarToken: () => request('/calendar/token'),
+  enableCalendarSync: () => request('/calendar/token', { method: 'POST' }),
   regenerateCalendarToken: () => request('/calendar/token/regenerate', { method: 'POST' }),
+  unlinkCalendar: () => request('/calendar/token', { method: 'DELETE' }),
 
   // Contact
   sendContactMessage: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) }),

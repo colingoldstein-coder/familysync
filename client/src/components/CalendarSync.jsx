@@ -7,10 +7,16 @@ export default function CalendarSync() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showManual, setShowManual] = useState(false);
+  const [synced, setSynced] = useState(false);
 
   useEffect(() => {
     api.getCalendarToken()
-      .then(data => setToken(data.calendarToken))
+      .then(data => {
+        if (data.calendarToken) {
+          setToken(data.calendarToken);
+          setSynced(true);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -19,10 +25,8 @@ export default function CalendarSync() {
     ? `${window.location.origin}/api/calendar/feed/${token}`
     : '';
 
-  // webcal:// triggers native calendar subscription on iOS/macOS
   const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
 
-  // Google Calendar subscribe URL
   const googleUrl = feedUrl
     ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(feedUrl)}`
     : '';
@@ -44,10 +48,28 @@ export default function CalendarSync() {
     }
   };
 
+  const handleEnable = async () => {
+    try {
+      const data = await api.enableCalendarSync();
+      setToken(data.calendarToken);
+      setSynced(true);
+    } catch { /* ignore */ }
+  };
+
   const handleRegenerate = async () => {
     try {
       const data = await api.regenerateCalendarToken();
       setToken(data.calendarToken);
+    } catch { /* ignore */ }
+  };
+
+  const handleUnlink = async () => {
+    if (!confirm('Unlink calendar sync? Your calendar app will stop receiving updates from FamilySync. You can re-enable it at any time.')) return;
+    try {
+      await api.unlinkCalendar();
+      setToken(null);
+      setSynced(false);
+      setShowManual(false);
     } catch { /* ignore */ }
   };
 
@@ -63,8 +85,26 @@ export default function CalendarSync() {
         <p>Add your FamilySync events and task deadlines to your phone's calendar</p>
       </div>
 
-      {token && (
+      {!synced && (
+        <div>
+          <p className="calendar-sync-note" style={{ marginBottom: 16 }}>
+            Calendar sync is not enabled. Enable it to subscribe to your FamilySync calendar from any calendar app.
+          </p>
+          <button className="btn btn-primary" onClick={handleEnable}>
+            Enable Calendar Sync
+          </button>
+        </div>
+      )}
+
+      {synced && token && (
         <>
+          <div className="calendar-sync-status">
+            <span className="calendar-sync-badge">Linked</span>
+            <button className="btn btn-danger btn-small" onClick={handleUnlink}>
+              Unlink Calendar
+            </button>
+          </div>
+
           <div className="calendar-quick-actions">
             {isIOS ? (
               <>

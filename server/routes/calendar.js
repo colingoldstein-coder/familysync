@@ -6,17 +6,25 @@ const { generateIcal } = require('../ical');
 
 const router = express.Router();
 
-// Get or generate calendar token for the current user
+// Get calendar token for the current user (returns null if not enabled)
 router.get('/token', authenticate, async (req, res) => {
   try {
     const user = await db('users').where({ id: req.user.id }).first();
+    res.json({ calendarToken: user.calendar_token || null });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
+// Enable calendar sync (generate token if not set)
+router.post('/token', authenticate, async (req, res) => {
+  try {
+    const user = await db('users').where({ id: req.user.id }).first();
     let token = user.calendar_token;
     if (!token) {
       token = crypto.randomUUID();
       await db('users').where({ id: req.user.id }).update({ calendar_token: token });
     }
-
     res.json({ calendarToken: token });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -29,6 +37,16 @@ router.post('/token/regenerate', authenticate, async (req, res) => {
     const token = crypto.randomUUID();
     await db('users').where({ id: req.user.id }).update({ calendar_token: token });
     res.json({ calendarToken: token });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Unlink calendar sync (clear token so feed URL stops working)
+router.delete('/token', authenticate, async (req, res) => {
+  try {
+    await db('users').where({ id: req.user.id }).update({ calendar_token: null });
+    res.json({ message: 'Calendar sync disabled' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
