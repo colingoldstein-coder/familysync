@@ -139,6 +139,7 @@ function EmailComposerCard() {
   const [subject, setSubject] = useState('');
   const editorRef = useRef(null);
   const imgInputRef = useRef(null);
+  const savedSelection = useRef(null);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
@@ -327,7 +328,10 @@ function EmailComposerCard() {
               <option value="5">Large</option>
               <option value="7">Huge</option>
             </select>
-            <input type="color" className="rte-color" title="Font Colour" defaultValue="#e0e0e0" onChange={(e) => { document.execCommand('foreColor', false, e.target.value); }} />
+            <input type="color" className="rte-color" title="Font Colour" defaultValue="#e0e0e0"
+              onMouseDown={() => { const sel = window.getSelection(); if (sel.rangeCount > 0) savedSelection.current = sel.getRangeAt(0).cloneRange(); }}
+              onInput={(e) => { if (savedSelection.current) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedSelection.current); } document.execCommand('foreColor', false, e.target.value); }}
+            />
             <span className="rte-sep" />
             <button type="button" className="rte-btn" title="Bullet List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList'); }}>• List</button>
             <button type="button" className="rte-btn" title="Numbered List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList'); }}>1. List</button>
