@@ -762,23 +762,23 @@
   border-color: var(--accent-green);
 }
 
-.rte-color {
-  width: 28px;
-  height: 26px;
-  padding: 1px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-highlight);
+.rte-color-wrap {
+  position: relative;
+  display: inline-flex;
   cursor: pointer;
+  margin: 0;
 }
 
-.rte-color::-webkit-color-swatch-wrapper {
-  padding: 2px;
-}
-
-.rte-color::-webkit-color-swatch {
+.rte-color-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  cursor: pointer;
   border: none;
-  border-radius: 2px;
+  padding: 0;
 }
 
 .rte-sep {

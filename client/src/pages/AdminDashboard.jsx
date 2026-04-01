@@ -328,10 +328,15 @@ function EmailComposerCard() {
               <option value="5">Large</option>
               <option value="7">Huge</option>
             </select>
-            <input type="color" className="rte-color" title="Font Colour" defaultValue="#e0e0e0"
-              onMouseDown={() => { const sel = window.getSelection(); if (sel.rangeCount > 0) savedSelection.current = sel.getRangeAt(0).cloneRange(); }}
-              onInput={(e) => { if (savedSelection.current) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedSelection.current); } document.execCommand('foreColor', false, e.target.value); }}
-            />
+            <label className="rte-color-wrap" title="Font Colour">
+              <span className="rte-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                A<span className="rte-color-swatch" style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 2, backgroundColor: '#e0e0e0', border: '1px solid var(--border-color)' }} />
+              </span>
+              <input type="color" className="rte-color-hidden" defaultValue="#e0e0e0"
+                onMouseDown={() => { const sel = window.getSelection(); if (sel.rangeCount > 0) savedSelection.current = sel.getRangeAt(0).cloneRange(); }}
+                onInput={(e) => { if (savedSelection.current) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedSelection.current); } document.execCommand('foreColor', false, e.target.value); e.target.previousElementSibling?.querySelector('.rte-color-swatch')?.style && (e.target.closest('.rte-color-wrap').querySelector('.rte-color-swatch').style.backgroundColor = e.target.value); }}
+              />
+            </label>
             <span className="rte-sep" />
             <button type="button" className="rte-btn" title="Bullet List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList'); }}>• List</button>
             <button type="button" className="rte-btn" title="Numbered List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList'); }}>1. List</button>
