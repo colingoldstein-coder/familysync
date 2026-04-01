@@ -655,21 +655,40 @@ router.post('/send-email', async (req, res) => {
 router.get('/email-log', async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = 20;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const offset = (page - 1) * limit;
+    const { from, to, status: statusFilter, sort, order } = req.query;
 
-    const logs = await db('email_log as e')
+    let query = db('email_log as e')
       .leftJoin('users as u', 'u.id', 'e.sent_by')
       .select(
         'e.id', 'e.subject', 'e.body_html', 'e.recipients',
         'e.recipient_count', 'e.status', 'e.error_message',
         'e.created_at', 'u.name as sent_by_name'
-      )
-      .orderBy('e.created_at', 'desc')
-      .limit(limit)
-      .offset(offset);
+      );
 
-    const [total] = await db('email_log').count('id as count');
+    let countQuery = db('email_log as e');
+
+    if (from) {
+      query = query.where('e.created_at', '>=', from);
+      countQuery = countQuery.where('e.created_at', '>=', from);
+    }
+    if (to) {
+      const toEnd = to.length === 10 ? `${to}T23:59:59.999Z` : to;
+      query = query.where('e.created_at', '<=', toEnd);
+      countQuery = countQuery.where('e.created_at', '<=', toEnd);
+    }
+    if (statusFilter && ['sent', 'failed', 'partial'].includes(statusFilter)) {
+      query = query.where('e.status', statusFilter);
+      countQuery = countQuery.where('e.status', statusFilter);
+    }
+
+    const allowedSorts = { date: 'e.created_at', recipients: 'e.recipient_count', subject: 'e.subject', status: 'e.status' };
+    const sortCol = allowedSorts[sort] || 'e.created_at';
+    const sortOrder = order === 'asc' ? 'asc' : 'desc';
+
+    const logs = await query.orderBy(sortCol, sortOrder).limit(limit).offset(offset);
+    const [total] = await countQuery.count('id as count');
 
     res.json({
       logs: logs.map(l => ({

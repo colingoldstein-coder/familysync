@@ -1080,6 +1080,62 @@
   font-size: 0.75rem;
 }
 
+/* Email log full page */
+.email-log-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.email-log-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.email-log-status-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.email-log-status-label.sent { color: var(--accent-green); }
+.email-log-status-label.partial { color: var(--accent-orange); }
+.email-log-status-label.failed { color: var(--accent-red); }
+
+.email-log-table-row:hover td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.email-log-expanded-panel {
+  background: var(--bg-secondary);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  margin: 16px 0;
+  border: 1px solid var(--border-color);
+}
+
+.email-log-expanded-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.email-log-expanded-header h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.email-log-expanded-meta {
+  font-size: 0.8125rem;
+  color: var(--text-subdued);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .overview-grid {

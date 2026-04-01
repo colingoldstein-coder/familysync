@@ -17,6 +17,7 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import Install from './pages/Install';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminEmailLog from './pages/AdminEmailLog';
 import Account from './pages/Account';
 import Welcome from './pages/Welcome';
 import EmailPreferences from './pages/EmailPreferences';
@@ -87,6 +88,7 @@ function AppRoutes() {
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="/admin/email-log" element={<AdminRoute><AdminEmailLog /></AdminRoute>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<ContactRoute />} />

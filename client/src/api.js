@@ -112,7 +112,18 @@ export const api = {
     return request(`/admin/email-recipients${qs ? `?${qs}` : ''}`);
   },
   adminSendEmail: (data) => request('/admin/send-email', { method: 'POST', body: JSON.stringify(data) }),
-  getAdminEmailLog: (page = 1) => request(`/admin/email-log?page=${page}`),
+  getAdminEmailLog: (params = {}) => {
+    const p = new URLSearchParams();
+    if (params.page) p.set('page', params.page);
+    if (params.limit) p.set('limit', params.limit);
+    if (params.from) p.set('from', params.from);
+    if (params.to) p.set('to', params.to);
+    if (params.status) p.set('status', params.status);
+    if (params.sort) p.set('sort', params.sort);
+    if (params.order) p.set('order', params.order);
+    const qs = p.toString();
+    return request(`/admin/email-log${qs ? `?${qs}` : ''}`);
+  },
   adminUploadImage: async (file) => {
     const token = getToken();
     const form = new FormData();

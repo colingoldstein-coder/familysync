@@ -388,34 +388,24 @@ function EmailComposerCard() {
 
 function EmailLogCard() {
   const [logs, setLogs] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
 
-  const load = useCallback(async (p) => {
-    try {
-      const data = await api.getAdminEmailLog(p);
-      setLogs(data.logs);
-      setTotalPages(data.totalPages);
-      setTotal(data.total);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    api.getAdminEmailLog({ limit: 5 })
+      .then(data => { setLogs(data.logs); setTotal(data.total); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => { load(1); }, [load]);
-
-  const handlePage = (p) => {
-    setPage(p);
-    load(p);
-  };
 
   return (
     <div className="system-card">
-      <h3>Email Log ({total})</h3>
-      <p className="system-description">History of all emails sent from the admin panel.</p>
+      <div className="chart-section-header" style={{ marginBottom: 12 }}>
+        <h3>Recent Emails ({total})</h3>
+        {total > 5 && <a href="/admin/email-log" className="btn btn-secondary btn-small">View Full History</a>}
+      </div>
+      <p className="system-description">Last {Math.min(5, logs.length)} email{logs.length !== 1 ? 's' : ''} sent from the admin panel.</p>
 
       {loading && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading...</p>}
 
@@ -464,14 +454,6 @@ function EmailLogCard() {
           )}
         </div>
       ))}
-
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button className="btn btn-secondary btn-small" disabled={page <= 1} onClick={() => handlePage(page - 1)}>Prev</button>
-          <span>Page {page} of {totalPages}</span>
-          <button className="btn btn-secondary btn-small" disabled={page >= totalPages} onClick={() => handlePage(page + 1)}>Next</button>
-        </div>
-      )}
     </div>
   );
 }
