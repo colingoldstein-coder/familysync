@@ -28,7 +28,8 @@ async function sendPushNotification(userId, { title, body, url, tag }) {
     try {
       await webpush.sendNotification(
         pushSubscription,
-        JSON.stringify({ title, body, url: url || '/', tag: tag || 'default' })
+        JSON.stringify({ title, body, url: url || '/', tag: tag || 'default' }),
+        { TTL: 86400, urgency: 'high' } // Retain for 24h if device offline; high urgency wakes mobile devices
       );
     } catch (err) {
       if (err.statusCode === 410 || err.statusCode === 404) {
