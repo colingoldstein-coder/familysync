@@ -7,6 +7,7 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const pino = require('pino-http');
 const logger = require('./logger');
@@ -80,6 +81,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Gzip/deflate compression
+app.use(compression({ threshold: 1024 }));
+
 // Request logging (skip in test)
 if (process.env.NODE_ENV !== 'test') {
   app.use(pino({ logger }));
@@ -96,6 +100,27 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
+
+// CSRF protection: validate Origin header on state-changing requests
+app.use((req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  // Skip for public calendar feed and health check
+  if (req.path.startsWith('/api/calendar/feed/') || req.path === '/health') return next();
+  const origin = req.get('origin');
+  const referer = req.get('referer');
+  if (origin) {
+    if (!allowedOrigins.includes(origin)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } else if (referer) {
+    const refOrigin = new URL(referer).origin;
+    if (!allowedOrigins.includes(refOrigin)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  }
+  // If neither header present, allow (same-origin requests from some browsers omit both)
+  next();
+});
 
 // Rate limiting (skip in test)
 if (process.env.NODE_ENV !== 'test') {

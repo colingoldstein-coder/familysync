@@ -5,3 +5,11 @@ node_modules
 .env
 **/.env
 .git
+.github
+.vscode
+*.log
+npm-debug.log*
+server/tests
+server/uploads
+README.md
+.DS_Store

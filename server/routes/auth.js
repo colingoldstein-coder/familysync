@@ -339,10 +339,9 @@ router.post('/login', validate(schemas.login), async (req, res) => {
       return res.status(401).json({ error: 'This account uses Google Sign-In. Please log in with Google.' });
     }
 
-    // Check account lockout
+    // Check account lockout — return same error as invalid credentials to prevent enumeration
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
-      return res.status(429).json({ error: `Account temporarily locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     if (!await bcrypt.compare(password, user.password_hash)) {

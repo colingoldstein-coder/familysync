@@ -53,7 +53,7 @@ async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
 
     logger.info({ to }, 'Invite email sent');
   } else {
-    logger.warn({ to, joinUrl }, 'No email provider configured — logging invite link');
+    logger.warn({ to }, 'No email provider configured — invite email not sent');
   }
 }
 
@@ -93,7 +93,7 @@ async function sendContactEmail({ name, email, message }) {
 
     logger.info({ from: email }, 'Contact email sent');
   } else {
-    logger.warn({ name, email, message }, 'No email provider configured — logging contact message');
+    logger.warn({ email }, 'No email provider configured — contact email not sent');
   }
 }
 
@@ -230,17 +230,16 @@ async function verifyPasswordResetToken(token) {
   const db = require('./db');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-  const record = await db('password_reset_tokens')
+  // Atomic: delete and return in one query to prevent race conditions
+  const deleted = await db('password_reset_tokens')
     .where({ token_hash: tokenHash })
     .where('expires_at', '>', new Date())
-    .first();
+    .del()
+    .returning('user_id');
 
-  if (!record) return null;
+  if (!deleted || deleted.length === 0) return null;
 
-  // Single-use: delete the token immediately
-  await db('password_reset_tokens').where({ id: record.id }).del();
-
-  return record.user_id;
+  return deleted[0].user_id || deleted[0];
 }
 
 async function sendPasswordResetEmail({ to, token }) {
@@ -284,7 +283,7 @@ async function sendPasswordResetEmail({ to, token }) {
 
     logger.info({ to }, 'Password reset email sent');
   } else {
-    logger.warn({ to, resetUrl }, 'No email provider configured — logging password reset link');
+    logger.warn({ to }, 'No email provider configured — password reset email not sent');
   }
 }
 

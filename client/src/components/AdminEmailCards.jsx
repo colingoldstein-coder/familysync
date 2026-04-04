@@ -80,7 +80,8 @@ export function EmailComposerCard() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    const html = editorRef.current?.innerHTML?.trim() || '';
+    const rawHtml = editorRef.current?.innerHTML?.trim() || '';
+    const html = DOMPurify.sanitize(rawHtml, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'img', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'div', 'span'], ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'target', 'rel'] });
     if (selectedUsers.size === 0 || !subject.trim() || !html || html === '<br>') return;
     setSending(true);
     setResult('');
