@@ -3,7 +3,7 @@ const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, validateParamId, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate } = require('../recurrence');
-const { notifyUser, notifyFamilyMembers } = require('../notifications');
+const { notifyUserIfEnabled, notifyFamilyMembersIfEnabled } = require('../notifications');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -45,12 +45,12 @@ router.post('/', authenticate, validate(schemas.createEvent), async (req, res) =
       ...recurrence,
     }).returning('id');
 
-    // Notify targeted family members
-    const payload = { title: 'New event', body: `${title} on ${eventDate}`, url: '/dashboard', tag: 'event-new' };
+    // Notify targeted family members if they have new event notifications enabled
+    const payload = { title: 'New event from ' + req.user.name, body: `${title} on ${eventDate}`, url: '/dashboard', tag: 'event-new' };
     if (requestToAll) {
-      notifyFamilyMembers(req.user.familyId, req.user.id, payload);
+      notifyFamilyMembersIfEnabled(req.user.familyId, req.user.id, 'notify_new_events', payload);
     } else if (requestedTo) {
-      notifyUser(requestedTo, payload);
+      notifyUserIfEnabled(requestedTo, 'notify_new_events', payload);
     }
 
     res.json({ message: 'Event created', eventId: event.id || event });
@@ -171,10 +171,10 @@ router.patch('/:id/respond', authenticate, requireParent, validateParamId, valid
       return res.status(400).json({ error: 'Event already responded to' });
     }
 
-    // Notify the event creator (outside transaction)
-    notifyUser(event.requested_by, {
+    // Notify the event creator if they have response notifications enabled
+    notifyUserIfEnabled(event.requested_by, 'notify_responses', {
       title: `Event ${status}`,
-      body: `${req.user.name} ${status} "${event.title}"`,
+      body: `${req.user.name} ${status} your event "${event.title}"`,
       url: '/dashboard',
       tag: 'event-response',
     });

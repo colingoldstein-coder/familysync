@@ -48,6 +48,20 @@ async function notifyUser(userId, payload) {
   }
 }
 
+// Notify a user only if their preference allows it
+// prefColumn: the DB column name to check (e.g. 'notify_new_requests')
+async function notifyUserIfEnabled(userId, prefColumn, payload) {
+  if (!isConfigured()) return;
+  try {
+    const user = await db('users').where({ id: userId }).select(prefColumn).first();
+    if (user && user[prefColumn] !== false) {
+      await sendPushNotification(userId, payload);
+    }
+  } catch (err) {
+    logger.error({ err }, 'notifyUserIfEnabled failed');
+  }
+}
+
 async function notifyFamilyMembers(familyId, excludeUserId, payload) {
   if (!isConfigured()) return;
 
@@ -65,4 +79,23 @@ async function notifyFamilyMembers(familyId, excludeUserId, payload) {
   }
 }
 
-module.exports = { sendPushNotification, notifyUser, notifyFamilyMembers, isConfigured };
+// Notify family members who have a specific preference enabled
+async function notifyFamilyMembersIfEnabled(familyId, excludeUserId, prefColumn, payload) {
+  if (!isConfigured()) return;
+
+  try {
+    const members = await db('users')
+      .where({ family_id: familyId })
+      .whereNot({ id: excludeUserId })
+      .where(prefColumn, true)
+      .select('id');
+
+    for (const member of members) {
+      await sendPushNotification(member.id, payload);
+    }
+  } catch (err) {
+    logger.error({ err }, 'notifyFamilyMembersIfEnabled failed');
+  }
+}
+
+module.exports = { sendPushNotification, notifyUser, notifyUserIfEnabled, notifyFamilyMembers, notifyFamilyMembersIfEnabled, isConfigured };

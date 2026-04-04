@@ -165,7 +165,10 @@ const notificationPreferences = z.object({
   pendingRequests: z.boolean().optional(),
   tasksDue: z.boolean().optional(),
   activeEvents: z.boolean().optional(),
-}).refine(data => data.pendingRequests !== undefined || data.tasksDue !== undefined || data.activeEvents !== undefined, {
+  newRequests: z.boolean().optional(),
+  newEvents: z.boolean().optional(),
+  responses: z.boolean().optional(),
+}).refine(data => Object.values(data).some(v => v !== undefined), {
   message: 'At least one preference must be provided',
 });
 

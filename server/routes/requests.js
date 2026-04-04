@@ -3,7 +3,7 @@ const db = require('../db');
 const { authenticate } = require('../middleware/auth');
 const { validate, validateParamId, schemas } = require('../validation');
 const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
-const { notifyUser, notifyFamilyMembers } = require('../notifications');
+const { notifyUserIfEnabled, notifyFamilyMembersIfEnabled } = require('../notifications');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -36,12 +36,12 @@ router.post('/', authenticate, validate(schemas.createRequest), async (req, res)
       ...recurrence,
     }).returning('id');
 
-    // Notify targeted parent(s)
-    const payload = { title: 'Help request', body: `${req.user.name} needs help: ${title}`, url: '/dashboard', tag: 'request-new' };
+    // Notify targeted parent(s) if they have new request notifications enabled
+    const payload = { title: 'New request from ' + req.user.name, body: title, url: '/dashboard', tag: 'request-new' };
     if (requestToAll) {
-      notifyFamilyMembers(req.user.familyId, req.user.id, payload);
+      notifyFamilyMembersIfEnabled(req.user.familyId, req.user.id, 'notify_new_requests', payload);
     } else if (requestedTo) {
-      notifyUser(requestedTo, payload);
+      notifyUserIfEnabled(requestedTo, 'notify_new_requests', payload);
     }
 
     res.json({ message: 'Request created', requestId: request.id || request });
@@ -129,11 +129,11 @@ router.patch('/:id/respond', authenticate, validateParamId, validate(schemas.res
       }
     }
 
-    // Notify the person who made the request
+    // Notify the person who made the request (if they have response notifications enabled)
     const displayStatus = status === 'rejected' ? 'declined' : status;
-    notifyUser(request.requested_by, {
+    notifyUserIfEnabled(request.requested_by, 'notify_responses', {
       title: `Request ${displayStatus}`,
-      body: `Your help request "${request.title}" was ${displayStatus}`,
+      body: `${req.user.name} ${displayStatus} your request "${request.title}"`,
       url: '/dashboard',
       tag: 'request-response',
     });

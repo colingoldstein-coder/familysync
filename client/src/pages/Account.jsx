@@ -424,8 +424,39 @@ function NotificationSettings() {
 
           {isSubscribed && (
             <div className="notification-prefs">
-              <p className="account-current mb-8">
-                Choose which notifications you receive:
+              <p className="account-current mb-8" style={{ fontWeight: 600 }}>
+                Real-time notifications
+              </p>
+              <label className="notification-pref-item">
+                <input
+                  type="checkbox"
+                  checked={user.notifyNewRequests !== false}
+                  onChange={(e) => handlePrefChange('newRequests', e.target.checked)}
+                  disabled={prefSaving}
+                />
+                <span>New requests sent to me</span>
+              </label>
+              <label className="notification-pref-item">
+                <input
+                  type="checkbox"
+                  checked={user.notifyNewEvents !== false}
+                  onChange={(e) => handlePrefChange('newEvents', e.target.checked)}
+                  disabled={prefSaving}
+                />
+                <span>New events sent to me</span>
+              </label>
+              <label className="notification-pref-item">
+                <input
+                  type="checkbox"
+                  checked={user.notifyResponses !== false}
+                  onChange={(e) => handlePrefChange('responses', e.target.checked)}
+                  disabled={prefSaving}
+                />
+                <span>When someone accepts or declines my requests/events</span>
+              </label>
+
+              <p className="account-current mb-8 mt-16" style={{ fontWeight: 600 }}>
+                Daily summary reminders
               </p>
               <label className="notification-pref-item">
                 <input
