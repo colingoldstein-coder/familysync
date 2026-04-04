@@ -1,3 +1,10 @@
+// Clear stale runtime caches on activation so updated icons/assets are fetched fresh
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.delete('static-assets')
+  );
+});
+
 // Push notification event handlers (imported by generated service worker)
 
 self.addEventListener('push', (event) => {
