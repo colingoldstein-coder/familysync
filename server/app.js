@@ -169,10 +169,20 @@ const fallbackDir = path.join(__dirname, '../client/dist');
 const fs = require('fs');
 const distDir = fs.existsSync(staticDir) ? staticDir : fs.existsSync(fallbackDir) ? fallbackDir : null;
 if (distDir) {
-  // Service worker must not be cached by the browser
+  // Service worker and manifest must not be cached by the browser
   app.get('/sw.js', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Service-Worker-Allowed', '/');
+    next();
+  });
+  app.get('/manifest.webmanifest', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    next();
+  });
+
+  // PWA icons: short cache so updated icons propagate quickly
+  app.get(/\/(pwa-|maskable-|apple-touch-icon|favicon).*\.(png|ico|svg)$/, (req, res, next) => {
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     next();
   });
 
