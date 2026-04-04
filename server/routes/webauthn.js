@@ -36,7 +36,7 @@ function makeToken(user) {
       familyId: user.family_id, tv: user.token_version || 0,
     },
     getJwtSecret(),
-    { expiresIn: '7d' }
+    { expiresIn: '2d' }
   );
 }
 
@@ -66,6 +66,7 @@ router.post('/register-options', authenticate, async (req, res) => {
 
     await db('users').where({ id: user.id }).update({
       webauthn_challenge: options.challenge,
+      webauthn_challenge_at: new Date(),
     });
 
     res.json(options);
@@ -81,6 +82,10 @@ router.post('/register', authenticate, validate(schemas.webauthnRegister), async
 
     if (!user.webauthn_challenge) {
       return res.status(400).json({ error: 'No registration challenge found' });
+    }
+    if (user.webauthn_challenge_at && Date.now() - new Date(user.webauthn_challenge_at).getTime() > 5 * 60 * 1000) {
+      await db('users').where({ id: user.id }).update({ webauthn_challenge: null, webauthn_challenge_at: null });
+      return res.status(400).json({ error: 'Challenge expired. Please try again.' });
     }
 
     const verification = await verifyRegistrationResponse({
@@ -143,6 +148,7 @@ router.post('/login-options', validate(schemas.webauthnLoginOptions), async (req
 
     await db('users').where({ id: user.id }).update({
       webauthn_challenge: options.challenge,
+      webauthn_challenge_at: new Date(),
     });
 
     res.json(options);
@@ -158,6 +164,10 @@ router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
 
     const user = await db('users').where({ email }).first();
     if (!user || !user.webauthn_challenge) {
+      return res.status(400).json({ error: 'Authentication failed' });
+    }
+    if (user.webauthn_challenge_at && Date.now() - new Date(user.webauthn_challenge_at).getTime() > 5 * 60 * 1000) {
+      await db('users').where({ id: user.id }).update({ webauthn_challenge: null, webauthn_challenge_at: null });
       return res.status(400).json({ error: 'Authentication failed' });
     }
     if (!user.is_active) {

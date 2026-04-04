@@ -5,9 +5,9 @@ const COOKIE_NAME = 'familysync_session';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: 'strict',
   path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days
 };
 
 function setAuthCookie(res, token) {
@@ -15,7 +15,7 @@ function setAuthCookie(res, token) {
 }
 
 function clearAuthCookie(res) {
-  res.clearCookie(COOKIE_NAME, { httpOnly: true, secure: isProduction, sameSite: 'lax', path: '/' });
+  res.clearCookie(COOKIE_NAME, { httpOnly: true, secure: isProduction, sameSite: 'strict', path: '/' });
 }
 
 module.exports = { COOKIE_NAME, setAuthCookie, clearAuthCookie };

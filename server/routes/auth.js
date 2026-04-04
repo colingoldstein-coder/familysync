@@ -55,7 +55,7 @@ function makeToken(user, familyId) {
   return jwt.sign(
     { id: user.id, name: user.name, email: user.email, role: user.role, isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin), familyId, tv: user.token_version || 0 },
     getJwtSecret(),
-    { expiresIn: '7d' }
+    { expiresIn: '2d' }
   );
 }
 
@@ -70,7 +70,7 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
     }
 
     const joinCode = generateJoinCode();
-    const passwordHash = bcrypt.hashSync(password, 12);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const result = await db.transaction(async (trx) => {
       const familyRef = await nextRefNumber(trx, 'families', 'FS-F-');
@@ -192,7 +192,7 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
       return res.status(400).json({ error: 'Unable to register with this email' });
     }
 
-    const passwordHash = bcrypt.hashSync(password, 12);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const result = await db.transaction(async (trx) => {
       const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
@@ -306,7 +306,7 @@ router.post('/reset-password', validate(schemas.resetPassword), async (req, res)
       return res.status(400).json({ error: 'This account uses Google Sign-In. Password reset is not available.' });
     }
 
-    const passwordHash = bcrypt.hashSync(newPassword, 12);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
     await db('users').where({ id: userId }).update({
       password_hash: passwordHash,
       token_version: db.raw('token_version + 1'),
@@ -343,12 +343,14 @@ router.post('/login', validate(schemas.login), async (req, res) => {
       return res.status(429).json({ error: `Account temporarily locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
     }
 
-    if (!bcrypt.compareSync(password, user.password_hash)) {
+    if (!await bcrypt.compare(password, user.password_hash)) {
       const attempts = (user.failed_login_attempts || 0) + 1;
       const update = { failed_login_attempts: attempts };
       if (attempts >= 5) {
-        update.locked_until = new Date(Date.now() + 15 * 60 * 1000); // lock for 15 minutes
-        audit.log({ action: 'user.locked', actorId: user.id, details: { attempts }, ip: req.ip });
+        // Exponential backoff: 15min, 30min, 1h, 2h, capped at 4h
+        const lockMinutes = Math.min(15 * Math.pow(2, Math.floor((attempts - 5) / 2)), 240);
+        update.locked_until = new Date(Date.now() + lockMinutes * 60 * 1000);
+        audit.log({ action: 'user.locked', actorId: user.id, details: { attempts, lockMinutes }, ip: req.ip });
       }
       await db('users').where({ id: user.id }).update(update);
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -489,11 +491,11 @@ router.patch('/me/password', authenticate, validate(schemas.updatePassword), asy
     if (!user.password_hash) {
       return res.status(400).json({ error: 'Cannot change password for Google Sign-In accounts' });
     }
-    if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
+    if (!await bcrypt.compare(currentPassword, user.password_hash)) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
-    const passwordHash = bcrypt.hashSync(newPassword, 12);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
     await db('users').where({ id: req.user.id }).update({
       password_hash: passwordHash,
       token_version: db.raw('token_version + 1'),
@@ -522,7 +524,7 @@ router.patch('/me/email', authenticate, validate(schemas.updateEmail), async (re
     if (!user.password_hash) {
       return res.status(400).json({ error: 'Cannot change email for Google Sign-In accounts' });
     }
-    if (!bcrypt.compareSync(password, user.password_hash)) {
+    if (!await bcrypt.compare(password, user.password_hash)) {
       return res.status(400).json({ error: 'Password is incorrect' });
     }
 
