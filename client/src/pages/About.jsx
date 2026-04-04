@@ -21,8 +21,8 @@ const useCases = [
     imageKey: 'usecase-chores',
   },
   {
-    title: 'Family Projects',
-    description: 'Planning a garage sale, garden makeover, or holiday prep? Break big projects into tasks and assign them to family members.',
+    title: 'Family Events',
+    description: 'Birthday parties, sports practice, playdates — kids can request lifts and parents can accept or coordinate. No more last-minute "Can you take me?" surprises.',
     imageKey: 'usecase-project',
   },
 ];
