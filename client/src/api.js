@@ -66,6 +66,8 @@ export const api = {
   },
   removeAvatar: () => request('/auth/me/avatar', { method: 'DELETE' }),
   updateEmailPrefs: (data) => request('/auth/me/email-preferences', { method: 'PATCH', body: JSON.stringify(data) }),
+  completeProfileSetup: () => request('/auth/me/profile-setup-complete', { method: 'PATCH' }),
+  dismissProfileReminder: () => request('/auth/me/profile-reminder-dismiss', { method: 'PATCH' }),
 
   // Invitations
   sendInvite: (data) => request('/auth/invite', { method: 'POST', body: JSON.stringify(data) }),

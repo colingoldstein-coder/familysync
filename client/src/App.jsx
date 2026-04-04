@@ -23,6 +23,7 @@ import Welcome from './pages/Welcome';
 import EmailPreferences from './pages/EmailPreferences';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import ProfileSetupReminder from './components/ProfileSetupReminder';
 import './index.css';
 
 function ProtectedRoute({ children, requireRole }) {
@@ -80,6 +81,7 @@ function AppRoutes() {
       <OfflineBanner />
       <InstallPrompt />
       <Navbar />
+      <ProfileSetupReminder />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />

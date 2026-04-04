@@ -79,6 +79,7 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
       const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
       const [user] = await trx('users').insert({
         name, email, password_hash: passwordHash, role: 'parent', is_admin: true, family_id: familyId, ref_number: userRef,
+        profile_setup_complete: false,
       }).returning('id');
       const userId = user.id || user;
       return { familyId, userId };
@@ -91,7 +92,7 @@ router.post('/register-family', validate(schemas.registerFamily), async (req, re
 
     setAuthCookie(res, token);
     res.json({
-      user: { id: result.userId, name, email, role: 'parent', isAdmin: true, familyId: result.familyId },
+      user: { id: result.userId, name, email, role: 'parent', isAdmin: true, familyId: result.familyId, profileSetupComplete: false },
     });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
@@ -198,6 +199,7 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
       const userRef = await nextRefNumber(trx, 'users', 'FS-U-');
       const [user] = await trx('users').insert({
         name, email: invite.email, password_hash: passwordHash, role: invite.role, family_id: invite.family_id, ref_number: userRef,
+        profile_setup_complete: false,
       }).returning('id');
       const userId = user.id || user;
 
@@ -211,7 +213,7 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
 
     setAuthCookie(res, jwtToken);
     res.json({
-      user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id },
+      user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id, profileSetupComplete: false },
     });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
@@ -394,7 +396,8 @@ router.get('/me', authenticate, async (req, res) => {
     const user = await db('users')
       .where({ id: req.user.id })
       .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color', 'avatar_url', 'email_opt_out',
-        'notify_pending_requests', 'notify_tasks_due', 'notify_active_events')
+        'notify_pending_requests', 'notify_tasks_due', 'notify_active_events',
+        'profile_setup_complete', 'profile_reminder_dismissed')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
     res.json({
@@ -409,6 +412,8 @@ router.get('/me', authenticate, async (req, res) => {
         notifyPendingRequests: user.notify_pending_requests !== false,
         notifyTasksDue: user.notify_tasks_due !== false,
         notifyActiveEvents: user.notify_active_events !== false,
+        profileSetupComplete: toBool(user.profile_setup_complete) !== false,
+        profileReminderDismissed: toBool(user.profile_reminder_dismissed),
       },
       family,
     });
@@ -669,6 +674,7 @@ router.post('/google-register-family', validate(schemas.googleRegisterFamily), a
         name, email: googleUser.email, password_hash: null, role: 'parent',
         is_admin: true, family_id: familyId, ref_number: userRef,
         oauth_provider: 'google', oauth_provider_id: googleUser.providerId,
+        profile_setup_complete: false,
       }).returning('id');
       const userId = user.id || user;
       return { familyId, userId };
@@ -679,7 +685,7 @@ router.post('/google-register-family', validate(schemas.googleRegisterFamily), a
 
     setAuthCookie(res, token);
     res.json({
-      user: { id: result.userId, name, email: googleUser.email, role: 'parent', isAdmin: true, familyId: result.familyId },
+      user: { id: result.userId, name, email: googleUser.email, role: 'parent', isAdmin: true, familyId: result.familyId, profileSetupComplete: false },
     });
   } catch (err) {
     logger.error({ msg: 'Google register error', error: err.message });
@@ -726,6 +732,7 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
         name, email: invite.email, password_hash: null, role: invite.role,
         family_id: invite.family_id, ref_number: userRef,
         oauth_provider: 'google', oauth_provider_id: googleUser.providerId,
+        profile_setup_complete: false,
       }).returning('id');
       const userId = user.id || user;
       await trx('invitations').where({ id: invite.id }).update({ status: 'accepted' });
@@ -737,10 +744,32 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
 
     setAuthCookie(res, jwtToken);
     res.json({
-      user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id },
+      user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id, profileSetupComplete: false },
     });
   } catch (err) {
     logger.error({ msg: 'Google accept-invite error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Mark profile setup as complete
+router.patch('/me/profile-setup-complete', authenticate, async (req, res) => {
+  try {
+    await db('users').where({ id: req.user.id }).update({ profile_setup_complete: true });
+    res.json({ message: 'Profile setup marked as complete' });
+  } catch (err) {
+    logger.error({ msg: 'Profile setup complete error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Dismiss profile setup reminder
+router.patch('/me/profile-reminder-dismiss', authenticate, async (req, res) => {
+  try {
+    await db('users').where({ id: req.user.id }).update({ profile_reminder_dismissed: true });
+    res.json({ message: 'Profile reminder dismissed' });
+  } catch (err) {
+    logger.error({ msg: 'Profile reminder dismiss error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
