@@ -176,7 +176,21 @@ const adminReactivate = z.object({
 const adminBroadcastPush = z.object({
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(1000),
-  url: z.string().max(500).optional(),
+  url: z.string().max(500).regex(/^\//, 'URL must be a relative path').optional(),
+});
+
+const adminSendEmail = z.object({
+  subject: z.string().min(1).max(200),
+  bodyHtml: z.string().max(50000).optional(),
+  bodyContent: z.string().max(50000).optional(),
+  userIds: z.array(z.number().int().positive()).min(1),
+}).refine(data => data.bodyHtml || data.bodyContent, {
+  message: 'Either bodyHtml or bodyContent is required',
+});
+
+const adminUpdateSiteImage = z.object({
+  imageUrl: z.string().max(2000).regex(/^\/api\/uploads\//, 'Image URL must be a local upload path').optional(),
+  altText: z.string().max(500).optional(),
 });
 
 function validate(schema) {
@@ -231,5 +245,7 @@ module.exports = {
     notificationPreferences,
     adminReactivate,
     adminBroadcastPush,
+    adminSendEmail,
+    adminUpdateSiteImage,
   },
 };

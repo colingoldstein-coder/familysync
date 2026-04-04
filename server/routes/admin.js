@@ -624,24 +624,16 @@ router.get('/email-recipients', async (req, res) => {
 });
 
 // Send branded email to selected users
-router.post('/send-email', async (req, res) => {
+router.post('/send-email', validate(schemas.adminSendEmail), async (req, res) => {
   try {
     const { subject, bodyHtml: rawHtml, bodyContent, userIds } = req.body;
 
-    if (!subject || !subject.trim()) {
-      return res.status(400).json({ error: 'Subject is required' });
-    }
     // Accept either rich HTML (bodyHtml) or plain text (bodyContent) for backwards compat
     const bodyHtml = rawHtml
       ? rawHtml.trim()
-      : bodyContent
-        ? bodyContent.trim().split('\n').map(line =>
+      : bodyContent.trim().split('\n').map(line =>
             line.trim() ? `<p style="margin: 0 0 12px;">${escapeHtml(line)}</p>` : '<br/>'
-          ).join('\n')
-        : '';
-    if (!bodyHtml) {
-      return res.status(400).json({ error: 'Email content is required' });
-    }
+          ).join('\n');
 
     // Sanitize HTML — strip scripts, event handlers, dangerous attributes
     const cleanHtml = sanitizeHtml(bodyHtml, {
@@ -655,10 +647,6 @@ router.post('/send-email', async (req, res) => {
       },
       allowedSchemes: ['http', 'https', 'mailto'],
     });
-
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ error: 'At least one recipient is required' });
-    }
 
     const users = await db('users')
       .whereIn('id', userIds)
@@ -846,7 +834,7 @@ router.get('/site-images', async (req, res) => {
   }
 });
 
-router.put('/site-images/:key', async (req, res) => {
+router.put('/site-images/:key', validate(schemas.adminUpdateSiteImage), async (req, res) => {
   try {
     const { key } = req.params;
     const { imageUrl, altText } = req.body;

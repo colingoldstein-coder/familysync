@@ -571,7 +571,8 @@ router.post('/me/avatar', authenticate, avatarUpload.single('avatar'), async (re
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
     }
-    const mime = req.file.mimetype || 'image/jpeg';
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const mime = allowedMimes.includes(req.file.mimetype) ? req.file.mimetype : 'image/jpeg';
     const base64 = req.file.buffer.toString('base64');
     const avatarUrl = `data:${mime};base64,${base64}`;
     await db('users').where({ id: req.user.id }).update({ avatar_url: avatarUrl });

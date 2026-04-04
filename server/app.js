@@ -12,6 +12,19 @@ const pino = require('pino-http');
 const logger = require('./logger');
 const db = require('./db');
 
+// Validate critical secrets on startup
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction) {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    console.error('FATAL: JWT_SECRET must be at least 32 characters in production');
+    process.exit(1);
+  }
+  if (process.env.JWT_SECRET === 'change-me-to-a-long-random-string') {
+    console.error('FATAL: JWT_SECRET must not be the default placeholder value');
+    process.exit(1);
+  }
+}
+
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const requestRoutes = require('./routes/requests');
@@ -25,7 +38,6 @@ const siteRoutes = require('./routes/site');
 
 const app = express();
 app.set('trust proxy', 1);
-const isProduction = process.env.NODE_ENV === 'production';
 
 // HTTPS redirect in production (skip health check for internal probes)
 if (isProduction) {

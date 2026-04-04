@@ -31,7 +31,9 @@ module.exports = {
     client: 'pg',
     connection: {
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl: process.env.DB_CA_CERT
+        ? { ca: process.env.DB_CA_CERT, rejectUnauthorized: true }
+        : { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' },
     },
     pool: { min: 2, max: 10 },
     migrations: {
