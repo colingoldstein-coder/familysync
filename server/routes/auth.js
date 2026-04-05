@@ -347,11 +347,8 @@ router.post('/login', validate(schemas.login), async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    if (!user.is_active) {
-      return res.status(403).json({ error: 'This account has been deactivated. Please contact your family admin.' });
-    }
-    if (!user.password_hash) {
-      return res.status(401).json({ error: 'This account uses Google Sign-In. Please log in with Google.' });
+    if (!user.is_active || !user.password_hash) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Check account lockout — return same error as invalid credentials to prevent enumeration

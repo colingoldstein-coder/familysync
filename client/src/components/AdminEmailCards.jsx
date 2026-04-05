@@ -11,6 +11,15 @@ function formatDateTime(dateStr) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
+function isValidHttpUrl(str) {
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function EmailComposerCard() {
   const [families, setFamilies] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState(new Set());
@@ -228,8 +237,8 @@ export function EmailComposerCard() {
             <button type="button" className="rte-btn" title="Bullet List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList'); }}>• List</button>
             <button type="button" className="rte-btn" title="Numbered List" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList'); }}>1. List</button>
             <span className="rte-sep" />
-            <button type="button" className="rte-btn" title="Link" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter URL:'); if (url && /^https?:\/\/[^\s<>"']+$/i.test(url)) document.execCommand('createLink', false, url); else if (url) alert('Only valid http:// and https:// URLs are allowed.'); }}>Link</button>
-            <button type="button" className="rte-btn" title="Image from URL" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter image URL:'); if (url && /^https?:\/\/[^\s<>"']+$/i.test(url)) document.execCommand('insertImage', false, url); else if (url) alert('Only valid http:// and https:// URLs are allowed.'); }}>Image URL</button>
+            <button type="button" className="rte-btn" title="Link" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter URL:'); if (url && isValidHttpUrl(url)) document.execCommand('createLink', false, url); else if (url) alert('Only valid http:// and https:// URLs are allowed.'); }}>Link</button>
+            <button type="button" className="rte-btn" title="Image from URL" onMouseDown={(e) => { e.preventDefault(); const url = prompt('Enter image URL:'); if (url && isValidHttpUrl(url)) document.execCommand('insertImage', false, url); else if (url) alert('Only valid http:// and https:// URLs are allowed.'); }}>Image URL</button>
             <button type="button" className="rte-btn" title="Upload Image" onMouseDown={(e) => { e.preventDefault(); imgInputRef.current?.click(); }}>Upload</button>
             <input
               ref={imgInputRef}

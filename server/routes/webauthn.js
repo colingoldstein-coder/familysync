@@ -6,9 +6,9 @@ const {
   verifyAuthenticationResponse,
 } = require('@simplewebauthn/server');
 const db = require('../db');
-const jwt = require('jsonwebtoken');
-const { authenticate, getJwtSecret } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const { setAuthCookie } = require('../cookie');
+const { makeToken } = require('../makeToken');
 const { validate, validateParamId, schemas } = require('../validation');
 const logger = require('../logger');
 const { toBool } = require('../utils');
@@ -28,24 +28,16 @@ function getOrigin(req) {
   return `${proto}://${req.hostname}`;
 }
 
-function makeToken(user) {
-  return jwt.sign(
-    {
-      id: user.id, name: user.name, email: user.email, role: user.role,
-      isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin),
-      familyId: user.family_id, tv: user.token_version || 0,
-    },
-    getJwtSecret(),
-    { expiresIn: '2d' }
-  );
-}
-
 // ===== REGISTRATION (requires auth - user adds biometric to their account) =====
 
 router.post('/register-options', authenticate, async (req, res) => {
   try {
     const user = await db('users').where({ id: req.user.id }).first();
     const existingCreds = await db('webauthn_credentials').where({ user_id: user.id });
+
+    if (existingCreds.length >= 10) {
+      return res.status(400).json({ error: 'Maximum of 10 devices allowed. Please remove an existing device first.' });
+    }
 
     const options = await generateRegistrationOptions({
       rpName,
@@ -211,7 +203,7 @@ router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
     // Clear challenge
     await db('users').where({ id: user.id }).update({ webauthn_challenge: null });
 
-    const token = makeToken(user);
+    const token = makeToken(user, user.family_id);
 
     setAuthCookie(res, token);
     res.json({

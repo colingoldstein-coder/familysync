@@ -24,6 +24,12 @@ async function request(path, options = {}) {
   const data = await res.json();
 
   if (!res.ok) {
+    if (res.status === 401 && !path.startsWith('/auth/')) {
+      // Session expired — redirect to login
+      localStorage.removeItem('familysync_user');
+      window.location.href = '/login';
+      throw new Error('Session expired. Please log in again.');
+    }
     throw new Error(data.error || 'Request failed');
   }
 
