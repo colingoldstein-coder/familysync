@@ -87,6 +87,11 @@
   padding: 16px;
 }
 
+.notification-prefs-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .notification-pref-item {
   display: flex;
   align-items: center;

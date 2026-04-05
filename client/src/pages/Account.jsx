@@ -407,16 +407,21 @@ function NotificationSettings() {
     setPrefSaving(false);
   };
 
+  const prefsDisabled = prefSaving || !isSubscribed;
+
   return (
     <div className="account-section">
       <h2>Notifications</h2>
-      <p className="account-current">
-        {permission === 'denied'
-          ? 'Notifications are blocked in your browser settings.'
-          : 'Get notified when tasks are assigned, requests are made, or events are created.'}
-      </p>
-      {permission !== 'denied' && (
+      {permission === 'denied' ? (
+        <p className="account-current">
+          Notifications are blocked in your browser settings. To enable notifications,
+          update your browser permissions for this site and reload the page.
+        </p>
+      ) : (
         <>
+          <p className="account-current">
+            Get notified when tasks are assigned, requests are made, events are created, and more.
+          </p>
           <button
             onClick={handleToggle}
             className={`btn btn-small mb-16 ${isSubscribed ? 'btn-secondary' : 'btn-primary'}`}
@@ -425,80 +430,84 @@ function NotificationSettings() {
             {loading ? 'Updating...' : isSubscribed ? 'Disable Notifications' : 'Enable Notifications'}
           </button>
 
-          {isSubscribed && (
-            <div className="notification-prefs">
-              <p className="account-current mb-8" style={{ fontWeight: 600 }}>
-                Real-time notifications
-              </p>
-              <label className="notification-pref-item">
-                <input
-                  type="checkbox"
-                  checked={user.notifyNewRequests !== false}
-                  onChange={(e) => handlePrefChange('newRequests', e.target.checked)}
-                  disabled={prefSaving}
-                />
-                <span>New requests sent to me</span>
-              </label>
-              <label className="notification-pref-item">
-                <input
-                  type="checkbox"
-                  checked={user.notifyNewTasks !== false}
-                  onChange={(e) => handlePrefChange('newTasks', e.target.checked)}
-                  disabled={prefSaving}
-                />
-                <span>New tasks assigned to me</span>
-              </label>
-              <label className="notification-pref-item">
-                <input
-                  type="checkbox"
-                  checked={user.notifyNewEvents !== false}
-                  onChange={(e) => handlePrefChange('newEvents', e.target.checked)}
-                  disabled={prefSaving}
-                />
-                <span>New events sent to me</span>
-              </label>
-              <label className="notification-pref-item">
-                <input
-                  type="checkbox"
-                  checked={user.notifyResponses !== false}
-                  onChange={(e) => handlePrefChange('responses', e.target.checked)}
-                  disabled={prefSaving}
-                />
-                <span>When someone accepts or declines my requests/events</span>
-              </label>
-
-              <p className="account-current mb-8 mt-16" style={{ fontWeight: 600 }}>
-                Daily summary reminders
-              </p>
-              <label className="notification-pref-item">
-                <input
-                  type="checkbox"
-                  checked={user.notifyPendingRequests !== false}
-                  onChange={(e) => handlePrefChange('pendingRequests', e.target.checked)}
-                  disabled={prefSaving}
-                />
-                <span>Pending help requests</span>
-              </label>
-              <label className="notification-pref-item">
-                <input
-                  type="checkbox"
-                  checked={user.notifyTasksDue !== false}
-                  onChange={(e) => handlePrefChange('tasksDue', e.target.checked)}
-                  disabled={prefSaving}
-                />
-                <span>Tasks due today</span>
-              </label>
-              <label className="notification-pref-item">
-                <input
-                  type="checkbox"
-                  checked={user.notifyActiveEvents !== false}
-                  onChange={(e) => handlePrefChange('activeEvents', e.target.checked)}
-                  disabled={prefSaving}
-                />
-                <span>Events happening today</span>
-              </label>
-            </div>
+          {!isSubscribed && (
+            <p className="account-current mb-16" style={{ fontStyle: 'italic' }}>
+              Enable notifications to configure your preferences below.
+            </p>
           )}
+
+          <div className={`notification-prefs ${!isSubscribed ? 'notification-prefs-disabled' : ''}`}>
+            <p className="account-current mb-8" style={{ fontWeight: 600 }}>
+              Real-time notifications
+            </p>
+            <label className="notification-pref-item">
+              <input
+                type="checkbox"
+                checked={user.notifyNewRequests !== false}
+                onChange={(e) => handlePrefChange('newRequests', e.target.checked)}
+                disabled={prefsDisabled}
+              />
+              <span>New help requests sent to me</span>
+            </label>
+            <label className="notification-pref-item">
+              <input
+                type="checkbox"
+                checked={user.notifyNewTasks !== false}
+                onChange={(e) => handlePrefChange('newTasks', e.target.checked)}
+                disabled={prefsDisabled}
+              />
+              <span>New tasks assigned to me</span>
+            </label>
+            <label className="notification-pref-item">
+              <input
+                type="checkbox"
+                checked={user.notifyNewEvents !== false}
+                onChange={(e) => handlePrefChange('newEvents', e.target.checked)}
+                disabled={prefsDisabled}
+              />
+              <span>New events sent to me</span>
+            </label>
+            <label className="notification-pref-item">
+              <input
+                type="checkbox"
+                checked={user.notifyResponses !== false}
+                onChange={(e) => handlePrefChange('responses', e.target.checked)}
+                disabled={prefsDisabled}
+              />
+              <span>Responses to my requests, events, tasks, and invitations</span>
+            </label>
+
+            <p className="account-current mb-8 mt-16" style={{ fontWeight: 600 }}>
+              Daily summary reminders
+            </p>
+            <label className="notification-pref-item">
+              <input
+                type="checkbox"
+                checked={user.notifyPendingRequests !== false}
+                onChange={(e) => handlePrefChange('pendingRequests', e.target.checked)}
+                disabled={prefsDisabled}
+              />
+              <span>Pending help requests awaiting a response</span>
+            </label>
+            <label className="notification-pref-item">
+              <input
+                type="checkbox"
+                checked={user.notifyTasksDue !== false}
+                onChange={(e) => handlePrefChange('tasksDue', e.target.checked)}
+                disabled={prefsDisabled}
+              />
+              <span>Tasks due today</span>
+            </label>
+            <label className="notification-pref-item">
+              <input
+                type="checkbox"
+                checked={user.notifyActiveEvents !== false}
+                onChange={(e) => handlePrefChange('activeEvents', e.target.checked)}
+                disabled={prefsDisabled}
+              />
+              <span>Events happening today</span>
+            </label>
+          </div>
         </>
       )}
     </div>
