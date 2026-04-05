@@ -2,8 +2,8 @@ const express = require('express');
 const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, validateParamId, schemas } = require('../validation');
-const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
-const { notifyUser } = require('../notifications');
+const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, copyRecurrenceFields, today } = require('../recurrence');
+const { notifyUserIfEnabled } = require('../notifications');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -52,7 +52,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
       });
 
       for (const member of assignees) {
-        notifyUser(member.id, { title: 'New task', body: title, url: '/dashboard', tag: 'task-new' });
+        notifyUserIfEnabled(member.id, 'notify_new_requests', { title: 'New task from ' + req.user.name, body: title, url: '/dashboard', tag: 'task-new' });
       }
 
       res.json({ message: `Task assigned to ${assignees.length} family members`, taskIds });
@@ -65,7 +65,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
         ...recurrence,
       }).returning('id');
 
-      notifyUser(assignedTo, { title: 'New task', body: title, url: '/dashboard', tag: 'task-new' });
+      notifyUserIfEnabled(assignedTo, 'notify_new_requests', { title: 'New task from ' + req.user.name, body: title, url: '/dashboard', tag: 'task-new' });
 
       res.json({ message: 'Task created', taskId: task.id || task });
     }
@@ -129,9 +129,15 @@ router.patch('/:id/status', authenticate, validateParamId, validate(schemas.upda
     }
 
     // Use transaction for status update + recurring next-occurrence
+    // WHERE constraint prevents race condition with concurrent status updates
     let nextTaskId = null;
-    await db.transaction(async (trx) => {
-      await trx('tasks').where({ id: req.params.id }).update({ status, updated_at: db.fn.now() });
+    const updated = await db.transaction(async (trx) => {
+      const affected = await trx('tasks')
+        .where({ id: req.params.id })
+        .whereNotIn('status', ['completed', 'rejected'])
+        .update({ status, updated_at: db.fn.now() });
+
+      if (affected === 0) return false;
 
       if (status === 'completed' && task.recurrence_type !== 'none') {
         const config = getRecurrenceConfig(task);
@@ -148,23 +154,24 @@ router.patch('/:id/status', authenticate, validateParamId, validate(schemas.upda
             family_id: task.family_id,
             rejectable: task.rejectable,
             deadline: task.deadline ? nextDate : null,
-            recurrence_type: task.recurrence_type,
-            recurrence_interval: task.recurrence_interval,
-            recurrence_unit: task.recurrence_unit,
-            recurrence_days: task.recurrence_days,
-            recurrence_end: task.recurrence_end,
-            series_id: task.series_id,
+            ...copyRecurrenceFields(task),
           }).returning('id');
           nextTaskId = nextTask.id || nextTask;
         }
       }
+
+      return true;
     });
 
-    // Notify the parent when a task is completed (outside transaction)
+    if (!updated) {
+      return res.status(400).json({ error: 'Task already completed or declined' });
+    }
+
+    // Notify the parent when a task is completed
     if (status === 'completed') {
-      notifyUser(task.assigned_by, {
+      notifyUserIfEnabled(task.assigned_by, 'notify_responses', {
         title: 'Task completed',
-        body: `${req.user.name} completed: ${task.title}`,
+        body: `${req.user.name} completed "${task.title}"`,
         url: '/dashboard',
         tag: 'task-done',
       });

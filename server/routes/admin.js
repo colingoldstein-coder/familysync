@@ -10,6 +10,7 @@ const logger = require('../logger');
 const { sendBrandedEmail, escapeHtml } = require('../email');
 const sanitizeHtml = require('sanitize-html');
 const audit = require('../audit');
+const { validateImageBuffer } = require('../imageValidation');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -63,19 +64,26 @@ function toDateStr(val) {
   return String(val).split('T')[0];
 }
 
-// Overview stats
+// Overview stats — run all counts in parallel
 router.get('/stats/overview', async (req, res) => {
   try {
-    const [families] = await db('families').count('id as count');
-    const [users] = await db('users').count('id as count');
-    const [parents] = await db('users').where({ role: 'parent' }).count('id as count');
-    const [children] = await db('users').where({ role: 'child' }).count('id as count');
-    const [totalTasks] = await db('tasks').count('id as count');
-    const [completedTasks] = await db('tasks').where({ status: 'completed' }).count('id as count');
-    const [totalEvents] = await db('events').count('id as count');
-    const [pendingEvents] = await db('events').where({ status: 'pending' }).count('id as count');
-    const [totalRequests] = await db('help_requests').count('id as count');
-    const [pendingRequests] = await db('help_requests').where({ status: 'pending' }).count('id as count');
+    const [
+      [families], [users], [parents], [children],
+      [totalTasks], [completedTasks],
+      [totalEvents], [pendingEvents],
+      [totalRequests], [pendingRequests],
+    ] = await Promise.all([
+      db('families').count('id as count'),
+      db('users').count('id as count'),
+      db('users').where({ role: 'parent' }).count('id as count'),
+      db('users').where({ role: 'child' }).count('id as count'),
+      db('tasks').count('id as count'),
+      db('tasks').where({ status: 'completed' }).count('id as count'),
+      db('events').count('id as count'),
+      db('events').where({ status: 'pending' }).count('id as count'),
+      db('help_requests').count('id as count'),
+      db('help_requests').where({ status: 'pending' }).count('id as count'),
+    ]);
 
     const total = Number(totalTasks.count);
     const completed = Number(completedTasks.count);
@@ -772,9 +780,18 @@ router.get('/email-log', async (req, res) => {
 });
 
 // Upload image for email
-router.post('/upload-image', upload.single('image'), (req, res) => {
+router.post('/upload-image', upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
+  }
+  // Validate magic bytes to prevent non-image file uploads
+  const header = Buffer.alloc(12);
+  const fd = await fs.promises.open(req.file.path, 'r');
+  await fd.read(header, 0, 12, 0);
+  await fd.close();
+  if (!validateImageBuffer(header)) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: 'File is not a valid image' });
   }
   const url = `/api/admin/uploads/${req.file.filename}`;
   res.json({ url });

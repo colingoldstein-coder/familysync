@@ -15,8 +15,11 @@ export default function Account() {
   // Scroll to hash section on mount (e.g. #email-preferences)
   useEffect(() => {
     if (window.location.hash) {
-      const el = document.querySelector(window.location.hash);
-      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      const id = window.location.hash.slice(1);
+      if (/^[a-zA-Z0-9_-]+$/.test(id)) {
+        const el = document.getElementById(id);
+        if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
     }
   }, []);
 

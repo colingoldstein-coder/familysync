@@ -27,6 +27,7 @@ if (isProduction) {
 }
 
 const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profile');
 const taskRoutes = require('./routes/tasks');
 const requestRoutes = require('./routes/requests');
 const contactRoutes = require('./routes/contact');
@@ -75,8 +76,9 @@ app.use(helmet({
   permittedCrossDomainPolicies: { permittedPolicies: 'none' },
 }));
 
-// Permissions-Policy: restrict access to sensitive browser APIs
+// X-Frame-Options for legacy browsers (CSP frame-ancestors covers modern browsers)
 app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   next();
 });
@@ -188,6 +190,7 @@ app.get('/health', async (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', profileRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/contact', contactRoutes);

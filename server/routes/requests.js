@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
 const { validate, validateParamId, schemas } = require('../validation');
-const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, today } = require('../recurrence');
+const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, copyRecurrenceFields, today } = require('../recurrence');
 const { notifyUserIfEnabled, notifyFamilyMembersIfEnabled } = require('../notifications');
 const logger = require('../logger');
 
@@ -119,12 +119,7 @@ router.patch('/:id/respond', authenticate, validateParamId, validate(schemas.res
           requested_to: request.requested_to,
           request_to_all: request.request_to_all,
           family_id: request.family_id,
-          recurrence_type: request.recurrence_type,
-          recurrence_interval: request.recurrence_interval,
-          recurrence_unit: request.recurrence_unit,
-          recurrence_days: request.recurrence_days,
-          recurrence_end: request.recurrence_end,
-          series_id: request.series_id,
+          ...copyRecurrenceFields(request),
         });
       }
     }
@@ -141,6 +136,37 @@ router.patch('/:id/respond', authenticate, validateParamId, validate(schemas.res
     res.json({ message: `Request ${status}` });
   } catch (err) {
     logger.error({ msg: 'Respond to request error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete a help request
+router.delete('/:id', authenticate, validateParamId, async (req, res) => {
+  try {
+    const request = await db('help_requests')
+      .where({ id: req.params.id, family_id: req.user.familyId }).first();
+
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    // Only the creator or a parent can delete
+    if (request.requested_by !== req.user.id && req.user.role !== 'parent') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (req.query.series === 'true' && request.series_id) {
+      await db('help_requests')
+        .where({ series_id: request.series_id, family_id: req.user.familyId })
+        .whereIn('status', ['pending'])
+        .del();
+      res.json({ message: 'Recurring request series deleted' });
+    } else {
+      await db('help_requests').where({ id: req.params.id }).del();
+      res.json({ message: 'Request deleted' });
+    }
+  } catch (err) {
+    logger.error({ msg: 'Delete request error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

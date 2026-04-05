@@ -28,9 +28,12 @@ export default function AcceptInvite() {
   const handleGoogleSuccess = useCallback((idToken) => {
     setError('');
     try {
-      const payload = JSON.parse(atob(idToken.split('.')[1]));
+      const base64Url = idToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(base64));
+      if (!payload || typeof payload !== 'object') throw new Error('Invalid token payload');
       setGoogleIdToken(idToken);
-      setName(payload.name || '');
+      setName(String(payload.name || ''));
     } catch {
       setError('Failed to read Google account info');
     }

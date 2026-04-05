@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { authenticate, requireParent } = require('../middleware/auth');
 const { validate, validateParamId, schemas } = require('../validation');
-const { buildRecurrenceFields, getRecurrenceConfig, getNextDate } = require('../recurrence');
+const { buildRecurrenceFields, getRecurrenceConfig, getNextDate, copyRecurrenceFields } = require('../recurrence');
 const { notifyUserIfEnabled, notifyFamilyMembersIfEnabled } = require('../notifications');
 const logger = require('../logger');
 
@@ -80,7 +80,8 @@ router.get('/', authenticate, async (req, res) => {
     // Children only see events they created or that are assigned to them
     if (req.user.role === 'child') {
       query = query.andWhere(function () {
-        this.where('e.requested_by', req.user.id);
+        this.where('e.requested_by', req.user.id)
+          .orWhere('e.requested_to', req.user.id);
       });
     } else {
       // Parents see events directed to them or to all parents, plus ones they created
@@ -154,12 +155,7 @@ router.patch('/:id/respond', authenticate, requireParent, validateParamId, valid
             requested_to: event.requested_to,
             request_to_all: event.request_to_all,
             family_id: event.family_id,
-            recurrence_type: event.recurrence_type,
-            recurrence_interval: event.recurrence_interval,
-            recurrence_unit: event.recurrence_unit,
-            recurrence_days: event.recurrence_days,
-            recurrence_end: event.recurrence_end,
-            series_id: event.series_id,
+            ...copyRecurrenceFields(event),
           });
         }
       }

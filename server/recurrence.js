@@ -143,10 +143,25 @@ function getRecurrenceConfig(row) {
   };
 }
 
+/**
+ * Copy recurrence DB fields from an existing row for inserting the next occurrence.
+ */
+function copyRecurrenceFields(row) {
+  return {
+    recurrence_type: row.recurrence_type,
+    recurrence_interval: row.recurrence_interval,
+    recurrence_unit: row.recurrence_unit,
+    recurrence_days: row.recurrence_days,
+    recurrence_end: row.recurrence_end,
+    series_id: row.series_id,
+  };
+}
+
 module.exports = {
   generateSeriesId,
   getNextDate,
   buildRecurrenceFields,
   getRecurrenceConfig,
+  copyRecurrenceFields,
   today,
 };

@@ -79,7 +79,7 @@ async function sendContactEmail({ name, email, message }) {
       body: JSON.stringify({
         from: fromAddress,
         to: toAddress,
-        reply_to: email,
+        reply_to: email.replace(/[\r\n]/g, ''),
         subject: `FamilySync Contact: ${name}`,
         html,
       }),

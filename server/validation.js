@@ -35,7 +35,11 @@ const recurrenceFields = {
   recurrenceInterval: z.number().int().min(1).max(365).optional(),
   recurrenceUnit: z.enum(['day', 'week', 'month']).optional(),
   recurrenceDays: z.string().regex(/^[0-6](,[0-6])*$/, 'Invalid days format').optional().nullable(),
-  recurrenceEnd: datePattern.optional().nullable(),
+  recurrenceEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').refine(val => {
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() + 2);
+    return new Date(val + 'T00:00:00') <= maxDate;
+  }, 'Recurrence end date must be within 2 years').optional().nullable(),
 };
 
 const createTask = z.object({
