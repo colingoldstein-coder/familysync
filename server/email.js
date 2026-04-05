@@ -190,7 +190,7 @@ function getEmailSecret() {
 
 function generateEmailPrefToken(userId) {
   const secret = getEmailSecret();
-  const expiry = Date.now() + 90 * 24 * 60 * 60 * 1000; // 90 days
+  const expiry = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
   const data = `email-pref:${userId}:${expiry}`;
   const hmac = crypto.createHmac('sha256', secret).update(data).digest('hex');
   return `${userId}.${expiry}.${hmac}`;

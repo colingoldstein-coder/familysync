@@ -557,7 +557,7 @@ function BiometricSettings() {
       const regResponse = await startRegistration({ optionsJSON: options });
       await api.webauthnRegister(regResponse);
       // Save email so login page knows biometric is available
-      localStorage.setItem('familysync_biometric_email', user.email);
+      localStorage.setItem('familysync_biometric_email', btoa(user.email));
       setSuccess('Biometric login enabled for this device');
       setTimeout(() => setSuccess(''), 3000);
       loadCredentials();

@@ -18,9 +18,9 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem('familysync_biometric_email');
-    if (savedEmail && browserSupportsWebAuthn()) {
-      setEmail(savedEmail);
+    const encoded = localStorage.getItem('familysync_biometric_email');
+    if (encoded && browserSupportsWebAuthn()) {
+      try { setEmail(atob(encoded)); } catch { /* ignore invalid */ }
       setBiometricAvailable(true);
     }
   }, []);
