@@ -13,6 +13,10 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function sanitizeHeader(str) {
+  return String(str).replace(/[\r\n\t]/g, '');
+}
+
 async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
   const joinUrl = `${CLIENT_URL}/join/${token}`;
 
@@ -40,7 +44,7 @@ async function sendInviteEmail({ to, familyName, role, token, inviterName }) {
       body: JSON.stringify({
         from: fromAddress,
         to,
-        subject: `${inviterName} invited you to join ${familyName} on FamilySync`,
+        subject: sanitizeHeader(`${inviterName} invited you to join ${familyName} on FamilySync`),
         html,
       }),
     });
@@ -79,8 +83,8 @@ async function sendContactEmail({ name, email, message }) {
       body: JSON.stringify({
         from: fromAddress,
         to: toAddress,
-        reply_to: email.replace(/[\r\n]/g, ''),
-        subject: `FamilySync Contact: ${name}`,
+        reply_to: sanitizeHeader(email),
+        subject: sanitizeHeader(`FamilySync Contact: ${name}`),
         html,
       }),
     });
@@ -153,7 +157,7 @@ async function sendBrandedEmail({ to, subject, bodyHtml }) {
         body: JSON.stringify({
           from: fromAddress,
           to: email,
-          subject,
+          subject: sanitizeHeader(subject),
           html: buildHtml(unsubUrl),
         }),
       });

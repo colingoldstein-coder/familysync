@@ -49,7 +49,7 @@ export default defineConfig({
               cacheName: 'api-data',
               expiration: { maxEntries: 50, maxAgeSeconds: 5 * 60 },
               networkTimeoutSeconds: 3,
-              cacheableResponse: { statuses: [0, 200] },
+              cacheableResponse: { statuses: [200] },
             },
           },
           {
@@ -58,13 +58,16 @@ export default defineConfig({
             options: {
               cacheName: 'static-assets',
               expiration: { maxEntries: 30, maxAgeSeconds: 30 * 24 * 60 * 60 },
-              cacheableResponse: { statuses: [0, 200] },
+              cacheableResponse: { statuses: [200] },
             },
           },
         ],
       },
     }),
   ],
+  build: {
+    sourcemap: false,
+  },
   server: {
     port: 5173,
     proxy: {

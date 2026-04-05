@@ -184,7 +184,7 @@ const adminReactivate = z.object({
 const adminBroadcastPush = z.object({
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(1000),
-  url: z.string().max(500).regex(/^\//, 'URL must be a relative path').optional(),
+  url: z.string().max(500).regex(/^\/[a-zA-Z0-9/_-]*$/, 'URL must be a safe relative path').optional(),
 });
 
 const adminSendEmail = z.object({

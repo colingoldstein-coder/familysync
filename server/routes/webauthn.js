@@ -162,12 +162,8 @@ router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
       await db('users').where({ id: user.id }).update({ webauthn_challenge: null, webauthn_challenge_at: null });
       return res.status(400).json({ error: 'Authentication failed' });
     }
-    if (!user.is_active) {
-      return res.status(403).json({ error: 'This account has been deactivated. Please contact your family admin.' });
-    }
-    if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
-      return res.status(429).json({ error: `Account temporarily locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
+    if (!user.is_active || (user.locked_until && new Date(user.locked_until) > new Date())) {
+      return res.status(400).json({ error: 'Authentication failed' });
     }
 
     const credential = await db('webauthn_credentials')
