@@ -105,7 +105,7 @@ function generateIcal({ tasks, events, userName, familyName }) {
     // Build description
     const descParts = [];
     if (event.description) descParts.push(event.description);
-    const typeLabels = { drop_off: 'Drop-off', pick_up: 'Pick-up', both: 'Drop-off & Pick-up' };
+    const typeLabels = { drop_off: 'Drop-off', pick_up: 'Pick-up', both: 'Drop-off & Pick-up', fyi: 'Just FYI' };
     descParts.push(`Type: ${typeLabels[event.event_type]}`);
     if (travelBefore > 0) descParts.push(`Travel before: ${travelBefore} mins`);
     if (travelAfter > 0) descParts.push(`Travel after: ${travelAfter} mins`);

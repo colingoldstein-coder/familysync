@@ -115,6 +115,7 @@ export default function EventForm({ members, userRole, onSubmit, onCancel }) {
               <option value="drop_off">Drop-off (take me there)</option>
               <option value="pick_up">Pick-up (collect me)</option>
               <option value="both">Both (drop-off & pick-up)</option>
+              <option value="fyi">Just FYI (no transport needed)</option>
             </select>
           </div>
 

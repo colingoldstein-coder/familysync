@@ -6,6 +6,7 @@ const EVENT_TYPE_LABELS = {
   drop_off: 'Drop-off',
   pick_up: 'Pick-up',
   both: 'Drop-off & Pick-up',
+  fyi: 'Just FYI',
 };
 
 function formatDate(dateStr) {

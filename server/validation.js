@@ -76,7 +76,7 @@ const createEvent = z.object({
   eventDate: datePattern,
   eventTime: timePattern,
   endTime: timePattern.optional().nullable(),
-  eventType: z.enum(['drop_off', 'pick_up', 'both']),
+  eventType: z.enum(['drop_off', 'pick_up', 'both', 'fyi']),
   locationName: z.string().max(200).optional(),
   locationAddress: z.string().max(500).optional(),
   requestedTo: z.number().int().positive().optional(),
