@@ -10,6 +10,5 @@ node_modules
 *.log
 npm-debug.log*
 server/tests
-server/uploads
 README.md
 .DS_Store
