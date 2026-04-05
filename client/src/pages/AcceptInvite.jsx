@@ -15,6 +15,8 @@ export default function AcceptInvite() {
   const [error, setError] = useState('');
   const [loadingInvite, setLoadingInvite] = useState(true);
   const [googleIdToken, setGoogleIdToken] = useState(null);
+  const [declining, setDeclining] = useState(false);
+  const [declined, setDeclined] = useState(false);
   const { acceptInvite, googleAcceptInvite } = useAuth();
   const navigate = useNavigate();
 
@@ -65,6 +67,23 @@ export default function AcceptInvite() {
           <div className="auth-logo">
             <span className="brand-icon-large">&#x27D0;</span>
             <p>Loading invitation...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (declined) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <span className="brand-icon-large">&#x27D0;</span>
+            <h1>Invitation Declined</h1>
+            <p>You have declined this invitation. The family admin has been notified.</p>
+          </div>
+          <div className="auth-footer">
+            <Link to="/login">Go to Login</Link>
           </div>
         </div>
       </div>
@@ -167,6 +186,27 @@ export default function AcceptInvite() {
         </form>
 
         <div className="auth-footer">
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ width: '100%', marginBottom: 12, color: 'var(--text-secondary)' }}
+            disabled={declining}
+            onClick={async () => {
+              if (!window.confirm('Are you sure you want to decline this invitation?')) return;
+              setDeclining(true);
+              try {
+                await api.declineInvite(token);
+                setError('');
+                setDeclined(true);
+              } catch (err) {
+                setError(err.message);
+              } finally {
+                setDeclining(false);
+              }
+            }}
+          >
+            {declining ? 'Declining...' : 'Decline Invitation'}
+          </button>
           <p>Already have an account?</p>
           <Link to="/login">Log in</Link>
         </div>

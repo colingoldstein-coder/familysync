@@ -73,6 +73,7 @@ export const api = {
   sendInvite: (data) => request('/auth/invite', { method: 'POST', body: JSON.stringify(data) }),
   getInvite: (token) => request(`/auth/invite/${token}`),
   acceptInvite: (data) => request('/auth/accept-invite', { method: 'POST', body: JSON.stringify(data) }),
+  declineInvite: (token) => request('/auth/decline-invite', { method: 'POST', body: JSON.stringify({ token }) }),
   getInvitations: () => request('/auth/invitations'),
   resendInvite: (id) => request(`/auth/invitations/${id}/resend`, { method: 'POST' }),
 

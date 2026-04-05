@@ -11,6 +11,7 @@ const logger = require('../logger');
 const { verifyGoogleToken } = require('../oauth');
 const { toBool } = require('../utils');
 const { makeToken } = require('../makeToken');
+const { notifyUserIfEnabled } = require('../notifications');
 
 const router = express.Router();
 
@@ -189,12 +190,48 @@ router.post('/accept-invite', validate(schemas.acceptInvite), async (req, res) =
     const user = { id: result.userId, name, email: invite.email, role: invite.role, is_admin: false };
     const jwtToken = makeToken(user, invite.family_id);
 
+    // Notify the family admin who sent the invitation
+    notifyUserIfEnabled(invite.invited_by, 'notify_responses', {
+      title: 'Invitation accepted',
+      body: `${name} has joined your family as a ${invite.role}`,
+      url: '/dashboard',
+      tag: 'invite-accepted',
+    });
+
     setAuthCookie(res, jwtToken);
     res.json({
       user: { id: result.userId, name, email: invite.email, role: invite.role, isAdmin: false, familyId: invite.family_id, profileSetupComplete: false },
     });
   } catch (err) {
     logger.error({ msg: 'Route error', error: err.message });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Decline invitation (public — used by invite recipient)
+router.post('/decline-invite', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token is required' });
+
+    const invite = await db('invitations').where({ token, status: 'pending' }).first();
+    if (!invite) {
+      return res.status(400).json({ error: 'Invalid or expired invitation' });
+    }
+
+    await db('invitations').where({ id: invite.id }).update({ status: 'declined' });
+
+    // Notify the family admin who sent the invitation
+    notifyUserIfEnabled(invite.invited_by, 'notify_responses', {
+      title: 'Invitation declined',
+      body: `${invite.email} has declined the invitation to join your family`,
+      url: '/dashboard',
+      tag: 'invite-declined',
+    });
+
+    res.json({ message: 'Invitation declined' });
+  } catch (err) {
+    logger.error({ msg: 'Decline invite error', error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -507,6 +544,14 @@ router.post('/google-accept-invite', validate(schemas.googleAcceptInvite), async
 
     const user = { id: result.userId, name, email: invite.email, role: invite.role, is_admin: false };
     const jwtToken = makeToken(user, invite.family_id);
+
+    // Notify the family admin who sent the invitation
+    notifyUserIfEnabled(invite.invited_by, 'notify_responses', {
+      title: 'Invitation accepted',
+      body: `${name} has joined your family as a ${invite.role}`,
+      url: '/dashboard',
+      tag: 'invite-accepted',
+    });
 
     setAuthCookie(res, jwtToken);
     res.json({
