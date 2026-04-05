@@ -38,6 +38,7 @@ export default defineConfig({
         importScripts: ['sw-push.js'],
         globPatterns: ['**/*.{js,css,html,svg,ico,woff2}', '*.png', 'pwa-*.png', 'maskable-*.png', 'notification-badge.png'],
         globIgnores: ['images/site/**'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
