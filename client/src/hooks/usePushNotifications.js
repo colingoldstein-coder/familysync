@@ -30,42 +30,42 @@ export function usePushNotifications() {
   }, []);
 
   const subscribe = useCallback(async () => {
-    if (!isSupported) return false;
+    if (!isSupported) throw new Error('Push notifications are not supported on this device');
 
-    try {
-      const perm = await Notification.requestPermission();
-      setPermission(perm);
-      if (perm !== 'granted') return false;
-
-      const { publicKey } = await api.getVapidKey();
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
-
-      await api.subscribePush(sub.toJSON());
-      setIsSubscribed(true);
-      return true;
-    } catch {
-      return false;
+    const perm = await Notification.requestPermission();
+    setPermission(perm);
+    if (perm === 'denied') {
+      throw new Error('Notifications are blocked. Please allow notifications in your browser settings and try again.');
     }
+    if (perm !== 'granted') {
+      throw new Error('Notification permission was not granted');
+    }
+
+    const { publicKey } = await api.getVapidKey();
+    if (!publicKey) {
+      throw new Error('Push notifications are not configured on the server');
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    await api.subscribePush(sub.toJSON());
+    setIsSubscribed(true);
   }, [isSupported]);
 
   const unsubscribe = useCallback(async () => {
     if (!isSupported) return;
 
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        await api.unsubscribePush(sub.endpoint);
-        await sub.unsubscribe();
-      }
-      setIsSubscribed(false);
-    } catch {
-      // ignore
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await api.unsubscribePush(sub.endpoint);
+      await sub.unsubscribe();
     }
+    setIsSubscribed(false);
   }, [isSupported]);
 
   return { isSupported, permission, isSubscribed, subscribe, unsubscribe };

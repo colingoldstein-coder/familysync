@@ -385,25 +385,40 @@ function NotificationSettings() {
   const { isSupported, permission, isSubscribed, subscribe, unsubscribe } = usePushNotifications();
   const [loading, setLoading] = useState(false);
   const [prefSaving, setPrefSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   if (!isSupported) return null;
 
   const handleToggle = async () => {
     setLoading(true);
-    if (isSubscribed) {
-      await unsubscribe();
-    } else {
-      await subscribe();
+    setError('');
+    setSuccess('');
+    try {
+      if (isSubscribed) {
+        await unsubscribe();
+        setSuccess('Notifications disabled');
+      } else {
+        await subscribe();
+        setSuccess('Notifications enabled');
+      }
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to update notifications');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handlePrefChange = async (key, value) => {
     setPrefSaving(true);
+    setError('');
     try {
       await api.updateNotificationPrefs({ [key]: value });
       await refreshUser();
-    } catch { /* ignore */ }
+    } catch (err) {
+      setError(err.message || 'Failed to save preference');
+    }
     setPrefSaving(false);
   };
 
@@ -412,6 +427,8 @@ function NotificationSettings() {
   return (
     <div className="account-section">
       <h2>Notifications</h2>
+      {error && <div className="error-msg mb-12">{error}</div>}
+      {success && <div className="success-msg mb-12">{success}</div>}
       {permission === 'denied' ? (
         <p className="account-current">
           Notifications are blocked in your browser settings. To enable notifications,
@@ -429,12 +446,6 @@ function NotificationSettings() {
           >
             {loading ? 'Updating...' : isSubscribed ? 'Disable Notifications' : 'Enable Notifications'}
           </button>
-
-          {!isSubscribed && (
-            <p className="account-current mb-16" style={{ fontStyle: 'italic' }}>
-              Enable notifications to configure your preferences below.
-            </p>
-          )}
 
           <div className={`notification-prefs ${!isSubscribed ? 'notification-prefs-disabled' : ''}`}>
             <p className="account-current mb-8" style={{ fontWeight: 600 }}>
