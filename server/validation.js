@@ -197,7 +197,7 @@ const adminSendEmail = z.object({
 });
 
 const adminUpdateSiteImage = z.object({
-  imageUrl: z.string().max(2000).regex(/^\/api\/uploads\//, 'Image URL must be a local upload path').optional(),
+  imageUrl: z.string().max(2000).regex(/^\/api\/(admin\/)?uploads\//, 'Image URL must be a local upload path').optional(),
   altText: z.string().max(500).optional(),
 });
 
