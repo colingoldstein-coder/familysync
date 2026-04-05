@@ -170,6 +170,7 @@ const notificationPreferences = z.object({
   tasksDue: z.boolean().optional(),
   activeEvents: z.boolean().optional(),
   newRequests: z.boolean().optional(),
+  newTasks: z.boolean().optional(),
   newEvents: z.boolean().optional(),
   responses: z.boolean().optional(),
 }).refine(data => Object.values(data).some(v => v !== undefined), {

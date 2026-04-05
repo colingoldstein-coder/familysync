@@ -442,6 +442,15 @@ function NotificationSettings() {
               <label className="notification-pref-item">
                 <input
                   type="checkbox"
+                  checked={user.notifyNewTasks !== false}
+                  onChange={(e) => handlePrefChange('newTasks', e.target.checked)}
+                  disabled={prefSaving}
+                />
+                <span>New tasks assigned to me</span>
+              </label>
+              <label className="notification-pref-item">
+                <input
+                  type="checkbox"
                   checked={user.notifyNewEvents !== false}
                   onChange={(e) => handlePrefChange('newEvents', e.target.checked)}
                   disabled={prefSaving}

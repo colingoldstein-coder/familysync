@@ -52,7 +52,7 @@ router.post('/', authenticate, requireParent, validate(schemas.createTask), asyn
       });
 
       for (const member of assignees) {
-        notifyUserIfEnabled(member.id, 'notify_new_requests', { title: 'New task from ' + req.user.name, body: title, url: '/dashboard', tag: 'task-new' });
+        notifyUserIfEnabled(member.id, 'notify_new_tasks', { title: 'New task from ' + req.user.name, body: title, url: '/dashboard', tag: 'task-new' });
       }
 
       res.json({ message: `Task assigned to ${assignees.length} family members`, taskIds });

@@ -34,7 +34,7 @@ router.get('/me', authenticate, async (req, res) => {
       .where({ id: req.user.id })
       .select('id', 'name', 'email', 'role', 'is_admin', 'is_super_admin', 'family_id', 'avatar_color', 'avatar_url', 'email_opt_out',
         'notify_pending_requests', 'notify_tasks_due', 'notify_active_events',
-        'notify_new_requests', 'notify_new_events', 'notify_responses',
+        'notify_new_requests', 'notify_new_tasks', 'notify_new_events', 'notify_responses',
         'profile_setup_complete', 'profile_reminder_dismissed')
       .first();
     const family = await db('families').where({ id: user.family_id }).first();
@@ -51,6 +51,7 @@ router.get('/me', authenticate, async (req, res) => {
         notifyTasksDue: user.notify_tasks_due !== false,
         notifyActiveEvents: user.notify_active_events !== false,
         notifyNewRequests: user.notify_new_requests !== false,
+        notifyNewTasks: user.notify_new_tasks !== false,
         notifyNewEvents: user.notify_new_events !== false,
         notifyResponses: user.notify_responses !== false,
         profileSetupComplete: toBool(user.profile_setup_complete) !== false,
@@ -278,12 +279,13 @@ router.patch('/me/email-preferences', authenticate, validate(schemas.emailPrefer
 // Notification preferences (which push notification types to receive)
 router.patch('/me/notification-preferences', authenticate, validate(schemas.notificationPreferences), async (req, res) => {
   try {
-    const { pendingRequests, tasksDue, activeEvents, newRequests, newEvents, responses } = req.body;
+    const { pendingRequests, tasksDue, activeEvents, newRequests, newTasks, newEvents, responses } = req.body;
     const update = {};
     if (pendingRequests !== undefined) update.notify_pending_requests = pendingRequests;
     if (tasksDue !== undefined) update.notify_tasks_due = tasksDue;
     if (activeEvents !== undefined) update.notify_active_events = activeEvents;
     if (newRequests !== undefined) update.notify_new_requests = newRequests;
+    if (newTasks !== undefined) update.notify_new_tasks = newTasks;
     if (newEvents !== undefined) update.notify_new_events = newEvents;
     if (responses !== undefined) update.notify_responses = responses;
     await db('users').where({ id: req.user.id }).update(update);
