@@ -100,28 +100,41 @@ router.patch('/:id/respond', authenticate, validateParamId, validate(schemas.res
       return res.status(403).json({ error: 'This request is not for you' });
     }
 
-    await db('help_requests').where({ id: req.params.id }).update({
-      status,
-      accepted_by: status === 'accepted' ? req.user.id : null,
-      updated_at: db.fn.now(),
+    // Use transaction with WHERE status='pending' to prevent race condition
+    const updated = await db.transaction(async (trx) => {
+      const affected = await trx('help_requests')
+        .where({ id: req.params.id, status: 'pending' })
+        .update({
+          status,
+          accepted_by: status === 'accepted' ? req.user.id : null,
+          updated_at: db.fn.now(),
+        });
+
+      if (affected === 0) return false;
+
+      // Auto-create next occurrence for recurring requests when accepted
+      if (status === 'accepted' && request.recurrence_type !== 'none') {
+        const config = getRecurrenceConfig(request);
+        const nextDate = getNextDate(config, today());
+
+        if (nextDate) {
+          await trx('help_requests').insert({
+            title: request.title,
+            description: request.description,
+            requested_by: request.requested_by,
+            requested_to: request.requested_to,
+            request_to_all: request.request_to_all,
+            family_id: request.family_id,
+            ...copyRecurrenceFields(request),
+          });
+        }
+      }
+
+      return true;
     });
 
-    // Auto-create next occurrence for recurring requests when accepted
-    if (status === 'accepted' && request.recurrence_type !== 'none') {
-      const config = getRecurrenceConfig(request);
-      const nextDate = getNextDate(config, today());
-
-      if (nextDate) {
-        await db('help_requests').insert({
-          title: request.title,
-          description: request.description,
-          requested_by: request.requested_by,
-          requested_to: request.requested_to,
-          request_to_all: request.request_to_all,
-          family_id: request.family_id,
-          ...copyRecurrenceFields(request),
-        });
-      }
+    if (!updated) {
+      return res.status(400).json({ error: 'Request already responded to' });
     }
 
     // Notify the person who made the request (if they have response notifications enabled)

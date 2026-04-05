@@ -781,20 +781,26 @@ router.get('/email-log', async (req, res) => {
 
 // Upload image for email
 router.post('/upload-image', upload.single('image'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No image file provided' });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+    // Validate magic bytes to prevent non-image file uploads
+    const header = Buffer.alloc(12);
+    const fd = await fs.promises.open(req.file.path, 'r');
+    await fd.read(header, 0, 12, 0);
+    await fd.close();
+    if (!validateImageBuffer(header)) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'File is not a valid image' });
+    }
+    const url = `/api/admin/uploads/${req.file.filename}`;
+    res.json({ url });
+  } catch (err) {
+    logger.error({ msg: 'Image upload error', error: err.message });
+    if (req.file?.path) try { fs.unlinkSync(req.file.path); } catch { /* ignore cleanup */ }
+    res.status(500).json({ error: 'Server error' });
   }
-  // Validate magic bytes to prevent non-image file uploads
-  const header = Buffer.alloc(12);
-  const fd = await fs.promises.open(req.file.path, 'r');
-  await fd.read(header, 0, 12, 0);
-  await fd.close();
-  if (!validateImageBuffer(header)) {
-    fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: 'File is not a valid image' });
-  }
-  const url = `/api/admin/uploads/${req.file.filename}`;
-  res.json({ url });
 });
 
 // Serve uploaded images (this route is behind authenticate + requireSuperAdmin via router.use,
