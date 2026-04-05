@@ -36,7 +36,8 @@ export default defineConfig({
       },
       workbox: {
         importScripts: ['sw-push.js'],
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,ico,woff2}', '*.png', 'pwa-*.png', 'maskable-*.png', 'notification-badge.png'],
+        globIgnores: ['images/site/**'],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
