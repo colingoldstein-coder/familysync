@@ -209,6 +209,8 @@ router.post('/login', validate(schemas.webauthnLogin), async (req, res) => {
         avatarUrl: user.avatar_url || null,
         isAdmin: toBool(user.is_admin), isSuperAdmin: toBool(user.is_super_admin),
         familyId: user.family_id,
+        profileSetupComplete: toBool(user.profile_setup_complete) !== false,
+        profileReminderDismissed: toBool(user.profile_reminder_dismissed),
       },
     });
   } catch (err) {
